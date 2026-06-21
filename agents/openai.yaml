@@ -1,0 +1,4 @@
+interface:
+  display_name: "Journal Figure Studio"
+  short_description: "Create professional journal figure packages"
+  default_prompt: "Use $journal-figure-studio to create a publication-ready figure package from these research results."

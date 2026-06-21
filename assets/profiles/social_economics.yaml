@@ -1,0 +1,32 @@
+id: social_economics
+version: 1
+field: social science, economics, and development
+source_url: null
+verified_at: 2026-06-21
+stale_after_days: 365
+formats: [pdf, png]
+raster_dpi: 600
+color_mode: RGB
+dimensions_inches:
+  single: 3.3
+  double: 6.85
+  aspect_ratio: 0.72
+fonts:
+  family: serif
+  minimum_pt: 7
+  axis_pt: 8
+  panel_label_pt: 9
+caption:
+  position: below
+  require_uncertainty_definition: true
+style:
+  palette: lancet
+  grid: false
+  top_right_spines: false
+rules:
+  require_axis_labels: true
+  require_units_when_available: true
+  require_vector_pdf: true
+  require_ci_for_effect_estimates: true
+  require_zero_reference_for_effect_plots: true
+  require_projection_for_maps: true

@@ -1,0 +1,30 @@
+id: universal
+version: 1
+field: cross-disciplinary
+source_url: null
+verified_at: 2026-06-21
+stale_after_days: 365
+formats: [pdf, png]
+raster_dpi: 600
+color_mode: RGB
+dimensions_inches:
+  single: 3.35
+  double: 6.9
+  aspect_ratio: 0.68
+fonts:
+  family: sans-serif
+  minimum_pt: 7
+  axis_pt: 8
+  panel_label_pt: 9
+caption:
+  position: below
+  require_uncertainty_definition: true
+style:
+  palette: okabe_ito
+  grid: false
+  top_right_spines: false
+rules:
+  require_axis_labels: true
+  require_units_when_available: true
+  require_vector_pdf: true
+  allow_log_axis_only_if_labeled: true
