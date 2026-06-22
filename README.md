@@ -156,6 +156,20 @@ python scripts/render_recipe.py --request figure_request.yaml --profiles-dir pro
 
 Named profiles expire after 365 days by default. Re-verify them before submission. The profile registry guidance is in [`references/profile-registry.md`](references/profile-registry.md).
 
+To export SVG, add `svg` to the profile's `formats` list or set `export_svg: true` in the request.
+
+## Supported Features
+
+| Feature | Description |
+|---------|-------------|
+| **Figure types** | bar, ablation, line, time_series, training_curve, scatter, distribution, forest, heatmap, calibration |
+| **Output formats** | PDF (vector), PNG (raster), TIFF (high-res raster), SVG (vector) |
+| **Annotations** | Statistical significance brackets (p_value → \*, \*\*, \*\*\*, n.s.) |
+| **Profiles** | 6 built-in discipline profiles with colourblind-safe palettes |
+| **Input formats** | CSV, Parquet, JSON, JSONL, Excel (.xls/.xlsx) |
+| **Validation** | Request schema, profile schema, staleness checks, column mapping |
+| **Audit** | Package completeness, PDF validity, PNG dimensions, font size |
+
 ## Reproducibility and Quality Checks
 
 The toolkit enforces or records the following:
