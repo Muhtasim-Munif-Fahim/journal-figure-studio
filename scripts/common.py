@@ -74,13 +74,15 @@ TABLE_FORMAT_READERS: dict[str, Any] = {
     ".pq": pd.read_parquet,
     ".json": pd.read_json,
     ".jsonl": lambda p, **kw: pd.read_json(p, lines=True, **kw),
+    ".xls": pd.read_excel,
+    ".xlsx": pd.read_excel,
 }
 
 
 def read_table(file_path: str | Path) -> pd.DataFrame:
     """Read tabular data from a file into a pandas DataFrame.
 
-    Supported formats: CSV, Parquet, JSON, JSONL.
+    Supported formats: CSV, Parquet, JSON, JSONL, Excel (.xls/.xlsx).
 
     Args:
         file_path: Path to the data file.
