@@ -238,10 +238,17 @@ def draw(
         ax.legend(frameon=False)
 
     if "p_value" in figure and figure["p_value"]:
-        _add_significance_annotation(
-            ax, 0, len(categories := frame[x].unique()) - 1,
-            frame[y].max() * 1.1, float(figure["p_value"]),
-        )
+        try:
+            unique_x = frame[x].unique()
+            p_val = float(figure["p_value"])
+            y_max = frame[y].max()
+            if y_max > 0:
+                _add_significance_annotation(
+                    ax, 0, len(unique_x) - 1,
+                    y_max * 1.1, p_val,
+                )
+        except (TypeError, ValueError, KeyError):
+            pass
 
 
 def main() -> int:
