@@ -10,6 +10,7 @@ from typing import Any
 import matplotlib.image as mpimg
 
 from common import load_yaml, write_json
+from version import __version__
 
 REQUIRED_OUTPUTS: list[str] = [
     "figure.py",
@@ -70,6 +71,14 @@ def check(
                 f"PNG width {image.shape[1]} is below expected {min_pixels} pixels"
             )
 
+    svg_path = package / f"{figure_id}.svg"
+    if svg_path.exists():
+        svg_content = svg_path.read_text(encoding="utf-8")
+        if "<svg" not in svg_content:
+            errors.append("SVG output is invalid")
+        elif 'xmlns="http://www.w3.org/2000/svg"' not in svg_content:
+            errors.append("SVG output missing SVG namespace")
+
     fonts = profile.get("fonts", {})
     if isinstance(fonts, dict):
         min_pt = int(fonts.get("minimum_pt", 7))
@@ -90,7 +99,11 @@ def main() -> int:
     """CLI entry point for package audit."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--package", required=True)
+    parser.add_argument("--version", action="store_true", help="Print version and exit")
     args = parser.parse_args()
+    if args.version:
+        print(f"journal-figure-studio v{__version__}")
+        return 0
     package = Path(args.package)
     metadata = json.loads(
         (package / "figure_metadata.json").read_text(encoding="utf-8")
