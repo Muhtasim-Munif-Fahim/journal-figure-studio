@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from common import read_table, sha256, write_json
+from version import __version__
 
 
 def inspect(path: Path) -> dict[str, Any]:
@@ -45,7 +46,11 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("data", nargs="+")
     parser.add_argument("--output", default="figure_context.json")
+    parser.add_argument("--version", action="store_true", help="Print version and exit")
     args = parser.parse_args()
+    if args.version:
+        print(f"journal-figure-studio v{__version__}")
+        return 0
     payload = {"inputs": [inspect(Path(path)) for path in args.data]}
     write_json(args.output, payload)
     print(

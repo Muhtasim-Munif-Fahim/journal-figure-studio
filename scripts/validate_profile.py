@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from common import load_yaml
+from version import __version__
 
 
 REQUIRED: set[str] = {
@@ -78,7 +79,11 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("profile")
     parser.add_argument("--require-current", action="store_true")
+    parser.add_argument("--version", action="store_true", help="Print version and exit")
     args = parser.parse_args()
+    if args.version:
+        print(f"journal-figure-studio v{__version__}")
+        return 0
     errors = validate(load_yaml(args.profile), args.require_current)
     if errors:
         print("Profile validation failed:")

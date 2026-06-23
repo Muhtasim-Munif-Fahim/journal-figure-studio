@@ -9,6 +9,8 @@ from typing import Any
 
 import yaml
 
+from version import __version__
+
 
 def create(
     profile_id: str,
@@ -90,7 +92,11 @@ def main() -> int:
     parser.add_argument("--double-width", type=float, required=True)
     parser.add_argument("--formats", nargs="+", default=["pdf", "png"])
     parser.add_argument("--dpi", type=int, default=600)
+    parser.add_argument("--version", action="store_true", help="Print version and exit")
     args = parser.parse_args()
+    if args.version:
+        print(f"journal-figure-studio v{__version__}")
+        return 0
     create(
         args.id, args.field, args.source_url,
         args.single_width, args.double_width,
