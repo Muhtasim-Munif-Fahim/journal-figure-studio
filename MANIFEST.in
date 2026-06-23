@@ -1,0 +1,10 @@
+include README.md
+include LICENSE
+include CHANGELOG.md
+include CONTRIBUTING.md
+include SECURITY.md
+include AUTHORS.md
+recursive-include assets/profiles *.yaml
+recursive-include references *.md
+recursive-include scripts *.py
+include scripts/py.typed
