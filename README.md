@@ -24,6 +24,14 @@ For each figure request, the renderer creates a self-contained publication packa
 
 The package uses supplied data or result files and records the source analysis script. It does not invent values, substitute statistical analysis, perform ethical review, or decide whether a research claim is valid.
 
+## Quick Start
+
+```bash
+pip install -r requirements.txt
+python scripts/render_recipe.py --request assets/figure_request.example.yaml
+python scripts/check_package.py --package output/my-figure-id
+```
+
 ## Built-In Profiles
 
 All profiles render at final single- or double-column width, set a 7 pt minimum type size, use a colorblind-safe palette, require vector PDF output, and expect an evidence-bounded caption.
