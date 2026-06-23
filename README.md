@@ -1,5 +1,10 @@
 # Journal Figure Studio
 
+[![CI](https://github.com/Muhtasim-Munif-Fahim/journal-figure-studio/actions/workflows/test.yml/badge.svg)](https://github.com/Muhtasim-Munif-Fahim/journal-figure-studio/actions/workflows/test.yml)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://python.org)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![version](https://img.shields.io/badge/version-0.2.0-orange)](scripts/version.py)
+
 `journal-figure-studio` is a Codex skill and Python toolkit for producing reproducible, publication-ready academic figure packages from real research outputs. It applies a cross-disciplinary scientific design system and a versioned profile registry to render figures at their final print width.
 
 The project is deliberately not tied to machine learning, public health, or a single publisher. It supports empirical work in biomedical and clinical research, life sciences, physical sciences and engineering, social science and development, and computer science and ML.
