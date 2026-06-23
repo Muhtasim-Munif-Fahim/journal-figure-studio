@@ -68,6 +68,8 @@ def sha256(file_path: str | Path) -> str:
     return digest.hexdigest()
 
 
+VALID_NUMERIC_KINDS: set[str] = {"i", "u", "f", "c"}
+
 TABLE_FORMAT_READERS: dict[str, Any] = {
     ".csv": pd.read_csv,
     ".parquet": pd.read_parquet,
