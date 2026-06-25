@@ -8,10 +8,11 @@ from pathlib import Path
 from typing import Any
 
 from common import load_yaml, profile_path, read_table, resolve_request_path
+from logging_config import setup_logger
 from validate_profile import validate
 from version import __version__
 
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 REQUIRED: set[str] = {
     "figure_id", "research_field", "profile", "layout",
