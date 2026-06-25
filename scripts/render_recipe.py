@@ -61,7 +61,8 @@ STAT_ANNOTATIONS: dict[str, str] = {
 
 
 def _get_palette(profile: dict[str, Any]) -> list[str]:
-    palette_key: str = profile.get("style", {}).get("palette", "okabe_ito").lower().replace("-", "_")
+    raw: Any = profile.get("style", {}).get("palette", "okabe_ito")
+    palette_key: str = str(raw).lower().replace("-", "_") if raw else "okabe_ito"
     return PALETTES.get(palette_key, PALETTES["okabe_ito"])
 
 
