@@ -1,9 +1,16 @@
-__pycache__/
-*.py[cod]
-.pytest_cache/
-output/
-figures/
-*.pdf
-*.png
-*.tiff
-*.svg
+# Packaging
+*.egg-info/
+dist/
+build/
+*.whl
+
+# Environment
+.env
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
