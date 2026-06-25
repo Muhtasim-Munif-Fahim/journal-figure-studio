@@ -9,6 +9,8 @@
 
 The project is deliberately not tied to machine learning, public health, or a single publisher. It supports empirical work in biomedical and clinical research, life sciences, physical sciences and engineering, social science and development, and computer science and ML.
 
+> **Requires Python 3.10+.** Install: `pip install -r requirements.txt`
+>
 > Q1 is an indexing classification, not a figure specification. This toolkit does not claim blanket Q1 or journal compliance. Use a named journal profile created from the target journal's current official author instructions before submission.
 
 ## What It Produces
