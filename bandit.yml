@@ -1,0 +1,3 @@
+[tool.bandit]
+targets = ["scripts/"]
+skips = ["B101"]
