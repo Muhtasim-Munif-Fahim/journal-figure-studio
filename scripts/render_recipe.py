@@ -20,9 +20,12 @@ import numpy as np
 import yaml
 
 from common import load_yaml, profile_path, read_table, resolve_request_path, sha256, write_json
+from logging_config import setup_logger
 from version import __version__
 
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
+
+
 
 
 PALETTES: dict[str, list[str]] = {
