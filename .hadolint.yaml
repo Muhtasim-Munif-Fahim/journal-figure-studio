@@ -1,0 +1,6 @@
+[
+  {
+    "match": "Dockerfile",
+    "trustedRegistries": ["docker.io"]
+  }
+]
