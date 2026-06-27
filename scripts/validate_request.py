@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from common import load_yaml, profile_path, read_table, resolve_request_path
+from exit_codes import INPUT_ERROR, SUCCESS, VALIDATION_ERROR
 from logging_config import setup_logger
 from validate_profile import validate
 from version import __version__
@@ -148,7 +149,7 @@ def main() -> int:
         print("\n".join(f"- {error}" for error in errors))
         return 1
     print("Figure request is valid")
-    return 0
+    return SUCCESS
 
 
 if __name__ == "__main__":
