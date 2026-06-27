@@ -20,6 +20,7 @@ import numpy as np
 import yaml
 
 from common import load_yaml, profile_path, read_table, resolve_request_path, sha256, write_json
+from exit_codes import INPUT_ERROR, RUNTIME_ERROR, SUCCESS, VALIDATION_ERROR
 from logging_config import setup_logger
 from version import __version__
 
@@ -355,7 +356,7 @@ def main() -> int:
     if not source_path.exists():
         logger.error("Data source not found: %s", source_path)
         print(f"ERROR: Data source not found: {source_path}")
-        return 1
+        return INPUT_ERROR
 
     frame = read_table(source_path)
     output = resolve_request_path(request_path, request["output_dir"])
