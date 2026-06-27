@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from common import load_yaml
+from constants import MIN_FONT_PT, MIN_RASTER_DPI
 from version import __version__
 
 
@@ -16,8 +17,7 @@ REQUIRED: set[str] = {
     "formats", "raster_dpi", "dimensions_inches", "fonts",
     "caption", "style", "rules",
 }
-MIN_RASTER_DPI: int = 300
-MIN_FONT_PT: int = 7
+# Constants moved to constants.py
 
 
 def validate(
