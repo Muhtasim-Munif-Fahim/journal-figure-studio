@@ -1,4 +1,4 @@
-.PHONY: test lint typecheck clean install
+.PHONY: install test test-cov lint format typecheck security clean all
 
 install:
 	pip install -r requirements.txt
@@ -9,6 +9,12 @@ test:
 
 test-cov:
 	python -m pytest tests/ --cov=scripts --cov-report=term-missing -v
+
+test-slow:
+	python -m pytest tests/ -m slow -v
+
+test-quick:
+	python -m pytest tests/ -m "not slow" -v
 
 lint:
 	ruff check .
@@ -21,6 +27,9 @@ format:
 
 typecheck:
 	mypy scripts/
+
+security:
+	bandit -r scripts/ -ll
 
 clean:
 	rm -rf __pycache__ .pytest_cache .ruff_cache .mypy_cache
