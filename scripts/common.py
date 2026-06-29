@@ -29,11 +29,21 @@ def load_yaml(path: str | Path) -> dict[str, Any]:
     """
     resolved = Path(path)
     if not resolved.exists():
-        raise FileNotFoundError(f"File not found: {resolved}")
-    with resolved.open(encoding="utf-8") as handle:
-        payload = yaml.safe_load(handle)
+        raise FileNotFoundError(
+            f"YAML file not found: {resolved}. "
+            f"Check that the path is correct and the file exists."
+        )
+    if resolved.stat().st_size == 0:
+        raise ValueError(f"YAML file is empty: {resolved}")
+    try:
+        with resolved.open(encoding="utf-8") as handle:
+            payload = yaml.safe_load(handle)
+    except yaml.YAMLError as exc:
+        raise ValueError(f"Invalid YAML in {path}: {exc}") from exc
     if not isinstance(payload, dict):
-        raise ValueError(f"{path} must contain a YAML mapping")
+        raise ValueError(
+            f"{path} must contain a YAML mapping (got {type(payload).__name__})"
+        )
     return payload
 
 
