@@ -41,6 +41,10 @@ def validate(
     if errors:
         return errors
 
+    invalid_keys = set(profile) - REQUIRED - {"source_url", "verified_at", "stale_after_days"}
+    if invalid_keys:
+        errors.append(f"unknown profile keys: {', '.join(sorted(invalid_keys))}")
+
     dimensions = profile["dimensions_inches"]
     if not {"single", "double"}.issubset(dimensions):
         errors.append("dimensions_inches requires single and double values")
