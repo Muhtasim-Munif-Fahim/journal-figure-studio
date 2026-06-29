@@ -9,6 +9,7 @@ from typing import Any
 
 from common import load_yaml
 from constants import MIN_FONT_PT, MIN_RASTER_DPI
+from exit_codes import SUCCESS, VALIDATION_ERROR
 from version import __version__
 
 
@@ -88,9 +89,9 @@ def main() -> int:
     if errors:
         print("Profile validation failed:")
         print("\n".join(f"- {error}" for error in errors))
-        return 1
+        return VALIDATION_ERROR
     print(f"Profile is valid: {Path(args.profile).stem}")
-    return 0
+    return SUCCESS
 
 
 if __name__ == "__main__":
