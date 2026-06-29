@@ -352,10 +352,17 @@ def main() -> int:
     profile = load_yaml(profile_file)
 
     logger.info("Loaded request %s with profile %s", request.get("figure_id"), request["profile"])
-    source_path = resolve_request_path(request_path, request.get("figure", request.get("figures", [{}])[0]).get("source", ""))
+    figures_to_check = request.get("figures", [request.get("figure", {})])
+    for i, fig in enumerate(figures_to_check):
+        src = fig.get("source", "")
+        if src:
+            resolved = resolve_request_path(request_path, src)
+            if not resolved.exists():
+                logger.error("Data source not found for figure %d: %s", i, resolved)
+                print(f"ERROR: Data source not found for figure {i}: {resolved}")
+                return INPUT_ERROR
+    source_path = resolve_request_path(request_path, figures_to_check[0].get("source", ""))
     if not source_path.exists():
-        logger.error("Data source not found: %s", source_path)
-        print(f"ERROR: Data source not found: {source_path}")
         return INPUT_ERROR
 
     frame = read_table(source_path)
