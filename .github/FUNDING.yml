@@ -1,10 +1,2 @@
 # Journal Figure Studio
-<URL_SAFE>https://github.com/Muhtasim-Munif-Fahim/journal-figure-studio</URL_SAFE>
-
-## Description
-A Python toolkit for creating publication-ready academic figure packages.
-
-## Usage
-```bash
-python scripts/render_recipe.py --request figure_request.yaml
-```
+github: [Muhtasim-Munif-Fahim]
