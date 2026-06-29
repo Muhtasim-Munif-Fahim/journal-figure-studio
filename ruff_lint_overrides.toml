@@ -1,0 +1,4 @@
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D"]
+"scripts/__init__.py" = ["D"]
+"scripts/version.py" = ["D"]
