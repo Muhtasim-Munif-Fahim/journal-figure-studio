@@ -10,6 +10,7 @@ from typing import Any
 import matplotlib.image as mpimg
 
 from common import load_yaml, write_json
+from exit_codes import RUNTIME_ERROR, SUCCESS, VALIDATION_ERROR
 from version import __version__
 
 REQUIRED_OUTPUTS: list[str] = [
@@ -85,6 +86,20 @@ def check(
         if min_pt < 7:
             errors.append("profile minimum font size is below 7pt")
 
+    for fmt_path in [pdf_path, png_path, svg_path]:
+        name = fmt_path.name
+        if fmt_path.exists() and fmt_path.stat().st_size == 0:
+            errors.append(f"output file is empty: {name}")
+
+    meta_path = package / "figure_metadata.json"
+    if meta_path.exists():
+        meta_size = meta_path.stat().st_size
+        if meta_size == 0:
+            errors.append("figure_metadata.json is empty")
+        meta_size_kb = meta_size / 1024
+        if meta_size_kb > 100:
+            errors.append(f"figure_metadata.json is unexpectedly large ({meta_size_kb:.0f} KB)")
+
     status = "pass" if not errors else "block"
     report: dict[str, Any] = {
         "status": status,
@@ -111,7 +126,7 @@ def main() -> int:
     report = check(metadata, package)
     write_json(package / "figure_audit.json", report)
     print(json.dumps(report, indent=2))
-    return 0 if report["status"] == "pass" else 1
+    return SUCCESS if report["status"] == "pass" else VALIDATION_ERROR
 
 
 if __name__ == "__main__":
