@@ -1,0 +1,17 @@
+name: Auto-merge
+
+on:
+  pull_request_target:
+    types: [labeled]
+
+jobs:
+  automerge:
+    runs-on: ubuntu-latest
+    if: contains(github.event.pull_request.labels.*.name, 'dependencies')
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: fastify/github-action-merge-dependabot@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
