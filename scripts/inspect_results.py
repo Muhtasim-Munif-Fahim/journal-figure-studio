@@ -7,7 +7,22 @@ from pathlib import Path
 from typing import Any
 
 from common import read_table, sha256, write_json
+from exit_codes import SUCCESS
 from version import __version__
+
+
+def _classify_dtype(dtype: str) -> str:
+    if "int" in dtype:
+        return "integer"
+    if "float" in dtype:
+        return "float"
+    if "complex" in dtype:
+        return "complex"
+    if "bool" in dtype:
+        return "boolean"
+    if "datetime" in dtype or "time" in dtype:
+        return "datetime"
+    return "string"
 
 
 def inspect(path: Path) -> dict[str, Any]:
@@ -21,12 +36,16 @@ def inspect(path: Path) -> dict[str, Any]:
         numeric summary statistics.
     """
     frame = read_table(path)
+    total_cells = len(frame) * len(frame.columns)
+    filled_cells = int(frame.notna().sum().sum())
     numeric = frame.select_dtypes(include="number")
     columns: list[dict[str, Any]] = [
         {
             "name": column,
             "dtype": str(frame[column].dtype),
+            "type_category": _classify_dtype(str(frame[column].dtype)),
             "missing": int(frame[column].isna().sum()),
+            "unique": int(frame[column].nunique()),
         }
         for column in frame.columns
     ]
@@ -35,6 +54,7 @@ def inspect(path: Path) -> dict[str, Any]:
         "sha256": sha256(path),
         "rows": int(len(frame)),
         "columns": columns,
+        "completeness": round(filled_cells / total_cells, 4) if total_cells else 1.0,
         "numeric_summary": (
             numeric.describe().round(6).to_dict() if not numeric.empty else {}
         ),
@@ -57,7 +77,7 @@ def main() -> int:
         f"Wrote data context for {len(payload['inputs'])} "
         f"input files to {args.output}"
     )
-    return 0
+    return SUCCESS
 
 
 if __name__ == "__main__":
