@@ -128,6 +128,12 @@ def validate_request(
     if not request.get("output_dir"):
         errors.append("output_dir is required")
 
+    if request.get("caption_takeaway") and len(request["caption_takeaway"]) > 200:
+        errors.append("caption_takeaway exceeds 200 characters")
+
+    if request.get("claim") and len(request["claim"]) > 1000:
+        errors.append("claim exceeds 1000 characters")
+
     return errors
 
 
