@@ -100,11 +100,21 @@ def check(
         if meta_size_kb > 100:
             errors.append(f"figure_metadata.json is unexpectedly large ({meta_size_kb:.0f} KB)")
 
+    warnings: list[str] = []
+
+    for fmt_path in [pdf_path, png_path, svg_path]:
+        if fmt_path.exists() and fmt_path.stat().st_size == 0:
+            warnings.append(f"output file is empty: {fmt_path.name}")
+
+    warning_count = len(warnings)
     status = "pass" if not errors else "block"
+    if warning_count > 0 and status == "pass":
+        status = "pass_with_warnings"
     report: dict[str, Any] = {
         "status": status,
         "profile": profile.get("id", profile_id),
         "errors": errors,
+        "warnings": warnings,
         "metadata": metadata,
     }
     return report
@@ -114,6 +124,7 @@ def main() -> int:
     """CLI entry point for package audit."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--package", required=True)
+    parser.add_argument("--strict", action="store_true", help="Treat warnings as errors")
     parser.add_argument("--version", action="store_true", help="Print version and exit")
     args = parser.parse_args()
     if args.version:
@@ -124,6 +135,12 @@ def main() -> int:
         (package / "figure_metadata.json").read_text(encoding="utf-8")
     )
     report = check(metadata, package)
+    if args.strict:
+        total_issues = len(report.get("errors", [])) + len(report.get("warnings", []))
+        if total_issues > 0:
+            report["status"] = "block"
+            report["errors"] = report.get("errors", []) + report.get("warnings", [])
+            report["warnings"] = []
     write_json(package / "figure_audit.json", report)
     print(json.dumps(report, indent=2))
     return SUCCESS if report["status"] == "pass" else VALIDATION_ERROR
