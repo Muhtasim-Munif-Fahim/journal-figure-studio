@@ -63,6 +63,7 @@ def _validate_figure_spec(
 def validate_request(
     request_path: str | Path,
     profiles_dir: str | Path | None = None,
+    strict: bool = False,
 ) -> list[str]:
     """Validate a figure request YAML file and return a list of errors.
 
@@ -129,10 +130,18 @@ def validate_request(
         errors.append("output_dir is required")
 
     if request.get("caption_takeaway") and len(request["caption_takeaway"]) > 200:
-        errors.append("caption_takeaway exceeds 200 characters")
+        msg = "caption_takeaway exceeds 200 characters"
+        if strict:
+            errors.append(msg)
+        else:
+            errors.append(f"[warn] {msg}")
 
     if request.get("claim") and len(request["claim"]) > 1000:
-        errors.append("claim exceeds 1000 characters")
+        msg = "claim exceeds 1000 characters"
+        if strict:
+            errors.append(msg)
+        else:
+            errors.append(f"[warn] {msg}")
 
     return errors
 
@@ -143,13 +152,15 @@ def main() -> int:
     parser.add_argument("request")
     parser.add_argument("--profiles-dir")
     parser.add_argument("--verbose", action="store_true", help="Enable debug logging")
+    parser.add_argument("--strict", action="store_true", help="Fail on warnings too")
     parser.add_argument("--version", action="store_true", help="Print version and exit")
     args = parser.parse_args()
+    strict = args.strict or False
     if args.version:
         print(f"journal-figure-studio v{__version__}")
         return 0
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.WARNING)
-    errors = validate_request(args.request, args.profiles_dir)
+    errors = validate_request(args.request, args.profiles_dir, strict=strict)
     if errors:
         print("Figure request validation failed:")
         print("\n".join(f"- {error}" for error in errors))
