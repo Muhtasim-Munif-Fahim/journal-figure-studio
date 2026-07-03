@@ -22,6 +22,9 @@ REQUIRED: set[str] = {
 }
 FIGURE_REQUIRED: set[str] = {"type", "source", "x", "y", "xlabel", "ylabel"}
 VALID_LAYOUTS: set[str] = {"single", "double"}
+DEFAULT_MAX_CAPTION_LENGTH: int = 200
+DEFAULT_MAX_CLAIM_LENGTH: int = 1000
+
 VALID_FIGURE_TYPES: set[str] = {
     "bar", "ablation", "line", "time_series", "training_curve",
     "scatter", "distribution", "forest", "heatmap", "calibration",
@@ -129,14 +132,14 @@ def validate_request(
     if not request.get("output_dir"):
         errors.append("output_dir is required")
 
-    if request.get("caption_takeaway") and len(request["caption_takeaway"]) > 200:
+    if request.get("caption_takeaway") and len(request["caption_takeaway"]) > DEFAULT_MAX_CAPTION_LENGTH:
         msg = "caption_takeaway exceeds 200 characters"
         if strict:
             errors.append(msg)
         else:
             errors.append(f"[warn] {msg}")
 
-    if request.get("claim") and len(request["claim"]) > 1000:
+    if request.get("claim") and len(request["claim"]) > DEFAULT_MAX_CLAIM_LENGTH:
         msg = "claim exceeds 1000 characters"
         if strict:
             errors.append(msg)
