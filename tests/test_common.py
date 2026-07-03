@@ -86,6 +86,23 @@ class TestReadTable:
         df = read_table(jsonl_path)
         assert len(df) == 2
 
+    def test_reads_parquet(self, tmp_path: Path):
+        import pandas as pd
+        df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+        pq = tmp_path / "data.parquet"
+        df.to_parquet(pq)
+        result = read_table(pq)
+        assert len(result) == 2
+
+    def test_reads_feather(self, tmp_path: Path):
+        import pandas as pd
+        import numpy as np
+        df = pd.DataFrame({"x": np.arange(5), "y": np.random.rand(5)})
+        f = tmp_path / "data.feather"
+        df.to_feather(f)
+        result = read_table(f)
+        assert len(result) == 5
+
     def test_raises_on_unsupported_extension(self, tmp_path: Path):
         unsupported = tmp_path / "data.xlsx"
         unsupported.write_text("dummy")
@@ -95,6 +112,24 @@ class TestReadTable:
     def test_raises_on_missing_file(self):
         with pytest.raises(FileNotFoundError):
             read_table(Path("/nonexistent.csv"))
+
+    def test_csv_with_bom(self, tmp_path: Path):
+        p = tmp_path / "bom.csv"
+        p.write_bytes(b"\xef\xbb\xbfa,b\n1,2\n3,4\n")
+        df = read_table(p)
+        assert len(df) == 2
+
+    def test_csv_with_trailing_whitespace(self, tmp_path: Path):
+        p = tmp_path / "trailing.csv"
+        p.write_text("a,b\n1,2  \n3,4\n")
+        df = read_table(p)
+        assert df.iloc[0]["b"] == "2  "
+
+    def test_csv_with_unicode(self, tmp_path: Path):
+        p = tmp_path / "unicode.csv"
+        p.write_bytes("a\ncafé\nrésumé\n".encode("utf-8"))
+        df = read_table(p)
+        assert len(df) == 2
 
 
 class TestResolveRequestPath:
@@ -118,3 +153,32 @@ class TestProfilePath:
     def test_raises_on_missing_profile(self):
         with pytest.raises(FileNotFoundError):
             profile_path("nonexistent_profile")
+
+    def test_custom_dir_resolves(self, tmp_path: Path):
+        d = tmp_path / "profiles"
+        d.mkdir()
+        (d / "test.yaml").write_text("id: test\n")
+        p = profile_path("test", str(d))
+        assert p.exists()
+
+
+class TestSha256EdgeCases:
+    def test_empty_file(self, tmp_path: Path):
+        p = tmp_path / "empty.txt"
+        p.write_text("")
+        assert len(sha256(p)) == 64
+
+    def test_large_file(self, tmp_path: Path):
+        p = tmp_path / "large.bin"
+        p.write_bytes(b"x" * 10_000_000)
+        assert len(sha256(p)) == 64
+
+    def test_deterministic(self, tmp_path: Path):
+        p = tmp_path / "test.txt"
+        p.write_text("hello")
+        assert sha256(p) == sha256(p)
+
+    def test_binary_file(self, tmp_path: Path):
+        p = tmp_path / "data.bin"
+        p.write_bytes(bytes(range(256)))
+        assert len(sha256(p)) == 64
