@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 from scripts.common import load_yaml, profile_path
 
 

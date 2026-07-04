@@ -8,19 +8,18 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-
 from exit_codes import SUCCESS
 from version import __version__
 
 
 def create(
     profile_id: str,
-    field: str,
-    source_url: str,
-    single_width: float,
-    double_width: float,
+    field: str = "general",
+    source_url: str = "https://example.com/guide",
+    single_width: float = 3.5,
+    double_width: float = 7.0,
     formats: list[str] | None = None,
-    dpi: int = 600,
+    dpi: int = 300,
     output: Path | None = None,
 ) -> None:
     """Create a new named-journal profile YAML file.
@@ -48,7 +47,7 @@ def create(
         "dimensions_inches": {
             "single": single_width,
             "double": double_width,
-            "aspect_ratio": 0.68,
+            "aspect_ratio": round(single_width / double_width, 2),
         },
         "fonts": {
             "family": "sans-serif",
@@ -61,7 +60,7 @@ def create(
             "require_uncertainty_definition": True,
         },
         "style": {
-            "palette": "okabe_ito",
+            "palette": "Okabe-Ito",
             "grid": False,
             "top_right_spines": False,
         },
@@ -73,9 +72,7 @@ def create(
     }
     output_path = output or Path(f"{profile_id}.yaml")
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(
-        yaml.safe_dump(profile, sort_keys=False), encoding="utf-8"
-    )
+    output_path.write_text(yaml.safe_dump(profile, sort_keys=False), encoding="utf-8")
     print(
         f"Created profile template at {output_path}; "
         f"validate against the linked official guidance before use."
@@ -99,9 +96,14 @@ def main() -> int:
         print(f"journal-figure-studio v{__version__}")
         return 0
     create(
-        args.id, args.field, args.source_url,
-        args.single_width, args.double_width,
-        args.formats, args.dpi, Path(args.output),
+        args.id,
+        args.field,
+        args.source_url,
+        args.single_width,
+        args.double_width,
+        args.formats,
+        args.dpi,
+        Path(args.output),
     )
     return SUCCESS
 

@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from pathlib import Path
-
-import pytest
-
-from scripts.validate_request import validate_request, DEFAULT_MAX_CAPTION_LENGTH, DEFAULT_MAX_CLAIM_LENGTH
+from scripts.validate_request import (
+    DEFAULT_MAX_CAPTION_LENGTH,
+    DEFAULT_MAX_CLAIM_LENGTH,
+)
 
 
 class TestValidateDefaults:

@@ -11,5 +11,6 @@ class TestCreateProfile:
         create(profile_id="test", output=p)
         assert p.exists()
         import yaml
+
         data = yaml.safe_load(p.read_text())
         assert data["id"] == "test"

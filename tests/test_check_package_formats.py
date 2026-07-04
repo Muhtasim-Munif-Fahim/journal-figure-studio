@@ -23,6 +23,7 @@ class TestCheckPackageFormats:
         _write_profile(output)
         meta = _make_meta(formats=["pdf", "png", "tiff"])
         import json
+
         (output / "figure_metadata.json").write_text(json.dumps(meta))
         (output / "fig1.pdf").write_bytes(b"%PDF-1.4 trailer\n%%EOF\n")
         (output / "fig1.png").write_bytes(b"\x89PNG\r\n\x1a\n...")
@@ -36,6 +37,7 @@ class TestCheckPackageFormats:
         _write_profile(output)
         meta = _make_meta()
         import json
+
         (output / "figure_metadata.json").write_text(json.dumps(meta))
         result = check(meta, output)
         assert result["status"] == "block"
@@ -43,7 +45,14 @@ class TestCheckPackageFormats:
 
 def _write_profile(output: Path):
     import yaml
-    (output / "profile.yaml").write_text(yaml.safe_dump({
-        "id": "test", "formats": ["pdf", "png"],
-        "raster_dpi": 300, "fonts": {"minimum_pt": 7},
-    }))
+
+    (output / "profile.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "id": "test",
+                "formats": ["pdf", "png"],
+                "raster_dpi": 300,
+                "fonts": {"minimum_pt": 7},
+            }
+        )
+    )

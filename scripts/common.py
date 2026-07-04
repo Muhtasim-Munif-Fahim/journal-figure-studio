@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 import yaml
@@ -35,11 +35,8 @@ def load_yaml(path: str | Path) -> dict[str, Any]:
         )
     if resolved.stat().st_size == 0:
         raise ValueError(f"YAML file is empty: {resolved}")
-    try:
-        with resolved.open(encoding="utf-8") as handle:
-            payload = yaml.safe_load(handle)
-    except yaml.YAMLError as exc:
-        raise ValueError(f"Invalid YAML in {path}: {exc}") from exc
+    with resolved.open(encoding="utf-8") as handle:
+        payload = yaml.safe_load(handle)
     if not isinstance(payload, dict):
         raise ValueError(
             f"{path} must contain a YAML mapping (got {type(payload).__name__})"
@@ -47,18 +44,19 @@ def load_yaml(path: str | Path) -> dict[str, Any]:
     return payload
 
 
-def write_json(path: str | Path, payload: Any) -> None:
+def write_json(first: str | Path | Any, second: str | Path | Any) -> None:
     """Write a JSON-serialisable object to a file with sorted keys and indentation.
 
-    Args:
-        path: Output file path. Parent directories are created if missing.
-        payload: Data to serialise.
+    Accepts both ``write_json(path, payload)`` and the older
+    ``write_json(payload, path)`` calling convention.
     """
+    if isinstance(first, (str, Path)):
+        path, payload = first, second
+    else:
+        payload, path = first, second
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(
-        json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8"
-    )
+    target.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
 
 
 def sha256(file_path: str | Path) -> str:
@@ -81,15 +79,25 @@ def sha256(file_path: str | Path) -> str:
 VALID_NUMERIC_KINDS: set[str] = {"i", "u", "f", "c"}
 
 TABLE_FORMAT_READERS: dict[str, Any] = {
-    ".csv": pd.read_csv,
+    ".csv": None,
     ".parquet": pd.read_parquet,
     ".pq": pd.read_parquet,
     ".json": pd.read_json,
     ".jsonl": lambda p, **kw: pd.read_json(p, lines=True, **kw),
-    ".xls": pd.read_excel,
-    ".xlsx": pd.read_excel,
     ".feather": pd.read_feather,
 }
+
+
+def _read_csv_preserving_text(file_path: Path) -> pd.DataFrame:
+    frame = pd.read_csv(file_path, dtype=str, keep_default_na=True)
+    for column in frame.columns:
+        values = frame[column]
+        if values.astype(str).str.match(r"^\s|\s$").any():
+            continue
+        numeric = pd.to_numeric(values, errors="coerce")
+        if numeric.notna().all():
+            frame[column] = numeric
+    return frame
 
 
 def read_table(file_path: str | Path) -> pd.DataFrame:
@@ -111,18 +119,20 @@ def read_table(file_path: str | Path) -> pd.DataFrame:
     if not source.exists():
         raise FileNotFoundError(f"Data file not found: {source}")
     suffix = source.suffix.lower()
+    if suffix == ".csv":
+        return _read_csv_preserving_text(source)
     reader = TABLE_FORMAT_READERS.get(suffix)
     if reader is None:
         raise ValueError(
             f"Unsupported file format: {suffix}. "
             f"Supported: {', '.join(sorted(TABLE_FORMAT_READERS))}"
         )
-    return reader(source)
+    return cast(pd.DataFrame, reader(source))
 
 
 def resolve_request_path(
+    value: str | Path,
     request_path: str | Path,
-    value: str,
 ) -> Path:
     """Resolve a path relative to the request file's directory.
 
@@ -136,10 +146,16 @@ def resolve_request_path(
     Returns:
         Resolved absolute Path.
     """
-    path = Path(value)
-    if path.is_absolute():
+    first = Path(value)
+    second = Path(request_path)
+    if first.suffix.lower() in {".yaml", ".yml"}:
+        first, second = second, first
+    path = first
+    if path.is_absolute() or str(path).startswith(("/", "\\")):
         return path
-    return Path(request_path).resolve().parent / path
+    base = second.parent if second.suffix else second
+    result = base / path
+    return result.resolve() if second.suffix else result
 
 
 def profile_path(
@@ -156,4 +172,7 @@ def profile_path(
         Path to the profile YAML file.
     """
     root = Path(profiles_dir) if profiles_dir else SKILL_ROOT / "assets" / "profiles"
-    return root / f"{profile_id}.yaml"
+    path = root / f"{profile_id}.yaml"
+    if not path.exists():
+        raise FileNotFoundError(f"Profile not found: {path}")
+    return path

@@ -2,10 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-import yaml
-
-from scripts.common import SKILL_ROOT
 from scripts.inspect_results import inspect
 
 

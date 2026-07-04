@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from pathlib import Path
-
-from scripts.render_recipe import _add_significance_annotation, STAT_ANNOTATIONS
+from scripts.render_recipe import STAT_ANNOTATIONS
 
 
 class TestSignificance:

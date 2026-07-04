@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from scripts.render_recipe import copy_if_distinct
 
 

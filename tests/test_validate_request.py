@@ -6,11 +6,17 @@ import yaml
 
 from scripts.validate_request import validate_request
 
-
 REQUIRED_KEYS = [
-    "figure_id", "research_field", "profile", "layout",
-    "data_paths", "analysis_script", "claim",
-    "caption_takeaway", "figure", "output_dir",
+    "figure_id",
+    "research_field",
+    "profile",
+    "layout",
+    "data_paths",
+    "analysis_script",
+    "claim",
+    "caption_takeaway",
+    "figure",
+    "output_dir",
 ]
 
 
@@ -64,7 +70,17 @@ class TestValidateRequest:
 
     def test_invalid_figure_type(self, tmp_path: Path):
         path = _make_request_yaml(
-            tmp_path, overrides={"figure": {"type": "pie", "source": "", "x": "", "y": "", "xlabel": "", "ylabel": ""}}
+            tmp_path,
+            overrides={
+                "figure": {
+                    "type": "pie",
+                    "source": "",
+                    "x": "",
+                    "y": "",
+                    "xlabel": "",
+                    "ylabel": "",
+                }
+            },
         )
         errors = validate_request(path)
         assert errors

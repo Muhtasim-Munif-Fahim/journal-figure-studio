@@ -11,5 +11,6 @@ class TestJsonIO:
         p = tmp_path / "data.json"
         write_json(data, p)
         import json
+
         loaded = json.loads(p.read_text())
         assert loaded["a"]["b"]["c"] == [1, 2, 3]

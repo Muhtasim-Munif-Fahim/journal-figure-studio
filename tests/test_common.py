@@ -88,6 +88,7 @@ class TestReadTable:
 
     def test_reads_parquet(self, tmp_path: Path):
         import pandas as pd
+
         df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
         pq = tmp_path / "data.parquet"
         df.to_parquet(pq)
@@ -95,8 +96,9 @@ class TestReadTable:
         assert len(result) == 2
 
     def test_reads_feather(self, tmp_path: Path):
-        import pandas as pd
         import numpy as np
+        import pandas as pd
+
         df = pd.DataFrame({"x": np.arange(5), "y": np.random.rand(5)})
         f = tmp_path / "data.feather"
         df.to_feather(f)
@@ -127,7 +129,7 @@ class TestReadTable:
 
     def test_csv_with_unicode(self, tmp_path: Path):
         p = tmp_path / "unicode.csv"
-        p.write_bytes("a\ncafé\nrésumé\n".encode("utf-8"))
+        p.write_bytes("a\ncafé\nrésumé\n".encode())
         df = read_table(p)
         assert len(df) == 2
 

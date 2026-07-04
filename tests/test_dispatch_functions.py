@@ -1,10 +1,14 @@
 from __future__ import annotations
 
-from pathlib import Path
-
-import pytest
-
-from scripts.render_recipe import _DISPATCH, _draw_bar, _draw_line, _draw_scatter, _draw_distribution, _draw_forest, _draw_heatmap
+from scripts.render_recipe import (
+    _DISPATCH,
+    _draw_bar,
+    _draw_distribution,
+    _draw_forest,
+    _draw_heatmap,
+    _draw_line,
+    _draw_scatter,
+)
 
 
 class TestDispatchFunctions:

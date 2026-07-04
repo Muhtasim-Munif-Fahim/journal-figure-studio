@@ -2,11 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
 import yaml
 
 from scripts.common import SKILL_ROOT, read_table
-from scripts.render_recipe import _DISPATCH, draw
+from scripts.render_recipe import draw
 
 
 class TestMultiPanel:
@@ -14,17 +13,19 @@ class TestMultiPanel:
         data_csv = tmp_path / "data.csv"
         with data_csv.open("w", newline="") as f:
             import csv
+
             w = csv.writer(f)
             w.writerow(["cat", "val"])
             w.writerow(["A", 10])
             w.writerow(["B", 20])
-        profile = yaml.safe_load(
+        yaml.safe_load(
             (SKILL_ROOT / "assets" / "profiles" / "universal.yaml").read_text()
         )
         import matplotlib
+
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
-        import numpy as np
+
         palette = ["#0072B2", "#D55E00"]
         fig, axes = plt.subplots(1, 2, figsize=(6, 3))
         frame = read_table(data_csv)

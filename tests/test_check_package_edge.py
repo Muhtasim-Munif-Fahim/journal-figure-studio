@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from scripts.check_package import check
 
 
@@ -18,8 +16,11 @@ class TestCheckPackageEdge:
     def test_non_dict_profile_in_metadata(self, tmp_path: Path):
         p = tmp_path / "output"
         p.mkdir()
-        (p / "profile.yaml").write_text("id: test\nformats: []\nraster_dpi: 300\nfonts:\n  minimum_pt: 7\n")
+        (p / "profile.yaml").write_text(
+            "id: test\nformats: []\nraster_dpi: 300\nfonts:\n  minimum_pt: 7\n"
+        )
         import json
+
         meta = {
             "figure_id": "fig1",
             "formats": ["pdf"],

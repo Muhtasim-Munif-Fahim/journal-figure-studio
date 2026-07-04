@@ -3,8 +3,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 from scripts.check_package import check
 
 
@@ -36,6 +34,7 @@ def _create_minimal_pdf(path: Path) -> None:
 def _create_minimal_png(path: Path, width: int = 400) -> None:
     import struct
     import zlib
+
     sig = b"\x89PNG\r\n\x1a\n"
     ihdr_data = struct.pack(">IIBBBBB", width, 300, 8, 2, 0, 0, 0)
     ihdr_crc = struct.pack(">I", zlib.crc32(b"IHDR" + ihdr_data) & 0xFFFFFFFF)
@@ -44,8 +43,10 @@ def _create_minimal_png(path: Path, width: int = 400) -> None:
     idat_data = zlib.compress(raw)
     idat_crc = struct.pack(">I", zlib.crc32(b"IDAT" + idat_data) & 0xFFFFFFFF)
     idat_chunk = struct.pack(">I", len(idat_data)) + b"IDAT" + idat_data + idat_crc
-    iend_chunk = struct.pack(">I", 0) + b"IEND" + struct.pack(
-        ">I", zlib.crc32(b"IEND") & 0xFFFFFFFF
+    iend_chunk = (
+        struct.pack(">I", 0)
+        + b"IEND"
+        + struct.pack(">I", zlib.crc32(b"IEND") & 0xFFFFFFFF)
     )
     path.write_bytes(sig + ihdr_chunk + idat_chunk + iend_chunk)
 
@@ -54,7 +55,7 @@ def _build_package(output_dir: Path, metadata: dict) -> None:
     meta_path = output_dir / "figure_metadata.json"
     meta_path.write_text(json.dumps(metadata))
     for fmt in metadata["formats"]:
-        fpath = output_dir / f'{metadata["figure_id"]}.{fmt}'
+        fpath = output_dir / f"{metadata['figure_id']}.{fmt}"
         if fmt == "pdf":
             _create_minimal_pdf(fpath)
         elif fmt == "png":
@@ -85,7 +86,7 @@ class TestCheckPackage:
         metadata = _make_metadata(output_dir)
         meta_path = output_dir / "figure_metadata.json"
         meta_path.write_text(json.dumps(metadata))
-        bad_pdf = output_dir / f'{metadata["figure_id"]}.pdf'
+        bad_pdf = output_dir / f"{metadata['figure_id']}.pdf"
         bad_pdf.write_text("not a pdf")
         audit = check(metadata, output_dir)
         errors = audit.get("errors", [])

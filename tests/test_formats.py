@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import csv
-from pathlib import Path
-
 import yaml
 
 from scripts.common import SKILL_ROOT

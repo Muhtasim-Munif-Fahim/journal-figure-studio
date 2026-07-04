@@ -11,8 +11,11 @@ class TestCheckPackageSvgValidation:
         output.mkdir()
         _write_profile(output)
         meta = _make_meta("fig1")
-        (output / "fig1.svg").write_text('<svg xmlns="http://www.w3.org/2000/svg"></svg>')
+        (output / "fig1.svg").write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg"></svg>'
+        )
         import json
+
         (output / "figure_metadata.json").write_text(json.dumps(meta))
         result = check(meta, output)
         assert "SVG" not in str(result.get("errors", []))
@@ -24,6 +27,7 @@ class TestCheckPackageSvgValidation:
         meta = _make_meta("fig1")
         (output / "fig1.svg").write_text("not an svg file")
         import json
+
         (output / "figure_metadata.json").write_text(json.dumps(meta))
         result = check(meta, output)
         errors = str(result.get("errors", []))
@@ -32,15 +36,24 @@ class TestCheckPackageSvgValidation:
 
 def _write_profile(output: Path):
     import yaml
-    (output / "profile.yaml").write_text(yaml.safe_dump({
-        "id": "test", "formats": ["pdf", "png", "svg"],
-        "raster_dpi": 300, "fonts": {"minimum_pt": 7},
-    }))
+
+    (output / "profile.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "id": "test",
+                "formats": ["pdf", "png", "svg"],
+                "raster_dpi": 300,
+                "fonts": {"minimum_pt": 7},
+            }
+        )
+    )
 
 
 def _make_meta(fid: str) -> dict:
     return {
-        "figure_id": fid, "formats": ["pdf", "png", "svg"],
+        "figure_id": fid,
+        "formats": ["pdf", "png", "svg"],
         "profile": {"id": "test"},
-        "dimensions_inches": [3.35, 2.51], "minimum_pt": 7,
+        "dimensions_inches": [3.35, 2.51],
+        "minimum_pt": 7,
     }

@@ -1,10 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
-
-import yaml
-
-from scripts.common import SKILL_ROOT
 from scripts.validate_request import _is_named_profile
 
 

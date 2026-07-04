@@ -1,13 +1,23 @@
 from __future__ import annotations
 
 import csv
+import sys
 from pathlib import Path
 
 import pytest
 import yaml
 
-
 SKILL_ROOT = Path(__file__).resolve().parent.parent
+SCRIPTS_DIR = SKILL_ROOT / "scripts"
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+
+
+def _represent_path(dumper: yaml.SafeDumper, value: Path) -> yaml.Node:
+    return dumper.represent_str(str(value))
+
+
+yaml.SafeDumper.add_multi_representer(Path, _represent_path)
 
 
 @pytest.fixture

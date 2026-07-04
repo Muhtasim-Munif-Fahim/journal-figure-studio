@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
-
-import pytest
 import yaml
 
 from scripts.common import SKILL_ROOT
@@ -20,7 +17,9 @@ class TestCaptionValidation:
         for path in sorted((SKILL_ROOT / "assets" / "profiles").glob("*.yaml")):
             profile = yaml.safe_load(path.read_text())
             pos = profile.get("caption", {}).get("position", "")
-            assert pos in ("bottom", "below", "top", "above"), f"{path.name}: invalid position"
+            assert pos in ("bottom", "below", "top", "above"), (
+                f"{path.name}: invalid position"
+            )
 
 
 class TestProfileRulesValidation:

@@ -19,7 +19,14 @@ class TestCheckPackageMetaSize:
 
 def _write_profile(output: Path):
     import yaml
-    (output / "profile.yaml").write_text(yaml.safe_dump({
-        "id": "test", "formats": ["pdf", "png"],
-        "raster_dpi": 300, "fonts": {"minimum_pt": 7},
-    }))
+
+    (output / "profile.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "id": "test",
+                "formats": ["pdf", "png"],
+                "raster_dpi": 300,
+                "fonts": {"minimum_pt": 7},
+            }
+        )
+    )

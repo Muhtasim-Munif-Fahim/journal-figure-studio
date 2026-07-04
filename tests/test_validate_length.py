@@ -8,12 +8,24 @@ from scripts.validate_request import validate_request
 class TestValidateLength:
     def test_long_caption_takeaway(self, tmp_path: Path):
         import yaml
+
         req = {
-            "figure_id": "x", "research_field": "cs", "profile": "universal",
-            "layout": "single", "data_paths": [],
+            "figure_id": "x",
+            "research_field": "cs",
+            "profile": "universal",
+            "layout": "single",
+            "data_paths": [],
             "analysis_script": str(tmp_path / "dummy.py"),
-            "claim": "Test.", "caption_takeaway": "x" * 201,
-            "figure": {"type": "bar", "source": str(tmp_path / "d.csv"), "x": "a", "y": "b", "xlabel": "X", "ylabel": "Y"},
+            "claim": "Test.",
+            "caption_takeaway": "x" * 201,
+            "figure": {
+                "type": "bar",
+                "source": str(tmp_path / "d.csv"),
+                "x": "a",
+                "y": "b",
+                "xlabel": "X",
+                "ylabel": "Y",
+            },
             "output_dir": str(tmp_path / "out"),
         }
         (tmp_path / "dummy.py").write_text("#")
@@ -25,12 +37,24 @@ class TestValidateLength:
 
     def test_long_claim(self, tmp_path: Path):
         import yaml
+
         req = {
-            "figure_id": "x", "research_field": "cs", "profile": "universal",
-            "layout": "single", "data_paths": [],
+            "figure_id": "x",
+            "research_field": "cs",
+            "profile": "universal",
+            "layout": "single",
+            "data_paths": [],
             "analysis_script": str(tmp_path / "dummy.py"),
-            "claim": "x" * 1001, "caption_takeaway": "Short.",
-            "figure": {"type": "bar", "source": str(tmp_path / "d.csv"), "x": "a", "y": "b", "xlabel": "X", "ylabel": "Y"},
+            "claim": "x" * 1001,
+            "caption_takeaway": "Short.",
+            "figure": {
+                "type": "bar",
+                "source": str(tmp_path / "d.csv"),
+                "x": "a",
+                "y": "b",
+                "xlabel": "X",
+                "ylabel": "Y",
+            },
             "output_dir": str(tmp_path / "out"),
         }
         (tmp_path / "dummy.py").write_text("#")

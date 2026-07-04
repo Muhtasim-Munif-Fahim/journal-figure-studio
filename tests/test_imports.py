@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from scripts.constants import MIN_FONT_PT, MIN_RASTER_DPI
-from scripts.exit_codes import INPUT_ERROR, RUNTIME_ERROR, SUCCESS, VALIDATION_ERROR
+from scripts.exit_codes import SUCCESS, VALIDATION_ERROR
 from scripts.version import __version__
 
 

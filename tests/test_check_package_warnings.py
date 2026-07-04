@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 import json
+from pathlib import Path
 
 from scripts.check_package import check
 
@@ -22,11 +21,24 @@ class TestCheckPackageWarnings:
 
 def _write_profile(output: Path):
     import yaml
-    (output / "profile.yaml").write_text(yaml.safe_dump({
-        "id": "test", "formats": ["pdf", "png"],
-        "raster_dpi": 300, "fonts": {"minimum_pt": 7},
-    }))
+
+    (output / "profile.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "id": "test",
+                "formats": ["pdf", "png"],
+                "raster_dpi": 300,
+                "fonts": {"minimum_pt": 7},
+            }
+        )
+    )
 
 
 def _meta(fid: str) -> dict:
-    return {"figure_id": fid, "formats": ["pdf", "png"], "profile": {"id": "test"}, "dimensions_inches": [3.35, 2.51], "minimum_pt": 7}
+    return {
+        "figure_id": fid,
+        "formats": ["pdf", "png"],
+        "profile": {"id": "test"},
+        "dimensions_inches": [3.35, 2.51],
+        "minimum_pt": 7,
+    }

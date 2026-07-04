@@ -11,4 +11,5 @@ class TestWrite:
         write_json({"k": "v"}, p)
         assert p.exists()
         import json
+
         assert json.loads(p.read_text())["k"] == "v"

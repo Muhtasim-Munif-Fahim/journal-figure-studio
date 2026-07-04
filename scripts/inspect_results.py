@@ -74,8 +74,7 @@ def main() -> int:
     payload = {"inputs": [inspect(Path(path)) for path in args.data]}
     write_json(args.output, payload)
     print(
-        f"Wrote data context for {len(payload['inputs'])} "
-        f"input files to {args.output}"
+        f"Wrote data context for {len(payload['inputs'])} input files to {args.output}"
     )
     return SUCCESS
 

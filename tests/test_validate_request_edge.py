@@ -4,7 +4,11 @@ from pathlib import Path
 
 import yaml
 
-from scripts.validate_request import validate_request, _is_named_profile, VALID_FIGURE_TYPES
+from scripts.validate_request import (
+    VALID_FIGURE_TYPES,
+    _is_named_profile,
+    validate_request,
+)
 
 
 class TestValidateRequestEdge:

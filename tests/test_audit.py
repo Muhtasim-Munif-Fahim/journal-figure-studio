@@ -10,10 +10,17 @@ class TestAudit:
         output = tmp_path / "out"
         output.mkdir()
         import yaml
-        (output / "profile.yaml").write_text(yaml.safe_dump({
-            "id": "test", "formats": ["pdf"],
-            "raster_dpi": 300, "fonts": {"minimum_pt": 7},
-        }))
+
+        (output / "profile.yaml").write_text(
+            yaml.safe_dump(
+                {
+                    "id": "test",
+                    "formats": ["pdf"],
+                    "raster_dpi": 300,
+                    "fonts": {"minimum_pt": 7},
+                }
+            )
+        )
         meta = {"figure_id": "f", "formats": ["pdf"], "profile": {"id": "test"}}
         result = check(meta, output)
         assert result["status"] == "block"

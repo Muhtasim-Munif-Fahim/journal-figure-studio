@@ -10,7 +10,6 @@ import yaml
 from scripts.common import SKILL_ROOT
 from scripts.render_recipe import apply_style, copy_if_distinct, draw
 
-
 FIGURE_TYPES = [
     "bar",
     "ablation",
@@ -99,6 +98,7 @@ class TestDraw:
 class TestApplyStyle:
     def test_sets_matplotlib_rcparams(self, tmp_path: Path):
         import matplotlib
+
         matplotlib.use("Agg")
         profile = _make_profile()
         apply_style(profile)
@@ -107,6 +107,7 @@ class TestApplyStyle:
 
     def test_uses_profile_font_family(self, tmp_path: Path):
         import matplotlib
+
         matplotlib.use("Agg")
         profile = _make_profile()
         profile["fonts"]["family"] = "serif"

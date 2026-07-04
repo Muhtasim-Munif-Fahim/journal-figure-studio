@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 
-import pytest
-
 from scripts.validate_profile import validate
 
 
@@ -30,11 +28,20 @@ class TestValidateProfileVersioning:
 
 def _valid_profile():
     return {
-        "id": "test", "version": "1", "field": "test",
-        "verified_at": date.today().isoformat(), "stale_after_days": 365,
-        "formats": ["pdf", "png"], "raster_dpi": 300,
+        "id": "test",
+        "version": "1",
+        "field": "test",
+        "verified_at": date.today().isoformat(),
+        "stale_after_days": 365,
+        "formats": ["pdf", "png"],
+        "raster_dpi": 300,
         "dimensions_inches": {"single": 3.5, "double": 7.0},
-        "fonts": {"family": "sans-serif", "minimum_pt": 7, "axis_pt": 8, "panel_label_pt": 10},
+        "fonts": {
+            "family": "sans-serif",
+            "minimum_pt": 7,
+            "axis_pt": 8,
+            "panel_label_pt": 10,
+        },
         "caption": {"position": "bottom", "require_uncertainty_definition": True},
         "style": {"palette": "Okabe-Ito", "grid": False, "top_right_spines": False},
         "rules": ["require_ci"],

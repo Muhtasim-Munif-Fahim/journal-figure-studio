@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from scripts.logging_config import setup_logger, enable_debug
+from scripts.logging_config import enable_debug, setup_logger
 
 
 class TestLoggingConfig:

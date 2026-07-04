@@ -15,6 +15,7 @@ class TestWriteJsonEdge:
         p = tmp_path / "nested.json"
         write_json({"a": {"b": {"c": 1}}}, p)
         import json
+
         data = json.loads(p.read_text())
         assert data["a"]["b"]["c"] == 1
 
@@ -22,4 +23,5 @@ class TestWriteJsonEdge:
         p = tmp_path / "list.json"
         write_json([1, 2, 3], p)
         import json
+
         assert json.loads(p.read_text()) == [1, 2, 3]

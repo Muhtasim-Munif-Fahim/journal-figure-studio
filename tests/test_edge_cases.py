@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-import csv
 from pathlib import Path
 
-import pytest
 import yaml
 
 from scripts.common import SKILL_ROOT, read_table
-from scripts.render_recipe import draw
 
 
 def _profile() -> dict:

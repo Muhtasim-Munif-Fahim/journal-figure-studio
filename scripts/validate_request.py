@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from common import load_yaml, profile_path, read_table, resolve_request_path
-from exit_codes import INPUT_ERROR, SUCCESS, VALIDATION_ERROR
+from exit_codes import SUCCESS
 from logging_config import setup_logger
 from validate_profile import validate
 from version import __version__
@@ -16,9 +16,15 @@ from version import __version__
 logger = setup_logger(__name__)
 
 REQUIRED: set[str] = {
-    "figure_id", "research_field", "profile", "layout",
-    "data_paths", "analysis_script", "claim",
-    "caption_takeaway", "output_dir",
+    "figure_id",
+    "research_field",
+    "profile",
+    "layout",
+    "data_paths",
+    "analysis_script",
+    "claim",
+    "caption_takeaway",
+    "output_dir",
 }
 FIGURE_REQUIRED: set[str] = {"type", "source", "x", "y", "xlabel", "ylabel"}
 VALID_LAYOUTS: set[str] = {"single", "double"}
@@ -26,8 +32,16 @@ DEFAULT_MAX_CAPTION_LENGTH: int = 200
 DEFAULT_MAX_CLAIM_LENGTH: int = 1000
 
 VALID_FIGURE_TYPES: set[str] = {
-    "bar", "ablation", "line", "time_series", "training_curve",
-    "scatter", "distribution", "forest", "heatmap", "calibration",
+    "bar",
+    "ablation",
+    "line",
+    "time_series",
+    "training_curve",
+    "scatter",
+    "distribution",
+    "forest",
+    "heatmap",
+    "calibration",
 }
 
 
@@ -41,7 +55,7 @@ def _validate_figure_spec(
     index: int,
     request_path: Path,
 ) -> None:
-    prefix = f"figure" if index == 0 else f"figures[{index}]"
+    prefix = "figure" if index == 0 else f"figures[{index}]"
     for key in sorted(FIGURE_REQUIRED - set(spec)):
         errors.append(f"{prefix} missing '{key}'")
     source = resolve_request_path(request_path, spec.get("source", ""))
@@ -54,8 +68,7 @@ def _validate_figure_spec(
             value = spec.get(col_key)
             if value and value not in columns:
                 errors.append(
-                    f"{prefix}.{col_key} is not a column in "
-                    f"{spec['source']}: {value}"
+                    f"{prefix}.{col_key} is not a column in {spec['source']}: {value}"
                 )
     except ValueError as exc:
         errors.append(f"{prefix}: {exc}")
@@ -79,20 +92,26 @@ def validate_request(
     """
     request = load_yaml(request_path)
     errors: list[str] = [
-        f"missing request key: {key}"
-        for key in sorted(REQUIRED - set(request))
+        f"missing request key: {key}" for key in sorted(REQUIRED - set(request))
     ]
     if errors:
         return errors
 
     has_figure = "figure" in request
-    has_figures = "figures" in request and isinstance(request.get("figures"), list) and len(request["figures"]) > 0
+    has_figures = (
+        "figures" in request
+        and isinstance(request.get("figures"), list)
+        and len(request["figures"]) > 0
+    )
     if not has_figure and not has_figures:
         errors.append("request must include 'figure' or 'figures' key")
         return errors
 
     if request["layout"] not in VALID_LAYOUTS:
         errors.append("layout must be 'single' or 'double'")
+
+    if not request.get("figure_id"):
+        errors.append("figure_id is required")
 
     if has_figure:
         figure_type = request["figure"].get("type")
@@ -121,8 +140,9 @@ def validate_request(
     if request.get("analysis_script") and not analysis.exists():
         errors.append(f"analysis script does not exist: {request['analysis_script']}")
 
-    profile_file = profile_path(request["profile"], profiles_dir)
-    if not profile_file.exists():
+    try:
+        profile_file = profile_path(request["profile"], profiles_dir)
+    except FileNotFoundError:
         errors.append(f"profile does not exist: '{request['profile']}'")
     else:
         profile = load_yaml(profile_file)
@@ -132,7 +152,10 @@ def validate_request(
     if not request.get("output_dir"):
         errors.append("output_dir is required")
 
-    if request.get("caption_takeaway") and len(request["caption_takeaway"]) > DEFAULT_MAX_CAPTION_LENGTH:
+    if (
+        request.get("caption_takeaway")
+        and len(request["caption_takeaway"]) > DEFAULT_MAX_CAPTION_LENGTH
+    ):
         msg = "caption_takeaway exceeds 200 characters"
         if strict:
             errors.append(msg)
@@ -152,7 +175,7 @@ def validate_request(
 def main() -> int:
     """CLI entry point for request validation."""
     parser = argparse.ArgumentParser()
-    parser.add_argument("request")
+    parser.add_argument("request", nargs="?")
     parser.add_argument("--profiles-dir")
     parser.add_argument("--verbose", action="store_true", help="Enable debug logging")
     parser.add_argument("--strict", action="store_true", help="Fail on warnings too")
@@ -162,6 +185,8 @@ def main() -> int:
     if args.version:
         print(f"journal-figure-studio v{__version__}")
         return 0
+    if not args.request:
+        parser.error("the following arguments are required: request")
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.WARNING)
     errors = validate_request(args.request, args.profiles_dir, strict=strict)
     if errors:

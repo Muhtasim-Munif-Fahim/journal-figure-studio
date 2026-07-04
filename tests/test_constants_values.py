@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-from pathlib import Path
-
-from scripts.constants import MIN_FONT_PT, MIN_RASTER_DPI, SUPPORTED_FORMATS, DEFAULT_ASPECT_RATIO
+from scripts.constants import (
+    DEFAULT_ASPECT_RATIO,
+    MIN_FONT_PT,
+    MIN_RASTER_DPI,
+    SUPPORTED_FORMATS,
+)
 
 
 class TestConstantsValues:

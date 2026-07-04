@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import csv
-import json
 from pathlib import Path
 
 import yaml
 
-from scripts.common import SKILL_ROOT, load_yaml, read_table
+from scripts.common import SKILL_ROOT, read_table
 from scripts.render_recipe import _get_palette, apply_style, draw
 
 

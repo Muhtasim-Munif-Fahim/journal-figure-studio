@@ -87,9 +87,7 @@ class TestValidateProfile:
         assert any("minimum_pt" in e for e in errors)
 
     def test_stale_profile(self):
-        stale_date = (
-            datetime.now(timezone.utc) - timedelta(days=400)
-        ).isoformat()
+        stale_date = (datetime.now(timezone.utc) - timedelta(days=400)).isoformat()
         profile = _make_profile(verified_at=stale_date)
         errors = validate(profile, require_current=True)
         assert any("stale" in e.lower() for e in errors)

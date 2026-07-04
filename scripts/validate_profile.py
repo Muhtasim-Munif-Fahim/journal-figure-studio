@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import argparse
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -12,11 +12,19 @@ from constants import MIN_FONT_PT, MIN_RASTER_DPI
 from exit_codes import SUCCESS, VALIDATION_ERROR
 from version import __version__
 
-
 REQUIRED: set[str] = {
-    "id", "version", "field", "verified_at", "stale_after_days",
-    "formats", "raster_dpi", "dimensions_inches", "fonts",
-    "caption", "style", "rules",
+    "id",
+    "version",
+    "field",
+    "verified_at",
+    "stale_after_days",
+    "formats",
+    "raster_dpi",
+    "dimensions_inches",
+    "fonts",
+    "caption",
+    "style",
+    "rules",
 }
 # Constants moved to constants.py
 
@@ -35,13 +43,16 @@ def validate(
         List of validation error strings. Empty list means valid.
     """
     errors: list[str] = [
-        f"missing profile key: {key}"
-        for key in sorted(REQUIRED - set(profile))
+        f"missing profile key: {key}" for key in sorted(REQUIRED - set(profile))
     ]
     if errors:
         return errors
 
-    invalid_keys = set(profile) - REQUIRED - {"source_url", "verified_at", "stale_after_days"}
+    invalid_keys = (
+        set(profile)
+        - REQUIRED
+        - {"source_url", "verified_at", "stale_after_days", "color_mode"}
+    )
     if invalid_keys:
         errors.append(f"unknown profile keys: {', '.join(sorted(invalid_keys))}")
 
@@ -50,7 +61,11 @@ def validate(
         errors.append("dimensions_inches requires single and double values")
 
     raster_dpi = profile.get("raster_dpi", MIN_RASTER_DPI)
-    if isinstance(raster_dpi, (int, float)) and raster_dpi < MIN_RASTER_DPI:
+    if raster_dpi is None:
+        pass
+    elif not isinstance(raster_dpi, (int, float)):
+        errors.append("raster_dpi must be numeric")
+    elif raster_dpi < MIN_RASTER_DPI:
         errors.append(f"raster_dpi must be at least {MIN_RASTER_DPI}")
 
     fonts = profile.get("fonts", {})
@@ -64,13 +79,11 @@ def validate(
         verified_str = profile.get("verified_at")
         if verified_str:
             try:
-                verified = date.fromisoformat(str(verified_str))
+                verified = datetime.fromisoformat(str(verified_str)).date()
                 age = (date.today() - verified).days
                 stale_after = int(profile.get("stale_after_days", 365))
                 if age > stale_after:
-                    errors.append(
-                        f"named profile is stale by {age - stale_after} days"
-                    )
+                    errors.append(f"named profile is stale by {age - stale_after} days")
             except (ValueError, TypeError):
                 errors.append(f"invalid verified_at format: {verified_str}")
     elif require_current:
