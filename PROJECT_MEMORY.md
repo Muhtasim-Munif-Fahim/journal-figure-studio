@@ -9,7 +9,7 @@ Implementation state:
 - Updated package/runtime behavior around CSV reading, JSON/YAML helpers, profile creation defaults, package audits, render dispatch, request validation, and packaged reproducibility helpers.
 - Added `pyarrow` and `types-PyYAML` dependencies required by the current test and typecheck jobs.
 - Opened PR #8 and retitled it to `fix: restore CI and Release Drafter` after the semantic PR-title check failed.
-- Fixed the remote Python 3.10 CI failure from run `28701302248` by making CSV parsing preserve leading/trailing whitespace before pandas numeric inference while still preserving pandas-style missing values and duplicate-column handling.
+- Fixed the remote Python 3.10 CI failure from runs `28701302248` and `28701420748` by making CSV parsing preserve leading/trailing whitespace before pandas numeric inference while still preserving pandas-style missing values and duplicate-column handling. The final fix uses `str.contains` instead of `str.match` because the latter did not reliably detect trailing whitespace across pandas/Python combinations.
 
 Verified commands:
 - `.\.venv\Scripts\python -m pytest tests\ -q` -> `461 passed`
@@ -17,6 +17,7 @@ Verified commands:
 - `.\.venv\Scripts\python -m ruff check . --no-cache` -> `All checks passed`
 - `.\.venv\Scripts\python -m ruff format --check . --no-cache` -> `183 files already formatted`
 - `gh run view 28701302248 --repo Muhtasim-Munif-Fahim/journal-figure-studio --job 85119674375 --log-failed` -> confirmed Python 3.10 failures in `test_csv_with_trailing_whitespace` and `test_trailing_whitespace_in_csv`.
+- `gh run view 28701420748 --repo Muhtasim-Munif-Fahim/journal-figure-studio --job 85119985159 --log-failed` -> confirmed the same Python 3.10 failures after the first parser fix, narrowing the cause to the whitespace detection expression.
 
 Blockers:
 - None for `journal-figure-studio` local CI after this branch.

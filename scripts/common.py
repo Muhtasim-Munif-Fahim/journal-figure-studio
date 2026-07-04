@@ -110,7 +110,7 @@ def _read_csv_preserving_text(file_path: Path) -> pd.DataFrame:
     for column in frame.columns:
         values = frame[column]
         present = values.dropna()
-        if present.astype(str).str.match(r"^\s|\s$").any():
+        if present.astype(str).str.contains(r"^\s|\s$", regex=True).any():
             continue
         numeric = pd.to_numeric(values, errors="coerce")
         if numeric[values.notna()].notna().all():
