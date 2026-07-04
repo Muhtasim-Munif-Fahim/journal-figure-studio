@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import csv
 import hashlib
 import json
 from pathlib import Path
@@ -88,14 +89,31 @@ TABLE_FORMAT_READERS: dict[str, Any] = {
 }
 
 
+def _deduplicate_columns(columns: list[str]) -> list[str]:
+    seen: dict[str, int] = {}
+    result: list[str] = []
+    for column in columns:
+        count = seen.get(column, 0)
+        result.append(column if count == 0 else f"{column}.{count}")
+        seen[column] = count + 1
+    return result
+
+
 def _read_csv_preserving_text(file_path: Path) -> pd.DataFrame:
-    frame = pd.read_csv(file_path, dtype=str, keep_default_na=True)
+    with file_path.open(newline="", encoding="utf-8-sig") as handle:
+        rows = list(csv.reader(handle))
+    if not rows:
+        return pd.DataFrame()
+    columns = _deduplicate_columns(rows[0])
+    data = [[pd.NA if cell == "" else cell for cell in row] for row in rows[1:]]
+    frame = pd.DataFrame(data, columns=columns)
     for column in frame.columns:
         values = frame[column]
-        if values.astype(str).str.match(r"^\s|\s$").any():
+        present = values.dropna()
+        if present.astype(str).str.match(r"^\s|\s$").any():
             continue
         numeric = pd.to_numeric(values, errors="coerce")
-        if numeric.notna().all():
+        if numeric[values.notna()].notna().all():
             frame[column] = numeric
     return frame
 
