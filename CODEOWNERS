@@ -1,6 +1,0 @@
-# Each line is a file pattern followed by one or more owners
-*.py @Muhtasim-Munif-Fahim
-*.yaml @Muhtasim-Munif-Fahim
-*.yml @Muhtasim-Munif-Fahim
-*.toml @Muhtasim-Munif-Fahim
-*.md @Muhtasim-Munif-Fahim
