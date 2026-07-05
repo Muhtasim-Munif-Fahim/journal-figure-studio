@@ -6,9 +6,9 @@ import argparse
 from pathlib import Path
 from typing import Any
 
-from common import read_table, sha256, write_json
-from exit_codes import SUCCESS
-from version import __version__
+from scripts.common import read_table, sha256, write_json
+from scripts.exit_codes import SUCCESS
+from scripts.version import __version__
 
 
 def _classify_dtype(dtype: str) -> str:

@@ -7,11 +7,11 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from common import load_yaml, profile_path, read_table, resolve_request_path
-from exit_codes import INPUT_ERROR, SUCCESS, VALIDATION_ERROR
-from logging_config import setup_logger
-from validate_profile import validate
-from version import __version__
+from scripts.common import load_yaml, profile_path, read_table, resolve_request_path
+from scripts.exit_codes import INPUT_ERROR, SUCCESS, VALIDATION_ERROR
+from scripts.logging_config import setup_logger
+from scripts.validate_profile import validate
+from scripts.version import __version__
 
 logger = setup_logger(__name__)
 

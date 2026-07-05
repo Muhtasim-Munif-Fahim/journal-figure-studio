@@ -10,7 +10,7 @@ from typing import Any
 import yaml
 
 from exit_codes import SUCCESS
-from version import __version__
+from scripts.version import __version__
 
 
 def create(

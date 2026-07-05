@@ -7,10 +7,10 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from common import load_yaml
-from constants import MIN_FONT_PT, MIN_RASTER_DPI
-from exit_codes import SUCCESS, VALIDATION_ERROR
-from version import __version__
+from scripts.common import load_yaml
+from scripts.constants import MIN_FONT_PT, MIN_RASTER_DPI
+from scripts.exit_codes import SUCCESS, VALIDATION_ERROR
+from scripts.version import __version__
 
 
 REQUIRED: set[str] = {

@@ -9,9 +9,9 @@ from typing import Any
 
 import matplotlib.image as mpimg
 
-from common import load_yaml, write_json
-from exit_codes import RUNTIME_ERROR, SUCCESS, VALIDATION_ERROR
-from version import __version__
+from scripts.common import load_yaml, write_json
+from scripts.exit_codes import RUNTIME_ERROR, SUCCESS, VALIDATION_ERROR
+from scripts.version import __version__
 
 REQUIRED_OUTPUTS: list[str] = [
     "figure.py",

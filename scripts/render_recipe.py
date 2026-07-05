@@ -19,10 +19,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import yaml
 
-from common import load_yaml, profile_path, read_table, resolve_request_path, sha256, write_json
-from exit_codes import INPUT_ERROR, RUNTIME_ERROR, SUCCESS, VALIDATION_ERROR
-from logging_config import setup_logger
-from version import __version__
+from scripts.common import load_yaml, profile_path, read_table, resolve_request_path, sha256, write_json
+from scripts.exit_codes import INPUT_ERROR, RUNTIME_ERROR, SUCCESS, VALIDATION_ERROR
+from scripts.logging_config import setup_logger
+from scripts.version import __version__
 
 logger = setup_logger(__name__)
 
