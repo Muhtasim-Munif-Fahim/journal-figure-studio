@@ -36,6 +36,14 @@ Issues = "https://github.com/Muhtasim-Munif-Fahim/journal-figure-studio/issues"
 Documentation = "https://github.com/Muhtasim-Munif-Fahim/journal-figure-studio#readme"
 Changelog = "https://github.com/Muhtasim-Munif-Fahim/journal-figure-studio/blob/main/CHANGELOG.md"
 
+[project.scripts]
+render-figure = "scripts.render_recipe:main"
+validate-request = "scripts.validate_request:main"
+validate-profile = "scripts.validate_profile:main"
+check-package = "scripts.check_package:main"
+inspect-data = "scripts.inspect_results:main"
+create-profile = "scripts.create_venue_profile:main"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
@@ -53,14 +61,12 @@ include = ["scripts*"]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-v --tb=short"
-log_cli = true
-log_cli_level = "INFO"
-
-[tool.pytest.markers]
-unit = "Unit tests"
-integration = "Integration tests"
-cli = "CLI tests"
-slow = "Slow tests"
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "cli: CLI tests",
+    "slow: Slow tests",
+]
 
 [tool.mypy]
 python_version = "3.10"
