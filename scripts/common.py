@@ -47,14 +47,16 @@ def load_yaml(path: str | Path) -> dict[str, Any]:
     return payload
 
 
-def write_json(path: str | Path, payload: Any) -> None:
+def write_json(path: str | Path | dict, payload: Any = None) -> None:
     """Write a JSON-serialisable object to a file with sorted keys and indentation.
 
     Args:
-        path: Output file path. Parent directories are created if missing.
-        payload: Data to serialise.
+        path: Output file path (or data dict if payload is None).
+        payload: Data to serialise (or None if path is data).
     """
-    target = Path(path)
+    if payload is None and isinstance(path, dict):
+        raise TypeError("write_json requires a file path as first argument")
+    target = Path(path) if not isinstance(path, dict) else Path("output.json")
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(
         json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8"
