@@ -9,7 +9,7 @@ from typing import Any
 
 import yaml
 
-from exit_codes import SUCCESS
+from scripts.exit_codes import SUCCESS
 from scripts.version import __version__
 
 
