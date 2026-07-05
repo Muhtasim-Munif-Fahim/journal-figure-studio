@@ -24,7 +24,7 @@ def _make_request_yaml(
         "profile": "universal",
         "layout": "single",
         "data_paths": [],
-        "analysis_script": tmp_path / "dummy_script.py",
+        "analysis_script": str(tmp_path / "dummy_script.py"),
         "claim": "Our method improves accuracy.",
         "caption_takeaway": "Main result shows improvement",
         "figure": {
@@ -53,7 +53,10 @@ class TestValidateRequest:
         assert errors == []
 
     def test_missing_figure_id(self, tmp_path: Path):
-        path = _make_request_yaml(tmp_path, overrides={"figure_id": None})
+        path = _make_request_yaml(tmp_path, overrides={})
+        request = yaml.safe_load(path.read_text())
+        del request["figure_id"]
+        path.write_text(yaml.safe_dump(request))
         errors = validate_request(path)
         assert any("figure_id" in e for e in errors)
 
