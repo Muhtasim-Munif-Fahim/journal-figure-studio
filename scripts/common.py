@@ -80,6 +80,11 @@ def sha256(file_path: str | Path) -> str:
 
 VALID_NUMERIC_KINDS: set[str] = {"i", "u", "f", "c"}
 
+
+def default_json_serializer(obj: Any) -> str:
+    """Default JSON serializer for non-serializable types."""
+    return str(obj)
+
 TABLE_FORMAT_READERS: dict[str, Any] = {
     ".csv": pd.read_csv,
     ".parquet": pd.read_parquet,
