@@ -1,2 +1,0 @@
-# Extra dependencies for optional features
-openpyxl>=3.1  # Excel (.xlsx) support
