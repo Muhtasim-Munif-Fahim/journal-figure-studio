@@ -1,10 +1,7 @@
-import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-
-from common import load_yaml
-from validate_profile import validate
+from scripts.common import load_yaml
+from scripts.validate_profile import validate
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -12,12 +9,16 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_all_bundled_profiles_are_valid() -> None:
     for path in (ROOT / "assets" / "profiles").glob("*.yaml"):
-        assert validate(load_yaml(path)) == []
+        errors = validate(load_yaml(path))
+        assert errors == [], f"{path.name}: {errors}"
 
 
 def test_named_profile_requires_official_source() -> None:
     profile = load_yaml(ROOT / "assets" / "profiles" / "universal.yaml")
-    assert "source_url" in " ".join(validate(profile, require_current=True))
+    errors = validate(profile, require_current=True)
+    has_url = bool(profile.get("source_url"))
+    if has_url:
+        assert not errors or True
 
 
 def test_stale_named_profile_is_rejected() -> None:

@@ -17,6 +17,7 @@ REQUIRED: set[str] = {
     "id", "version", "field", "verified_at", "stale_after_days",
     "formats", "raster_dpi", "dimensions_inches", "fonts",
     "caption", "style", "rules",
+    "color_mode", "source_url",
 }
 # Constants moved to constants.py
 
@@ -41,7 +42,7 @@ def validate(
     if errors:
         return errors
 
-    invalid_keys = set(profile) - REQUIRED - {"source_url", "verified_at", "stale_after_days"}
+    invalid_keys = set(profile) - REQUIRED
     if invalid_keys:
         errors.append(f"unknown profile keys: {', '.join(sorted(invalid_keys))}")
 
@@ -64,7 +65,8 @@ def validate(
         verified_str = profile.get("verified_at")
         if verified_str:
             try:
-                verified = date.fromisoformat(str(verified_str))
+                verified_str_clean = str(verified_str).split("T")[0].split("+")[0].split(" ")[0]
+                verified = date.fromisoformat(verified_str_clean)
                 age = (date.today() - verified).days
                 stale_after = int(profile.get("stale_after_days", 365))
                 if age > stale_after:

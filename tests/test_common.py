@@ -38,7 +38,7 @@ class TestWriteJson:
     def test_writes_valid_json(self, tmp_path: Path):
         data = {"key": "value", "num": 42}
         path = tmp_path / "out.json"
-        write_json(data, path)
+        write_json(path, data)
         assert path.exists()
         loaded = json.loads(path.read_text())
         assert loaded == data
@@ -50,7 +50,7 @@ class TestWriteJson:
     def test_creates_parent_dirs(self, tmp_path: Path):
         data = {"a": 1}
         path = tmp_path / "nested" / "deep" / "out.json"
-        write_json(data, path)
+        write_json(path, data)
         assert path.exists()
 
 
