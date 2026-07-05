@@ -1,0 +1,7 @@
+title: "journal-figure-studio"
+authors:
+  - family-names: "Fahim"
+    given-names: "Muhtasim Munif"
+cff-version: "1.2.0"
+message: "If you use this software, please cite it."
+type: "software"
