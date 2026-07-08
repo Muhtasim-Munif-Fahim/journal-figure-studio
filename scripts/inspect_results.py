@@ -45,20 +45,23 @@ def inspect(path: Path) -> dict[str, Any]:
             "dtype": str(frame[column].dtype),
             "type_category": _classify_dtype(str(frame[column].dtype)),
             "missing": int(frame[column].isna().sum()),
+            "pct_missing": round(float(frame[column].isna().mean()), 4),
             "unique": int(frame[column].nunique()),
         }
         for column in frame.columns
     ]
-    return {
+    result: dict[str, Any] = {
         "path": str(path.resolve()),
         "sha256": sha256(path),
         "rows": int(len(frame)),
-        "columns": columns,
+        "columns": len(frame.columns),
+        "column_details": columns,
         "completeness": round(filled_cells / total_cells, 4) if total_cells else 1.0,
-        "numeric_summary": (
-            numeric.describe().round(6).to_dict() if not numeric.empty else {}
-        ),
+        "size_bytes": path.stat().st_size,
     }
+    if not numeric.empty:
+        result["numeric_summary"] = numeric.describe().round(6).to_dict()
+    return result
 
 
 def main() -> int:
