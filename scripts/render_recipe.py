@@ -395,10 +395,12 @@ def main() -> int:
         str(resolve_request_path(request_path, item).resolve())
         for item in request.get("data_paths", [])
     ]
-    if "analysis_script" in request:
+    if request.get("analysis_script"):
         packed["analysis_script"] = str(
             resolve_request_path(request_path, request["analysis_script"]).resolve()
         )
+    else:
+        packed["analysis_script"] = None
     packed["output_dir"] = "."
     (output / "figure_request.yaml").write_text(
         yaml.safe_dump(packed, sort_keys=False), encoding="utf-8"
