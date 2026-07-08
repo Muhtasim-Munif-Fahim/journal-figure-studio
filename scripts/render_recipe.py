@@ -125,9 +125,10 @@ def _add_significance_annotation(
     )
 
 
-def _draw_line(ax: plt.Axes, frame: Any, figure: dict[str, Any], palette: list[str], kind: str) -> None:
+def _draw_line(ax: plt.Axes, frame: Any, figure: dict[str, Any], palette: list[str]) -> None:
     x, y, group = figure["x"], figure["y"], figure.get("group")
     lower, upper = figure.get("lower"), figure.get("upper")
+    kind = figure.get("type", "line")
     groups = [(None, frame)] if not group else list(frame.groupby(group, sort=False))
     for idx, (name, subset) in enumerate(groups):
         subset = subset.sort_values(x)

@@ -110,6 +110,7 @@ def check(
             if missing_meta:
                 warnings.append(f"metadata missing expected keys: {', '.join(sorted(missing_meta))}")
 
+    warning_count = len(warnings)
     status = "pass" if not errors else "block"
     if warning_count > 0 and status == "pass":
         status = "pass_with_warnings"
