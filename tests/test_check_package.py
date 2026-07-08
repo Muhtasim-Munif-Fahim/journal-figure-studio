@@ -12,7 +12,7 @@ def _make_metadata(output_dir: Path) -> dict:
     return {
         "figure_id": "test-fig",
         "formats": ["pdf", "png"],
-        "profile": "universal",
+        "profile": {"id": "universal", "version": "1", "verified_at": "2026-01-01"},
         "dimensions_inches": {"width": 3.35, "height": 2.51},
         "minimum_pt": 7,
         "inputs": {
