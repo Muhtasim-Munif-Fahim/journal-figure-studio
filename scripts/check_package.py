@@ -103,14 +103,15 @@ def check(
     else:
         errors.append("figure_metadata.json is missing")
 
+    audit_warnings: list[str] = []
     if not errors:
         expected_keys = {"figure_id", "profile", "inputs", "outputs", "layout"}
         if isinstance(metadata, dict):
             missing_meta = expected_keys - set(metadata.keys())
             if missing_meta:
-                warnings.append(f"metadata missing expected keys: {', '.join(sorted(missing_meta))}")
+                audit_warnings.append(f"metadata missing expected keys: {', '.join(sorted(missing_meta))}")
 
-    warning_count = len(warnings)
+    warning_count = len(audit_warnings)
     status = "pass" if not errors else "block"
     if warning_count > 0 and status == "pass":
         status = "pass_with_warnings"
@@ -118,7 +119,7 @@ def check(
         "status": status,
         "profile": profile.get("id", profile_id),
         "errors": errors,
-        "warnings": warnings,
+        "warnings": audit_warnings,
         "metadata": metadata,
     }
     return report
