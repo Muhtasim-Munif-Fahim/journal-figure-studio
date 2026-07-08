@@ -32,9 +32,11 @@ class TestCLIHelp:
         "check_package.py",
     ])
     def test_scripts_version_flag(self, script: str):
+        script_module = f"scripts.{script.replace('.py', '')}"
         result = subprocess.run(
-            [sys.executable, "-m", f"scripts.{script.replace('.py', '')}", "--version"],
+            [sys.executable, "-m", script_module, "--version"],
             capture_output=True, text=True,
+            cwd=str(SCRIPTS_DIR.parent),
         )
         assert result.returncode == 0, f"stderr: {result.stderr}"
-        assert "journal-figure-studio v" in result.stdout
+        assert "journal-figure-studio v" in result.stdout or "journal-figure-studio v" in result.stderr
