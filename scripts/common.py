@@ -113,16 +113,25 @@ def read_table(file_path: str | Path) -> pd.DataFrame:
     Raises:
         FileNotFoundError: If the file does not exist.
         ValueError: If the file format is not supported.
+        pd.errors.EmptyDataError: If the file is empty.
     """
     source = Path(file_path)
     if not source.exists():
-        raise FileNotFoundError(f"Data file not found: {source}")
+        raise FileNotFoundError(
+            f"Data file not found: {source}. "
+            f"Check that the path is correct and the file exists."
+        )
+    if source.stat().st_size == 0:
+        raise pd.errors.EmptyDataError(f"Data file is empty: {source}")
+
     suffix = source.suffix.lower()
-    reader = TABLE_FORMAT_READERS.get(suffix)
-    if reader is None:
+    try:
+        return TABLE_FORMAT_READERS[suffix](source)
+    except KeyError:
         raise ValueError(
-            f"Unsupported file format: {suffix}. "
-            f"Supported: {', '.join(sorted(TABLE_FORMAT_READERS))}"
+            f"Unsupported file format: '{suffix}'. "
+            f"Supported formats: {', '.join(sorted(TABLE_FORMAT_READERS))}. "
+            f"Hint: check the file extension."
         )
     return reader(source)
 
