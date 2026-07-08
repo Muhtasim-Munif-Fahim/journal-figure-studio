@@ -33,14 +33,18 @@ def _create_minimal_pdf(path: Path) -> None:
     )
 
 
-def _create_minimal_png(path: Path, width: int = 400) -> None:
+def _create_minimal_png(path: Path, width: int = 100) -> None:
     import struct
     import zlib
+    height = 50
     sig = b"\x89PNG\r\n\x1a\n"
-    ihdr_data = struct.pack(">IIBBBBB", width, 300, 8, 2, 0, 0, 0)
+    ihdr_data = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
     ihdr_crc = struct.pack(">I", zlib.crc32(b"IHDR" + ihdr_data) & 0xFFFFFFFF)
     ihdr_chunk = struct.pack(">I", 13) + b"IHDR" + ihdr_data + ihdr_crc
-    raw = b"\x00" + b"\x00\x80\x00" * width * 300
+    raw = b""
+    for y in range(height):
+        raw += b"\x00"
+        raw += b"\x00\x80\x00" * width
     idat_data = zlib.compress(raw)
     idat_crc = struct.pack(">I", zlib.crc32(b"IDAT" + idat_data) & 0xFFFFFFFF)
     idat_chunk = struct.pack(">I", len(idat_data)) + b"IDAT" + idat_data + idat_crc
