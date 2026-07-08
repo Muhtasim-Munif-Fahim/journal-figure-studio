@@ -9,6 +9,7 @@ import math
 import platform
 import shutil
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -475,17 +476,28 @@ def main() -> int:
     copy_if_distinct(Path(__file__).with_name("common.py"), output / "common.py")
     copy_if_distinct(Path(__file__).with_name("version.py") if Path(__file__).with_name("version.py").exists() else None, output / "version.py")
 
+    inputs: dict[str, str] = {}
+    if source_path.exists():
+        inputs[str(source_path.resolve())] = sha256(source_path)
+    outputs: dict[str, str] = {}
+    for p in output.glob(f"{request['figure_id']}.*"):
+        if p.is_file() and p.suffix in (".pdf", ".png", ".tiff", ".svg"):
+            outputs[p.name] = sha256(p)
+
     metadata: dict[str, Any] = {
         "figure_id": request["figure_id"],
+        "created_at": datetime.now(timezone.utc).isoformat(),
         "profile": {"id": profile["id"], "version": profile["version"], "verified_at": str(profile["verified_at"])},
-        "inputs": {str(source_path.resolve()): sha256(source_path)},
-        "outputs": {p.name: sha256(p) for p in output.glob(f"{request['figure_id']}.*") if p.is_file()},
+        "inputs": inputs,
+        "outputs": outputs,
+        "figure_count": len(figures_to_check),
         "layout": request["layout"],
-        "dimensions_inches": [width, height],
+        "dimensions_inches": {"width": width, "height": height},
         "studio_version": __version__,
-        "python": sys.version,
+        "python": sys.version.split()[0],
         "platform": platform.platform(),
         "matplotlib": matplotlib.__version__,
+        "numpy": np.__version__,
         "reproduce_command": f"python figure.py --request figure_request.yaml --profiles-dir profiles",
     }
     write_json(output / "figure_metadata.json", metadata)
