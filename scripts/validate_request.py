@@ -35,6 +35,9 @@ def _is_named_profile(profile: dict[str, Any]) -> bool:
     return bool(profile.get("source_url"))
 
 
+SUPPORTED_COLUMN_KEYS: set[str] = {"x", "y", "group", "lower", "upper", "column", "row", "values"}
+
+
 def _validate_figure_spec(
     errors: list[str],
     spec: dict[str, Any],
@@ -42,6 +45,9 @@ def _validate_figure_spec(
     request_path: Path,
 ) -> None:
     prefix = f"figure" if index == 0 else f"figures[{index}]"
+    if not isinstance(spec, dict):
+        errors.append(f"{prefix} must be a dict")
+        return
     for key in sorted(FIGURE_REQUIRED - set(spec)):
         errors.append(f"{prefix} missing '{key}'")
     source = resolve_request_path(request_path, spec.get("source", ""))
@@ -50,12 +56,12 @@ def _validate_figure_spec(
         return
     try:
         columns = set(read_table(source).columns)
-        for col_key in ("x", "y", "group", "lower", "upper"):
+        for col_key in SUPPORTED_COLUMN_KEYS:
             value = spec.get(col_key)
             if value and value not in columns:
                 errors.append(
-                    f"{prefix}.{col_key} is not a column in "
-                    f"{spec['source']}: {value}"
+                    f"{prefix}.{col_key} ('{value}') is not a column "
+                    f"in {spec['source']}. Available columns: {', '.join(sorted(columns))}"
                 )
     except ValueError as exc:
         errors.append(f"{prefix}: {exc}")
