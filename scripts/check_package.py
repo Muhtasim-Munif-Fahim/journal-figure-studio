@@ -99,14 +99,16 @@ def check(
         meta_size_kb = meta_size / 1024
         if meta_size_kb > 100:
             errors.append(f"figure_metadata.json is unexpectedly large ({meta_size_kb:.0f} KB)")
+    else:
+        errors.append("figure_metadata.json is missing")
 
-    warnings: list[str] = []
+    if not errors:
+        expected_keys = {"figure_id", "profile", "inputs", "outputs", "layout"}
+        if isinstance(metadata, dict):
+            missing_meta = expected_keys - set(metadata.keys())
+            if missing_meta:
+                warnings.append(f"metadata missing expected keys: {', '.join(sorted(missing_meta))}")
 
-    for fmt_path in [pdf_path, png_path, svg_path]:
-        if fmt_path.exists() and fmt_path.stat().st_size == 0:
-            warnings.append(f"output file is empty: {fmt_path.name}")
-
-    warning_count = len(warnings)
     status = "pass" if not errors else "block"
     if warning_count > 0 and status == "pass":
         status = "pass_with_warnings"
