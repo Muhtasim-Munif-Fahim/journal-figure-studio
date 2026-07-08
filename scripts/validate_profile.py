@@ -48,11 +48,23 @@ def validate(
 
     dimensions = profile["dimensions_inches"]
     if not {"single", "double"}.issubset(dimensions):
-        errors.append("dimensions_inches requires single and double values")
+        errors.append("dimensions_inches requires 'single' and 'double' width keys")
+    else:
+        single = dimensions.get("single", 0)
+        double = dimensions.get("double", 0)
+        if single <= 0:
+            errors.append(f"dimensions_inches.single must be positive (got {single})")
+        if double <= 0:
+            errors.append(f"dimensions_inches.double must be positive (got {double})")
+        if single >= double:
+            errors.append(f"dimensions_inches.single ({single}) must be less than double ({double})")
+        aspect = dimensions.get("aspect_ratio", 0)
+        if aspect and (aspect <= 0 or aspect >= 2):
+            errors.append(f"dimensions_inches.aspect_ratio ({aspect}) should be between 0 and 2")
 
     raster_dpi = profile.get("raster_dpi", MIN_RASTER_DPI)
     if isinstance(raster_dpi, (int, float)) and raster_dpi < MIN_RASTER_DPI:
-        errors.append(f"raster_dpi must be at least {MIN_RASTER_DPI}")
+        errors.append(f"raster_dpi must be at least {MIN_RASTER_DPI} (got {raster_dpi})")
 
     fonts = profile.get("fonts", {})
     if isinstance(fonts, dict):
