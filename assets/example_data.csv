@@ -1,0 +1,4 @@
+method,score,ci_low,ci_high
+Baseline,72.3,70.1,74.5
+Ours,89.7,87.2,92.2
+SOTA,85.1,82.8,87.4
