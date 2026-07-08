@@ -256,15 +256,15 @@ def draw(
     ax.set_ylabel(figure["ylabel"])
     if figure.get("group") or kind == "calibration":
         ax.legend(frameon=False)
-    if "p_value" in figure and figure["p_value"]:
+    if figure.get("p_value") is not None:
         try:
             unique_x = frame[figure["x"]].unique()
             p_val = float(figure["p_value"])
             y_max = frame[figure["y"]].max()
-            if y_max > 0:
+            if y_max is not None and y_max > 0:
                 _add_significance_annotation(ax, 0, len(unique_x) - 1, y_max * 1.1, p_val)
-        except (TypeError, ValueError, KeyError):
-            pass
+        except (TypeError, ValueError, KeyError) as exc:
+            logger.warning("Could not add significance annotation: %s", exc)
 
 
 def _render_figures(
