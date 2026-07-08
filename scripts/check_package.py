@@ -124,18 +124,27 @@ def check(
 
 def main() -> int:
     """CLI entry point for package audit."""
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--package", required=True)
+    parser = argparse.ArgumentParser(
+        description="Audit a rendered publication package for completeness and quality.",
+        epilog="Exit code: 0 = pass, 1 = issues found",
+    )
+    parser.add_argument("--package", required=True, help="Path to output package directory")
     parser.add_argument("--strict", action="store_true", help="Treat warnings as errors")
+    parser.add_argument("--verbose", action="store_true", help="Show detailed audit info")
     parser.add_argument("--version", action="store_true", help="Print version and exit")
     args = parser.parse_args()
     if args.version:
         print(f"journal-figure-studio v{__version__}")
         return 0
     package = Path(args.package)
-    metadata = json.loads(
-        (package / "figure_metadata.json").read_text(encoding="utf-8")
-    )
+    if not package.exists():
+        print(f"ERROR: Package directory not found: {package}")
+        return INPUT_ERROR
+    meta_path = package / "figure_metadata.json"
+    if not meta_path.exists():
+        print(f"ERROR: figure_metadata.json not found in {package}")
+        return INPUT_ERROR
+    metadata = json.loads(meta_path.read_text(encoding="utf-8"))
     report = check(metadata, package)
     if args.strict:
         total_issues = len(report.get("errors", [])) + len(report.get("warnings", []))
@@ -144,7 +153,16 @@ def main() -> int:
             report["errors"] = report.get("errors", []) + report.get("warnings", [])
             report["warnings"] = []
     write_json(package / "figure_audit.json", report)
-    print(json.dumps(report, indent=2))
+    status_icon = {"pass": "PASS", "pass_with_warnings": "PASS (with warnings)", "block": "BLOCK"}.get(report["status"], "UNKNOWN")
+    print(f"Audit: {status_icon}")
+    if report.get("errors"):
+        print("Errors:")
+        for e in report["errors"]:
+            print(f"  ! {e}")
+    if report.get("warnings") and args.verbose:
+        print("Warnings:")
+        for w in report["warnings"]:
+            print(f"  ? {w}")
     return SUCCESS if report["status"] == "pass" else VALIDATION_ERROR
 
 
