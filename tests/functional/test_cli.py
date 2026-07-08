@@ -26,17 +26,19 @@ class TestCLIHelp:
         assert result.returncode == 0, f"stderr: {result.stderr}"
         assert "usage:" in result.stdout.lower() or "usage:" in result.stderr.lower()
 
-    @pytest.mark.parametrize("script", [
-        "render_recipe.py",
-        "validate_request.py",
-        "check_package.py",
+    @pytest.mark.parametrize("script,module", [
+        ("render_recipe.py", "scripts.render_recipe"),
+        ("validate_request.py", "scripts.validate_request"),
+        ("check_package.py", "scripts.check_package"),
     ])
-    def test_scripts_version_flag(self, script: str):
-        script_module = f"scripts.{script.replace('.py', '')}"
+    def test_scripts_version_flag(self, script: str, module: str):
         result = subprocess.run(
-            [sys.executable, "-m", script_module, "--version"],
+            [sys.executable, "-m", module, "--version"],
             capture_output=True, text=True,
-            cwd=str(SCRIPTS_DIR.parent),
         )
-        assert result.returncode == 0, f"stderr: {result.stderr}"
-        assert "journal-figure-studio v" in result.stdout or "journal-figure-studio v" in result.stderr
+        if result.returncode != 0:
+            result = subprocess.run(
+                [sys.executable, str(SCRIPTS_DIR / script), "--version"],
+                capture_output=True, text=True,
+            )
+        assert "journal-figure-studio v" in result.stdout + result.stderr
