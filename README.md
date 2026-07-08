@@ -13,6 +13,15 @@ The project is deliberately not tied to machine learning, public health, or a si
 >
 > Q1 is an indexing classification, not a figure specification. This toolkit does not claim blanket Q1 or journal compliance. Use a named journal profile created from the target journal's current official author instructions before submission.
 
+## Why this exists
+
+Most research figures are assembled late, manually, and without enough
+provenance to reproduce the exact submission artifact. `journal-figure-studio`
+treats each figure as a small auditable package: source data, rendering recipe,
+selected profile, output files, metadata, caption text, and validation results
+travel together. The goal is not to replace scientific judgment; it is to make
+the figure-production step inspectable and repeatable.
+
 ## What It Produces
 
 For each figure request, the renderer creates a self-contained publication package:
@@ -25,14 +34,6 @@ For each figure request, the renderer creates a self-contained publication packa
 - `figure_audit.json` after package validation.
 
 The package uses supplied data or result files and records the source analysis script. It does not invent values, substitute statistical analysis, perform ethical review, or decide whether a research claim is valid.
-
-## Quick Start
-
-```bash
-pip install -r requirements.txt
-python scripts/render_recipe.py --request assets/figure_request.example.yaml
-python scripts/check_package.py --package output/my-figure-id
-```
 
 ## Built-In Profiles
 
@@ -63,12 +64,11 @@ The execution instructions are in [`SKILL.md`](SKILL.md).
 
 ### Use the Python tools directly
 
-```powershell
+```bash
 git clone https://github.com/Muhtasim-Munif-Fahim/journal-figure-studio.git
 cd journal-figure-studio
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
+python -m pytest -q
 ```
 
 Requires Python 3.10+ and the packages listed in [`requirements.txt`](requirements.txt).
@@ -79,7 +79,7 @@ Requires Python 3.10+ and the packages listed in [`requirements.txt`](requiremen
 2. Replace every example value with real data, a real analysis script, a bounded research claim, and an evidence-backed caption takeaway.
 3. Inspect the result file, validate the request, render the package, inspect the PNG at intended print size, and run the final audit.
 
-```powershell
+```bash
 python scripts/inspect_results.py path\to\results.csv
 python scripts/validate_request.py figure_request.yaml
 python scripts/render_recipe.py --request figure_request.yaml
@@ -179,7 +179,7 @@ To export SVG, add `svg` to the profile's `formats` list or set `export_svg: tru
 |---------|-------------|
 | **Figure types** | bar, ablation, line, time_series, training_curve, scatter, distribution, forest, heatmap, calibration |
 | **Output formats** | PDF (vector), PNG (raster), TIFF (high-res raster), SVG (vector) |
-| **Annotations** | Statistical significance brackets (p_value → \*, \*\*, \*\*\*, n.s.) |
+| **Annotations** | Statistical significance brackets (`p_value` -> `*`, `**`, `***`, `n.s.`) |
 | **Profiles** | 6 built-in discipline profiles with colourblind-safe palettes |
 | **Input formats** | CSV, Parquet, JSON, JSONL, Excel (.xls/.xlsx) |
 | **Validation** | Request schema, profile schema, staleness checks, column mapping |
@@ -237,4 +237,5 @@ SKILL.md                       Instructions used by Codex when the skill trigger
 
 ## License and Contributions
 
-No license file has been added yet. Do not assume reuse rights beyond the repository's current terms. Contributions should include tests for changes to renderers, validation rules, or profile behavior.
+This project is released under the MIT license. Contributions should include
+tests for changes to renderers, validation rules, or profile behavior.
