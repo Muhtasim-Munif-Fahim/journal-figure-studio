@@ -346,7 +346,7 @@ def main() -> int:
     parser.add_argument("--verbose", action="store_true", help="Enable debug logging")
     parser.add_argument("--version", action="store_true", help="Print version and exit")
     parser.add_argument("--validate-only", action="store_true", help="Validate request without rendering")
-    args = parser.parse_args()
+    args, remaining = parser.parse_known_args()
 
     if args.version:
         print(f"journal-figure-studio v{__version__}")

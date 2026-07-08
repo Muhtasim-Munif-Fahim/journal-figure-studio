@@ -102,7 +102,7 @@ def main() -> int:
     parser.add_argument("profile", help="Path to profile YAML file")
     parser.add_argument("--require-current", action="store_true", help="Fail if profile is stale")
     parser.add_argument("--version", action="store_true", help="Print version and exit")
-    args = parser.parse_args()
+    args, _ = parser.parse_known_args()
     if args.version:
         print(f"journal-figure-studio v{__version__}")
         return 0
