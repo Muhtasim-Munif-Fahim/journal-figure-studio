@@ -64,7 +64,8 @@ def check(
     png_path = package / f"{figure_id}.png"
     if png_path.exists():
         image = mpimg.imread(str(png_path))
-        width_inches = metadata.get("dimensions_inches", [0])[0]
+        dims = metadata.get("dimensions_inches", [0])
+        width_inches = dims[0] if isinstance(dims, list) else dims.get("width", 3.35)
         target_dpi = int(profile.get("raster_dpi", 300))
         min_pixels = int(width_inches * target_dpi * 0.95)
         if image.shape[1] < min_pixels:
