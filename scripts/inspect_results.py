@@ -66,20 +66,35 @@ def inspect(path: Path) -> dict[str, Any]:
 
 def main() -> int:
     """CLI entry point for data inspection."""
-    parser = argparse.ArgumentParser()
-    parser.add_argument("data", nargs="+")
-    parser.add_argument("--output", default="figure_context.json")
+    parser = argparse.ArgumentParser(
+        description="Inspect tabular data files and produce a JSON summary.",
+        epilog="Example: python scripts/inspect_results.py results.csv --output summary.json",
+    )
+    parser.add_argument("data", nargs="+", help="Data files to inspect (CSV, Parquet, JSON, JSONL)")
+    parser.add_argument("--output", default="figure_context.json", help="Output JSON path")
     parser.add_argument("--version", action="store_true", help="Print version and exit")
     args = parser.parse_args()
     if args.version:
         print(f"journal-figure-studio v{__version__}")
         return 0
-    payload = {"inputs": [inspect(Path(path)) for path in args.data]}
+    inputs = []
+    for path_str in args.data:
+        path = Path(path_str)
+        if not path.exists():
+            print(f"WARNING: File not found: {path}")
+            continue
+        try:
+            inputs.append(inspect(path))
+            print(f"  Inspected: {path.name} ({inputs[-1]['rows']} rows, {inputs[-1]['columns']} columns)")
+        except Exception as exc:
+            print(f"  ERROR inspecting {path.name}: {exc}")
+            return RUNTIME_ERROR
+    if not inputs:
+        print("No valid input files found")
+        return INPUT_ERROR
+    payload = {"inputs": inputs}
     write_json(args.output, payload)
-    print(
-        f"Wrote data context for {len(payload['inputs'])} "
-        f"input files to {args.output}"
-    )
+    print(f"Wrote data context for {len(inputs)} input files to {args.output}")
     return SUCCESS
 
 
