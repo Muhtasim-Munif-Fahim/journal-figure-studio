@@ -95,20 +95,28 @@ def validate(
 
 def main() -> int:
     """CLI entry point for profile validation."""
-    parser = argparse.ArgumentParser()
-    parser.add_argument("profile")
-    parser.add_argument("--require-current", action="store_true")
+    parser = argparse.ArgumentParser(
+        description="Validate a journal profile YAML against the schema.",
+        epilog="Example: python scripts/validate_profile.py assets/profiles/universal.yaml",
+    )
+    parser.add_argument("profile", help="Path to profile YAML file")
+    parser.add_argument("--require-current", action="store_true", help="Fail if profile is stale")
     parser.add_argument("--version", action="store_true", help="Print version and exit")
     args = parser.parse_args()
     if args.version:
         print(f"journal-figure-studio v{__version__}")
         return 0
-    errors = validate(load_yaml(args.profile), args.require_current)
+    profile = load_yaml(args.profile)
+    profile_name = profile.get("id", Path(args.profile).stem)
+    errors = validate(profile, args.require_current)
     if errors:
-        print("Profile validation failed:")
-        print("\n".join(f"- {error}" for error in errors))
+        print(f"Profile '{profile_name}' validation failed:")
+        for error in errors:
+            print(f"  ! {error}")
         return VALIDATION_ERROR
-    print(f"Profile is valid: {Path(args.profile).stem}")
+    print(f"Profile '{profile_name}' is valid")
+    if args.require_current:
+        print("  Freshness check: passed")
     return SUCCESS
 
 
