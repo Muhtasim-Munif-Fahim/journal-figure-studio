@@ -30,6 +30,12 @@ logger = setup_logger(__name__)
 
 # Backward-compatible aliases
 SUPPORTED_TYPES: set[str] = SUPPORTED_FIGURE_TYPES
+STAT_ANNOTATIONS: dict = {
+    "p <= 0.001": "***",
+    "p <= 0.01": "**",
+    "p <= 0.05": "*",
+    "p > 0.05": "n.s.",
+}
 
 
 
