@@ -74,10 +74,21 @@ def _build_package(output_dir: Path, metadata: dict) -> None:
             _create_minimal_png(fpath, width=400)
 
 
+def _ensure_profile(output_dir: Path) -> None:
+    import yaml
+    profile_path = output_dir / "profile.yaml"
+    if not profile_path.exists():
+        profile_path.write_text(yaml.safe_dump({
+            "id": "test", "formats": ["pdf", "png"],
+            "raster_dpi": 300, "fonts": {"minimum_pt": 7},
+        }))
+
+
 class TestCheckPackage:
     def test_valid_package_passes(self, tmp_path: Path):
         output_dir = tmp_path / "output"
         output_dir.mkdir()
+        _ensure_profile(output_dir)
         metadata = _make_metadata(output_dir)
         _build_package(output_dir, metadata)
         audit = check(metadata, output_dir)
@@ -86,6 +97,7 @@ class TestCheckPackage:
     def test_missing_output_file_fails(self, tmp_path: Path):
         output_dir = tmp_path / "output"
         output_dir.mkdir()
+        _ensure_profile(output_dir)
         metadata = _make_metadata(output_dir)
         meta_path = output_dir / "figure_metadata.json"
         meta_path.write_text(json.dumps(metadata))
@@ -95,6 +107,7 @@ class TestCheckPackage:
     def test_invalid_pdf_fails(self, tmp_path: Path):
         output_dir = tmp_path / "output"
         output_dir.mkdir()
+        _ensure_profile(output_dir)
         metadata = _make_metadata(output_dir)
         meta_path = output_dir / "figure_metadata.json"
         meta_path.write_text(json.dumps(metadata))
@@ -107,6 +120,7 @@ class TestCheckPackage:
     def test_low_font_size_fails(self, tmp_path: Path):
         output_dir = tmp_path / "output"
         output_dir.mkdir()
+        _ensure_profile(output_dir)
         metadata = _make_metadata(output_dir)
         metadata["minimum_pt"] = 4
         _build_package(output_dir, metadata)
