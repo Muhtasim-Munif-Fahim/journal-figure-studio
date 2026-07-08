@@ -117,15 +117,13 @@ def _add_significance_annotation(
 ) -> None:
     bracket_y = y + line_height
     ax.plot([x1, x1, x2, x2], [y, bracket_y, bracket_y, y], color="black", linewidth=0.6, clip_on=False)
-    for threshold_val in sorted(STAT_ANNOTATIONS.keys(), reverse=True):
+    symbol: str = "n.s."
+    fontsize: int = 7
+    for threshold_val in sorted(STAT_ANNOTATIONS.keys()):
         if p_value <= threshold_val:
-            symbol = STAT_ANNOTATIONS[threshold_val]
-            symbol = stars
+            symbol = str(STAT_ANNOTATIONS[threshold_val])
             fontsize = 8
             break
-    else:
-        symbol = "n.s."
-        fontsize = 7
     ax.text(
         (x1 + x2) / 2, bracket_y + line_height * 1.5,
         symbol, ha="center", va="bottom", fontsize=fontsize,
