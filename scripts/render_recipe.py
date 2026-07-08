@@ -137,19 +137,19 @@ def _add_significance_annotation(
     line_height: float = 0.02,
 ) -> None:
     bracket_y = y + line_height
-    ax.plot([x1, x1, x2, x2], [y, bracket_y, bracket_y, y], color="black", linewidth=0.6)
-    threshold = 0.05
-    for threshold_val, stars in sorted(STAT_ANNOTATIONS.items()):
-        threshold_val_num = float(threshold_val.split()[2])
-        if p_value <= threshold_val_num:
-            ax.text(
-                (x1 + x2) / 2, bracket_y + line_height * 1.5,
-                stars, ha="center", va="bottom", fontsize=8,
-            )
-            return
+    ax.plot([x1, x1, x2, x2], [y, bracket_y, bracket_y, y], color="black", linewidth=0.6, clip_on=False)
+    for threshold_str, stars in sorted(STAT_ANNOTATIONS.items()):
+        threshold_val = float(threshold_str.split()[2])
+        if p_value <= threshold_val:
+            symbol = stars
+            fontsize = 8
+            break
+    else:
+        symbol = "n.s."
+        fontsize = 7
     ax.text(
         (x1 + x2) / 2, bracket_y + line_height * 1.5,
-        "n.s.", ha="center", va="bottom", fontsize=7,
+        symbol, ha="center", va="bottom", fontsize=fontsize,
     )
 
 
@@ -429,13 +429,19 @@ def main() -> int:
     width, height, created = _render_figures(request, profile, output, request_path)
     logger.info("Rendered %d output files", len(created))
 
-    caption = f"**{request['caption_takeaway']}** {request['claim']}"
+    caption_takeaway = request.get("caption_takeaway", "")
+    claim = request.get("claim", "")
+    caption = f"**{caption_takeaway}** {claim}".strip()
+    if not caption:
+        caption = f"Figure: {request['figure_id']}"
     (output / "caption.md").write_text(caption + "\n", encoding="utf-8")
+
+    latex_caption = caption.replace("**", "").replace("_", "\\_")
     latex = (
-        "% \\listoffigures  % uncomment to auto-generate figure list\n"
+        "% Figure: " + request["figure_id"] + "\n"
         "\\begin{figure}[t]\n\\centering\n"
         f"\\includegraphics[width=\\linewidth]{{{request['figure_id']}.pdf}}\n"
-        f"\\caption{{{caption.replace('**', '')}}}\n"
+        f"\\caption{{{latex_caption}}}\n"
         f"\\label{{fig:{request['figure_id']}}}\n\\end{{figure}}\n"
     )
     (output / "latex_include.tex").write_text(latex, encoding="utf-8")
