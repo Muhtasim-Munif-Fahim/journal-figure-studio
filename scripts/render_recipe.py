@@ -21,45 +21,17 @@ import numpy as np
 import yaml
 
 from scripts.common import load_yaml, profile_path, read_table, resolve_request_path, sha256, write_json
+from scripts.constants import PALETTES, SUPPORTED_FIGURE_TYPES, STAT_ANNOTATION_THRESHOLDS as STAT_ANNOTATIONS
 from scripts.exit_codes import INPUT_ERROR, RUNTIME_ERROR, SUCCESS, VALIDATION_ERROR
 from scripts.logging_config import setup_logger
 from scripts.version import __version__
 
 logger = setup_logger(__name__)
 
+# Backward-compatible aliases
+SUPPORTED_TYPES: set[str] = SUPPORTED_FIGURE_TYPES
 
 
-
-PALETTES: dict[str, list[str]] = {
-    "okabe_ito": [
-        "#0072B2", "#D55E00", "#009E73", "#E69F00",
-        "#56B4E9", "#CC79A7", "#999999",
-    ],
-    "nature": [
-        "#3B4992", "#EE0000", "#008B45", "#631879",
-        "#008280", "#808180",
-    ],
-    "nejm": [
-        "#0072B5", "#BC3C29", "#20854E", "#E18727",
-        "#7876B1", "#6F99AD",
-    ],
-    "lancet": [
-        "#00468B", "#AD002A", "#42B540", "#925E9F",
-        "#ED0000", "#1B1919",
-    ],
-}
-
-SUPPORTED_TYPES: set[str] = {
-    "bar", "ablation", "line", "time_series", "training_curve",
-    "scatter", "distribution", "forest", "heatmap", "calibration",
-}
-
-STAT_ANNOTATIONS: dict[str, str] = {
-    "p <= 0.001": "***",
-    "p <= 0.01": "**",
-    "p <= 0.05": "*",
-    "p > 0.05": "n.s.",
-}
 
 
 def _get_palette(profile: dict[str, Any]) -> list[str]:
@@ -139,9 +111,9 @@ def _add_significance_annotation(
 ) -> None:
     bracket_y = y + line_height
     ax.plot([x1, x1, x2, x2], [y, bracket_y, bracket_y, y], color="black", linewidth=0.6, clip_on=False)
-    for threshold_str, stars in sorted(STAT_ANNOTATIONS.items()):
-        threshold_val = float(threshold_str.split()[2])
+    for threshold_val in sorted(STAT_ANNOTATIONS.keys(), reverse=True):
         if p_value <= threshold_val:
+            symbol = STAT_ANNOTATIONS[threshold_val]
             symbol = stars
             fontsize = 8
             break
