@@ -82,22 +82,54 @@ def create(
     )
 
 
+def _validate_profile_args(args: argparse.Namespace) -> list[str]:
+    errors: list[str] = []
+    if not args.id or not args.id.strip():
+        errors.append("--id is required and must not be empty")
+    if not args.field or not args.field.strip():
+        errors.append("--field is required and must not be empty")
+    if not args.source_url or not args.source_url.strip():
+        errors.append("--source-url is required for named profiles")
+    if args.single_width <= 0:
+        errors.append(f"--single-width must be positive (got {args.single_width})")
+    if args.double_width <= 0:
+        errors.append(f"--double-width must be positive (got {args.double_width})")
+    if args.dpi < 72:
+        errors.append(f"--dpi must be at least 72 (got {args.dpi})")
+    if args.dpi > 1200:
+        errors.append(f"--dpi seems too high (max 1200 recommended, got {args.dpi})")
+    if args.formats:
+        valid = {"pdf", "png", "tiff", "svg"}
+        for fmt in args.formats:
+            if fmt not in valid:
+                errors.append(f"Unknown format '{fmt}'. Valid: {', '.join(sorted(valid))}")
+    return errors
+
+
 def main() -> int:
     """CLI entry point for profile generation."""
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--id", required=True)
-    parser.add_argument("--field", required=True)
-    parser.add_argument("--source-url", required=True)
-    parser.add_argument("--output", required=True)
-    parser.add_argument("--single-width", type=float, required=True)
-    parser.add_argument("--double-width", type=float, required=True)
-    parser.add_argument("--formats", nargs="+", default=["pdf", "png"])
-    parser.add_argument("--dpi", type=int, default=600)
-    parser.add_argument("--version", action="store_true", help="Print version and exit")
+    parser = argparse.ArgumentParser(
+        description="Create a new journal profile from official author guidelines.",
+        epilog="Example: python scripts/create_venue_profile.py "
+               "--id icml --field computer_science --source-url https://icml.cc/ --single-width 3.25 --double-width 6.75",
+    )
+    parser.add_argument("--id", required=True, help="Unique profile identifier (e.g., 'nature_biomedical')")
+    parser.add_argument("--field", required=True, help="Research field (e.g., 'biomedical', 'computer_science')")
+    parser.add_argument("--source-url", required=True, help="URL to official author guidelines")
+    parser.add_argument("--output", required=True, help="Output YAML file path")
+    parser.add_argument("--single-width", type=float, required=True, help="Single-column figure width in inches")
+    parser.add_argument("--double-width", type=float, required=True, help="Double-column figure width in inches")
+    parser.add_argument("--formats", nargs="+", default=["pdf", "png"], help="Output formats")
+    parser.add_argument("--dpi", type=int, default=600, help="Raster DPI (default: 600)")
     args = parser.parse_args()
-    if args.version:
-        print(f"journal-figure-studio v{__version__}")
-        return 0
+
+    input_errors = _validate_profile_args(args)
+    if input_errors:
+        print("Input validation failed:")
+        for err in input_errors:
+            print(f"  ! {err}")
+        return VALIDATION_ERROR
+
     create(
         args.id, args.field, args.source_url,
         args.single_width, args.double_width,
