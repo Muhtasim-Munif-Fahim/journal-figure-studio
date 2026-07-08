@@ -237,6 +237,21 @@ _DISPATCH: dict[str, Any] = {
 }
 
 
+def validate_figure_data(frame: Any, figure: dict[str, Any]) -> list[str]:
+    """Validate that required columns exist and have data in the frame."""
+    errors: list[str] = []
+    for key in ("x", "y"):
+        col = figure.get(key)
+        if col and col not in frame.columns:
+            errors.append(f"Column '{col}' not found in data. Available: {list(frame.columns)}")
+        elif col:
+            if frame[col].isna().all():
+                errors.append(f"Column '{col}' has all missing values")
+            if len(frame[col].dropna()) == 0:
+                errors.append(f"Column '{col}' has no valid data")
+    return errors
+
+
 def draw(
     ax: plt.Axes,
     frame: Any,
@@ -271,14 +286,19 @@ def _render_figures(
     request: dict[str, Any],
     profile: dict[str, Any],
     output: Path,
+    request_path: Path | None = None,
 ) -> tuple[float, float, list[Path]]:
     """Render all figures in the request (single figure or multi-panel).
+
+    Each figure spec can have its own data source. Single-figure requests
+    use the top-level ``figure.source`` path.
 
     Returns (width, height, created_output_paths).
     """
     width, height = apply_style(profile, request["layout"])
     palette = _get_palette(profile)
     created: list[Path] = []
+    base_path = request_path or Path(request.get("_request_path", ""))
 
     figures = request.get("figures", [request.get("figure", {})])
     if not figures:
@@ -289,51 +309,64 @@ def _render_figures(
         fig, axes = plt.subplots(panels, panels, figsize=(width * panels, height * panels))
         axes_flat = axes.flatten() if panels > 1 else [axes]
         for i, spec in enumerate(figures):
-            source = resolve_request_path(Path(request.get("_request_path", "")), spec.get("source", ""))
-            frame = read_table(source) if source.exists() else None
-            if frame is None:
-                logger.warning("No data for panel %d, skipping", i)
+            src = spec.get("source", "")
+            if not src:
+                logger.warning("No source for panel %d, skipping", i)
+                axes_flat[i].set_visible(False)
                 continue
+            source = resolve_request_path(base_path, src)
+            if not source.exists():
+                logger.warning("Source not found for panel %d: %s", i, source)
+                axes_flat[i].set_visible(False)
+                continue
+            frame = read_table(source)
+            validation_errors = validate_figure_data(frame, spec)
+            if validation_errors:
+                for err in validation_errors:
+                    logger.warning("Panel %d: %s", i, err)
             draw(axes_flat[i], frame, spec, palette)
         for j in range(len(figures), len(axes_flat)):
             axes_flat[j].set_visible(False)
         fig.tight_layout()
         stem = output / request["figure_id"]
-        fig.savefig(stem.with_suffix(".pdf"))
-        fig.savefig(stem.with_suffix(".png"), dpi=profile["raster_dpi"])
-        if "tiff" in profile.get("formats", []):
-            fig.savefig(stem.with_suffix(".tiff"), dpi=profile["raster_dpi"])
-        if "svg" in profile.get("formats", []):
-            fig.savefig(stem.with_suffix(".svg"))
-        plt.close(fig)
-        created = [stem.with_suffix(s) for s in [".pdf", ".png"]]
     else:
         spec = figures[0]
-        source_path = resolve_request_path(Path(request.get("_request_path", "")), spec.get("source", ""))
-        frame = read_table(source_path)
+        src = spec.get("source", "")
+        if not src:
+            raise ValueError("No data source specified in figure request")
+        source = resolve_request_path(base_path, src)
+        frame = read_table(source)
+        validation_errors = validate_figure_data(frame, spec)
+        if validation_errors:
+            for err in validation_errors:
+                logger.warning("Data validation: %s", err)
         fig, ax = plt.subplots(figsize=(width, height))
         draw(ax, frame, spec, palette)
         fig.tight_layout()
         stem = output / request["figure_id"]
-        fig.savefig(stem.with_suffix(".pdf"))
-        fig.savefig(stem.with_suffix(".png"), dpi=profile["raster_dpi"])
-        if request.get("export_tiff") or "tiff" in profile.get("formats", []):
-            fig.savefig(stem.with_suffix(".tiff"), dpi=profile["raster_dpi"])
-        if request.get("export_svg") or "svg" in profile.get("formats", []):
-            fig.savefig(stem.with_suffix(".svg"))
-        plt.close(fig)
-        created = [stem.with_suffix(s) for s in [".pdf", ".png"]]
 
+    fig.savefig(stem.with_suffix(".pdf"))
+    fig.savefig(stem.with_suffix(".png"), dpi=profile["raster_dpi"])
+    if request.get("export_tiff") or "tiff" in profile.get("formats", []):
+        fig.savefig(stem.with_suffix(".tiff"), dpi=profile["raster_dpi"])
+    if request.get("export_svg") or "svg" in profile.get("formats", []):
+        fig.savefig(stem.with_suffix(".svg"))
+    plt.close(fig)
+    created = [stem.with_suffix(s) for s in [".pdf", ".png"]]
     return width, height, created
 
 
 def main() -> int:
     """Parse CLI args, load request and profile, render figure package."""
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--request", required=True)
-    parser.add_argument("--profiles-dir")
+    parser = argparse.ArgumentParser(
+        description="Render a reproducible academic figure from a YAML request.",
+        epilog="Example: python scripts/render_recipe.py --request assets/figure_request.example.yaml",
+    )
+    parser.add_argument("--request", required=True, help="Path to figure_request.yaml")
+    parser.add_argument("--profiles-dir", help="Custom profiles directory (default: assets/profiles)")
     parser.add_argument("--verbose", action="store_true", help="Enable debug logging")
     parser.add_argument("--version", action="store_true", help="Print version and exit")
+    parser.add_argument("--validate-only", action="store_true", help="Validate request without rendering")
     args = parser.parse_args()
 
     if args.version:
@@ -346,12 +379,24 @@ def main() -> int:
     )
 
     request_path = Path(args.request)
+    if not request_path.exists():
+        print(f"ERROR: Request file not found: {request_path}")
+        return INPUT_ERROR
+
     request = load_yaml(request_path)
     request["_request_path"] = str(request_path)
+
+    if "profile" not in request:
+        print("ERROR: Request must specify a 'profile'")
+        return VALIDATION_ERROR
+
     profile_file = profile_path(request["profile"], args.profiles_dir)
+    if not profile_file.exists():
+        print(f"ERROR: Profile not found: {profile_file}")
+        return INPUT_ERROR
     profile = load_yaml(profile_file)
 
-    logger.info("Loaded request %s with profile %s", request.get("figure_id"), request["profile"])
+    logger.info("Loaded request %s with profile %s", request.get("figure_id", "unknown"), request["profile"])
     figures_to_check = request.get("figures", [request.get("figure", {})])
     for i, fig in enumerate(figures_to_check):
         src = fig.get("source", "")
@@ -361,6 +406,11 @@ def main() -> int:
                 logger.error("Data source not found for figure %d: %s", i, resolved)
                 print(f"ERROR: Data source not found for figure {i}: {resolved}")
                 return INPUT_ERROR
+
+    if args.validate_only:
+        print("Request validation passed.")
+        return SUCCESS
+
     source_path = resolve_request_path(request_path, figures_to_check[0].get("source", ""))
     if not source_path.exists():
         return INPUT_ERROR
@@ -370,7 +420,7 @@ def main() -> int:
     output.mkdir(parents=True, exist_ok=True)
     logger.info("Output directory: %s", output)
 
-    width, height, created = _render_figures(request, profile, output)
+    width, height, created = _render_figures(request, profile, output, request_path)
     logger.info("Rendered %d output files", len(created))
 
     caption = f"**{request['caption_takeaway']}** {request['claim']}"
