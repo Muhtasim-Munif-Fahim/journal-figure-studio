@@ -53,6 +53,15 @@ def _create_minimal_png(path: Path, width: int = 400) -> None:
 def _build_package(output_dir: Path, metadata: dict) -> None:
     meta_path = output_dir / "figure_metadata.json"
     meta_path.write_text(json.dumps(metadata))
+    profile_yaml = output_dir / "profile.yaml"
+    if not profile_yaml.exists():
+        import yaml
+        profile_yaml.write_text(yaml.safe_dump({
+            "id": metadata.get("profile", {}).get("id", "test"),
+            "formats": metadata.get("formats", ["pdf", "png"]),
+            "raster_dpi": 300,
+            "fonts": {"minimum_pt": 7},
+        }))
     for fmt in metadata["formats"]:
         fpath = output_dir / f'{metadata["figure_id"]}.{fmt}'
         if fmt == "pdf":

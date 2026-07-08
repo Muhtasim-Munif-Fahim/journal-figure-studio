@@ -21,7 +21,7 @@ import numpy as np
 import yaml
 
 from scripts.common import load_yaml, profile_path, read_table, resolve_request_path, sha256, write_json
-from scripts.constants import PALETTES, SUPPORTED_FIGURE_TYPES, STAT_ANNOTATION_THRESHOLDS as STAT_ANNOTATIONS
+from scripts.constants import PALETTES, SUPPORTED_FIGURE_TYPES, STAT_ANNOTATION_THRESHOLDS
 from scripts.exit_codes import INPUT_ERROR, RUNTIME_ERROR, SUCCESS, VALIDATION_ERROR
 from scripts.logging_config import setup_logger
 from scripts.version import __version__
@@ -30,12 +30,7 @@ logger = setup_logger(__name__)
 
 # Backward-compatible aliases
 SUPPORTED_TYPES: set[str] = SUPPORTED_FIGURE_TYPES
-STAT_ANNOTATIONS: dict = {
-    "p <= 0.001": "***",
-    "p <= 0.01": "**",
-    "p <= 0.05": "*",
-    "p > 0.05": "n.s.",
-}
+STAT_ANNOTATIONS: dict[float, str] = dict(STAT_ANNOTATION_THRESHOLDS)
 
 
 
@@ -119,7 +114,7 @@ def _add_significance_annotation(
     ax.plot([x1, x1, x2, x2], [y, bracket_y, bracket_y, y], color="black", linewidth=0.6, clip_on=False)
     symbol: str = "n.s."
     fontsize: int = 7
-    for threshold_val in sorted(STAT_ANNOTATIONS.keys()):
+    for threshold_val in sorted(STAT_ANNOTATION_THRESHOLDS.keys()):
         if p_value <= threshold_val:
             symbol = str(STAT_ANNOTATIONS[threshold_val])
             fontsize = 8
