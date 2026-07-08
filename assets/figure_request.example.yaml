@@ -3,8 +3,8 @@ research_field: computer_science_ml
 profile: computer_science_ml
 layout: single
 data_paths:
-  - results.csv
-analysis_script: analysis.py
+  - example_data.csv
+analysis_script: null
 claim: "The selected method improves the primary metric relative to the reported baselines."
 caption_takeaway: "The selected method has the highest mean score; error bars show 95% confidence intervals."
 figure:
