@@ -63,8 +63,13 @@ STAT_ANNOTATIONS: dict[str, str] = {
 
 def _get_palette(profile: dict[str, Any]) -> list[str]:
     raw: Any = profile.get("style", {}).get("palette", "okabe_ito")
-    palette_key: str = str(raw).lower().replace("-", "_") if raw else "okabe_ito"
-    return PALETTES.get(palette_key, PALETTES["okabe_ito"])
+    if raw is None:
+        return PALETTES["okabe_ito"]
+    palette_key: str = str(raw).lower().replace("-", "_")
+    if palette_key not in PALETTES:
+        logger.warning("Unknown palette '%s', falling back to Okabe-Ito", raw)
+        return PALETTES["okabe_ito"]
+    return PALETTES[palette_key]
 
 
 def copy_if_distinct(source: Path | None, destination: Path) -> None:
