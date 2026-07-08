@@ -169,11 +169,21 @@ def main() -> int:
         print(f"journal-figure-studio v{__version__}")
         return 0
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.WARNING)
+    logger.debug("Validating request: %s", args.request)
     errors = validate_request(args.request, args.profiles_dir, strict=strict)
     if errors:
         print("Figure request validation failed:")
-        print("\n".join(f"- {error}" for error in errors))
-        return 1
+        warnings_only = [e for e in errors if e.startswith("[warn]")]
+        failures = [e for e in errors if not e.startswith("[warn]")]
+        if failures:
+            print("Errors:")
+            print("\n".join(f"  ! {e}" for e in failures))
+        if warnings_only:
+            print("Warnings:")
+            print("\n".join(f"  ? {e}" for e in warnings_only))
+        if failures:
+            return VALIDATION_ERROR
+        return SUCCESS
     print("Figure request is valid")
     return SUCCESS
 
