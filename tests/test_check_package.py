@@ -57,15 +57,9 @@ def _create_minimal_png(path: Path, width: int = 100) -> None:
 def _build_package(output_dir: Path, metadata: dict) -> None:
     meta_path = output_dir / "figure_metadata.json"
     meta_path.write_text(json.dumps(metadata))
-    profile_yaml = output_dir / "profile.yaml"
-    if not profile_yaml.exists():
-        import yaml
-        profile_yaml.write_text(yaml.safe_dump({
-            "id": metadata.get("profile", {}).get("id", "test"),
-            "formats": metadata.get("formats", ["pdf", "png"]),
-            "raster_dpi": 300,
-            "fonts": {"minimum_pt": 7},
-        }))
+    _ensure_profile(output_dir)
+    for required_file in ["figure.py", "common.py", "figure_request.yaml", "caption.md", "latex_include.tex", "word_insertion.txt"]:
+        (output_dir / required_file).write_text("# placeholder\n")
     for fmt in metadata["formats"]:
         fpath = output_dir / f'{metadata["figure_id"]}.{fmt}'
         if fmt == "pdf":
@@ -121,8 +115,11 @@ class TestCheckPackage:
         output_dir = tmp_path / "output"
         output_dir.mkdir()
         _ensure_profile(output_dir)
+        import yaml
+        profile = yaml.safe_load((output_dir / "profile.yaml").read_text())
+        profile["fonts"]["minimum_pt"] = 4
+        (output_dir / "profile.yaml").write_text(yaml.safe_dump(profile))
         metadata = _make_metadata(output_dir)
-        metadata["minimum_pt"] = 4
         _build_package(output_dir, metadata)
         audit = check(metadata, output_dir)
         errors = audit.get("errors", [])
