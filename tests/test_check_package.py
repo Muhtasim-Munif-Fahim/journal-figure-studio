@@ -65,7 +65,7 @@ def _build_package(output_dir: Path, metadata: dict) -> None:
         if fmt == "pdf":
             _create_minimal_pdf(fpath)
         elif fmt == "png":
-            _create_minimal_png(fpath, width=400)
+            _create_minimal_png(fpath, width=1200)
 
 
 def _ensure_profile(output_dir: Path) -> None:
