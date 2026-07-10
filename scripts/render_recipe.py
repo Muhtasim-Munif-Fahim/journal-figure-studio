@@ -247,7 +247,8 @@ def draw(
     handler(ax, frame, figure, palette)
     ax.set_xlabel(figure["xlabel"])
     ax.set_ylabel(figure["ylabel"])
-    has_groups = bool(figure.get("group")) and frame[figure["group"]].nunique() > 1 if figure.get("group") else False
+    grp = figure.get("group")
+    has_groups = bool(grp) and grp in frame.columns and frame[grp].nunique() > 1
     if has_groups or kind == "calibration":
         ax.legend(frameon=False, fontsize="small")
     if figure.get("p_value") is not None:
