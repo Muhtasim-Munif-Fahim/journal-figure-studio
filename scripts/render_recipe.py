@@ -450,7 +450,7 @@ def main() -> int:
     copy_if_distinct(Path(__file__).with_name("version.py") if Path(__file__).with_name("version.py").exists() else None, output / "version.py")
 
     inputs: dict[str, str] = {}
-    if source_path.exists():
+    if source_path and source_path.exists():
         inputs[str(source_path.resolve())] = sha256(source_path)
     outputs: dict[str, str] = {}
     for p in output.glob(f"{request['figure_id']}.*"):
