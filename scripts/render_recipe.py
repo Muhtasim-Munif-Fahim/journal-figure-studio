@@ -393,9 +393,14 @@ def main() -> int:
 
     source_path = resolve_request_path(request_path, figures_to_check[0].get("source", ""))
     if not source_path.exists():
+        print(f"ERROR: Data source not found: {source_path}")
         return INPUT_ERROR
 
-    frame = read_table(source_path)
+    try:
+        frame = read_table(source_path)
+    except Exception as exc:
+        print(f"ERROR: Could not read data source {source_path}: {exc}")
+        return RUNTIME_ERROR
     output = resolve_request_path(request_path, request["output_dir"])
     output.mkdir(parents=True, exist_ok=True)
     logger.info("Output directory: %s", output)
