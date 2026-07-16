@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import pandas as pd
 import yaml
@@ -133,7 +133,7 @@ def read_table(file_path: str | Path) -> pd.DataFrame:
             f"Supported formats: {', '.join(sorted(TABLE_FORMAT_READERS))}. "
             f"Hint: check the file extension."
         )
-    return reader(source)
+    return TABLE_FORMAT_READERS[suffix](source)
 
 
 def resolve_request_path(

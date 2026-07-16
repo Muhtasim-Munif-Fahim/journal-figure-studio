@@ -113,6 +113,12 @@ class TestReadTable:
         with pytest.raises(ValueError):
             read_table(unsupported)
 
+    def test_unsupported_extension_reports_supported_formats(self, tmp_path: Path):
+        unsupported = tmp_path / "data.xyz"
+        unsupported.write_text("dummy")
+        with pytest.raises(ValueError, match="Supported formats"):
+            read_table(unsupported)
+
     def test_raises_on_missing_file(self):
         with pytest.raises(FileNotFoundError):
             read_table(Path("/nonexistent.csv"))
