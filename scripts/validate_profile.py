@@ -55,6 +55,12 @@ def validate(
     else:
         single = dimensions.get("single", 0)
         double = dimensions.get("double", 0)
+        if not isinstance(single, (int, float)) or isinstance(single, bool):
+            errors.append("dimensions_inches.single must be numeric")
+            single = 0
+        if not isinstance(double, (int, float)) or isinstance(double, bool):
+            errors.append("dimensions_inches.double must be numeric")
+            double = 0
         if single <= 0:
             errors.append(f"dimensions_inches.single must be positive (got {single})")
         if double <= 0:
