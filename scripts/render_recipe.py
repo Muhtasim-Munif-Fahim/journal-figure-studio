@@ -338,7 +338,10 @@ def _render_figures(
     if request.get("export_svg") or "svg" in profile.get("formats", []):
         fig.savefig(stem.with_suffix(".svg"))
     plt.close(fig)
-    created = [stem.with_suffix(s) for s in [".pdf", ".png"]]
+    created = [
+        path for path in output.glob(f"{request['figure_id']}.*")
+        if path.suffix.lower() in {".pdf", ".png", ".tiff", ".svg"}
+    ]
     return width, height, created
 
 
