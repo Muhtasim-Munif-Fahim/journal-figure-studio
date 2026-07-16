@@ -20,7 +20,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import yaml
 
-from scripts.common import load_yaml, profile_path, read_table, resolve_request_path, sha256, write_json
+try:
+    from scripts.common import load_yaml, profile_path, read_table, resolve_request_path, sha256, write_json
+except ModuleNotFoundError:  # pragma: no cover - used by copied standalone packages
+    from common import load_yaml, profile_path, read_table, resolve_request_path, sha256, write_json
 from scripts.constants import PALETTES, SUPPORTED_FIGURE_TYPES, STAT_ANNOTATION_THRESHOLDS
 from scripts.exit_codes import INPUT_ERROR, RUNTIME_ERROR, SUCCESS, VALIDATION_ERROR
 from scripts.logging_config import setup_logger
@@ -462,6 +465,10 @@ def main() -> int:
     copy_if_distinct(profile_file, packaged_profiles / profile_file.name)
     copy_if_distinct(Path(__file__), output / "figure.py")
     copy_if_distinct(Path(__file__).with_name("common.py"), output / "common.py")
+    packaged_scripts = output / "scripts"
+    packaged_scripts.mkdir(exist_ok=True)
+    for script_file in Path(__file__).parent.glob("*.py"):
+        copy_if_distinct(script_file, packaged_scripts / script_file.name)
     copy_if_distinct(Path(__file__).with_name("version.py") if Path(__file__).with_name("version.py").exists() else None, output / "version.py")
 
     inputs: dict[str, str] = {}
