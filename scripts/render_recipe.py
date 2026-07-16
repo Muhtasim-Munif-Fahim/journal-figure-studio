@@ -471,9 +471,19 @@ def main() -> int:
         copy_if_distinct(script_file, packaged_scripts / script_file.name)
     copy_if_distinct(Path(__file__).with_name("version.py") if Path(__file__).with_name("version.py").exists() else None, output / "version.py")
 
-    inputs: dict[str, str] = {}
-    if source_path and source_path.exists():
-        inputs[str(source_path.resolve())] = sha256(source_path)
+    input_paths: set[Path] = set()
+    for item in request.get("data_paths", []):
+        input_paths.add(resolve_request_path(request_path, item))
+    for spec in figures_to_check:
+        if spec.get("source"):
+            input_paths.add(resolve_request_path(request_path, spec["source"]))
+    if request.get("analysis_script"):
+        input_paths.add(resolve_request_path(request_path, request["analysis_script"]))
+    inputs: dict[str, str] = {
+        str(path.resolve()): sha256(path)
+        for path in sorted(input_paths, key=str)
+        if path.exists() and path.is_file()
+    }
     outputs: dict[str, str] = {}
     for p in output.glob(f"{request['figure_id']}.*"):
         if p.is_file() and p.suffix in (".pdf", ".png", ".tiff", ".svg"):
