@@ -48,7 +48,7 @@ check("logging_config import", lambda: __import__("scripts.logging_config"))
 check("constants import", lambda: __import__("scripts.constants"))
 check("exit_codes import", lambda: __import__("scripts.exit_codes"))
 
-check("profile loads", lambda: __import__("scripts.common").load_yaml(
+check("profile loads", lambda: __import__("scripts.common", fromlist=["load_yaml"]).load_yaml(
     Path(__file__).resolve().parent.parent / "assets" / "profiles" / "universal.yaml"
 ))
 
