@@ -125,15 +125,19 @@ def read_table(file_path: str | Path) -> pd.DataFrame:
         raise pd.errors.EmptyDataError(f"Data file is empty: {source}")
 
     suffix = source.suffix.lower()
-    try:
-        return TABLE_FORMAT_READERS[suffix](source)
-    except KeyError:
+    reader = TABLE_FORMAT_READERS.get(suffix)
+    if reader is None:
         raise ValueError(
             f"Unsupported file format: '{suffix}'. "
             f"Supported formats: {', '.join(sorted(TABLE_FORMAT_READERS))}. "
             f"Hint: check the file extension."
         )
-    return TABLE_FORMAT_READERS[suffix](source)
+    try:
+        return reader(source)
+    except ImportError as exc:
+        raise ValueError(f"Optional dependency required for '{suffix}': {exc}") from exc
+    except (OSError, TypeError, ValueError) as exc:
+        raise ValueError(f"Could not read table '{source}': {exc}") from exc
 
 
 def resolve_request_path(
