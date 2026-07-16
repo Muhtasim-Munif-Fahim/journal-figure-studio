@@ -94,6 +94,8 @@ def _validate_profile_args(args: argparse.Namespace) -> list[str]:
         errors.append(f"--single-width must be positive (got {args.single_width})")
     if args.double_width <= 0:
         errors.append(f"--double-width must be positive (got {args.double_width})")
+    if args.single_width > 0 and args.double_width > 0 and args.single_width >= args.double_width:
+        errors.append("--double-width must be greater than --single-width")
     if args.dpi < 72:
         errors.append(f"--dpi must be at least 72 (got {args.dpi})")
     if args.dpi > 1200:
