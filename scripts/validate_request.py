@@ -58,11 +58,16 @@ def _validate_figure_spec(
         columns = set(read_table(source).columns)
         for col_key in SUPPORTED_COLUMN_KEYS:
             value = spec.get(col_key)
-            if value and value not in columns:
+            if value is not None and not isinstance(value, str):
+                errors.append(f"{prefix}.{col_key} must be a string when provided")
+            elif value and value not in columns:
                 errors.append(
                     f"{prefix}.{col_key} ('{value}') is not a column "
                     f"in {spec['source']}. Available columns: {', '.join(sorted(columns))}"
                 )
+        lower, upper = spec.get("lower"), spec.get("upper")
+        if bool(lower) != bool(upper):
+            errors.append(f"{prefix} must provide both lower and upper columns")
     except ValueError as exc:
         errors.append(f"{prefix}: {exc}")
     except Exception as exc:

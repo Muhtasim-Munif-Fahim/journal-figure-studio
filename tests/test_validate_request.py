@@ -62,6 +62,16 @@ class TestValidateRequest:
     def test_blank_output_dir_is_rejected(self, tmp_path: Path):
         path = _make_request_yaml(tmp_path, overrides={"output_dir": "   "})
         assert any("output_dir" in e for e in validate_request(path))
+
+    def test_partial_interval_mapping_is_rejected(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path, overrides={
+            "figure": {
+                "type": "bar", "source": str(tmp_path / "data.csv"),
+                "x": "category", "y": "value", "lower": "value",
+                "xlabel": "Category", "ylabel": "Value",
+            }
+        })
+        assert any("both lower and upper" in e for e in validate_request(path))
     def test_valid_request_passes(self, tmp_path: Path):
         path = _make_request_yaml(tmp_path)
         errors = validate_request(path)
