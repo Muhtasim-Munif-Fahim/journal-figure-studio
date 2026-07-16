@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from scripts.check_package import check
+from scripts.common import sha256
 
 
 def _make_metadata(output_dir: Path) -> dict:
@@ -68,6 +69,12 @@ def _build_package(output_dir: Path, metadata: dict) -> None:
             _create_minimal_pdf(fpath)
         elif fmt == "png":
             _create_minimal_png(fpath, width=1200)
+    metadata["outputs"] = {
+        path.name: sha256(path)
+        for path in output_dir.glob(f'{metadata["figure_id"]}.*')
+        if path.suffix in {".pdf", ".png", ".tiff", ".svg"}
+    }
+    meta_path.write_text(json.dumps(metadata))
 
 
 def _ensure_profile(output_dir: Path) -> None:
