@@ -68,15 +68,16 @@ def check(
 
     png_path = package / f"{figure_id}.png"
     if png_path.exists():
-        image = mpimg.imread(str(png_path))
-        dims = metadata.get("dimensions_inches", [0])
-        width_inches = dims[0] if isinstance(dims, list) else dims.get("width", 3.35)
-        target_dpi = int(profile.get("raster_dpi", 300))
-        min_pixels = int(width_inches * target_dpi * 0.95)
-        if image.shape[1] < min_pixels:
-            errors.append(
-                f"PNG width {image.shape[1]} is below expected {min_pixels} pixels"
-            )
+        try:
+            image = mpimg.imread(str(png_path))
+            dims = metadata.get("dimensions_inches", [0])
+            width_inches = dims[0] if isinstance(dims, list) else dims.get("width", 3.35)
+            target_dpi = int(profile.get("raster_dpi", 300))
+            min_pixels = int(width_inches * target_dpi * 0.95)
+            if image.shape[1] < min_pixels:
+                errors.append(f"PNG width {image.shape[1]} is below expected {min_pixels} pixels")
+        except (OSError, ValueError, IndexError, TypeError) as exc:
+            errors.append(f"PNG output is invalid: {exc}")
 
     svg_path = package / f"{figure_id}.svg"
     if svg_path.exists():
