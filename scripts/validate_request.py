@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import re
 from pathlib import Path
 from typing import Any
 
@@ -24,6 +25,7 @@ FIGURE_REQUIRED: set[str] = {"type", "source", "x", "y", "xlabel", "ylabel"}
 VALID_LAYOUTS: set[str] = {"single", "double"}
 DEFAULT_MAX_CAPTION_LENGTH: int = 200
 DEFAULT_MAX_CLAIM_LENGTH: int = 1000
+FIGURE_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9.-]{0,63}$")
 
 VALID_FIGURE_TYPES: set[str] = {
     "bar", "ablation", "line", "time_series", "training_curve",
@@ -97,6 +99,10 @@ def validate_request(
     ]
     if errors:
         return errors
+
+    figure_id = request.get("figure_id")
+    if not isinstance(figure_id, str) or not FIGURE_ID_PATTERN.fullmatch(figure_id):
+        errors.append("figure_id must be 1-64 characters using letters, numbers, dots, or hyphens")
 
     has_figure = "figure" in request
     has_figures = "figures" in request and isinstance(request.get("figures"), list) and len(request["figures"]) > 0
