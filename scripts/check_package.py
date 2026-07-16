@@ -66,6 +66,15 @@ def check(
             actual_hash = sha256(output_path)
             if actual_hash != expected_hash:
                 errors.append(f"output hash mismatch: {name}")
+    declared_outputs = metadata.get("outputs", {})
+    if isinstance(declared_outputs, dict):
+        actual_outputs = {
+            path.name for path in package.glob(f"{figure_id}.*")
+            if path.suffix.lower() in {".pdf", ".png", ".tiff", ".svg"}
+        }
+        undeclared = actual_outputs - set(declared_outputs)
+        if undeclared:
+            errors.append(f"outputs missing metadata entries: {', '.join(sorted(undeclared))}")
 
     pdf_path = package / f"{figure_id}.pdf"
     if pdf_path.exists():
