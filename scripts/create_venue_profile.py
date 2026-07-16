@@ -9,8 +9,7 @@ from typing import Any
 
 import yaml
 
-from scripts.exit_codes import SUCCESS
-from scripts.version import __version__
+from scripts.exit_codes import SUCCESS, VALIDATION_ERROR
 
 
 def create(
@@ -73,9 +72,7 @@ def create(
     }
     output_path = output or Path(f"{profile_id}.yaml")
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(
-        yaml.safe_dump(profile, sort_keys=False), encoding="utf-8"
-    )
+    output_path.write_text(yaml.safe_dump(profile, sort_keys=False), encoding="utf-8")
     print(
         f"Created profile template at {output_path}; "
         f"validate against the linked official guidance before use."
@@ -94,7 +91,11 @@ def _validate_profile_args(args: argparse.Namespace) -> list[str]:
         errors.append(f"--single-width must be positive (got {args.single_width})")
     if args.double_width <= 0:
         errors.append(f"--double-width must be positive (got {args.double_width})")
-    if args.single_width > 0 and args.double_width > 0 and args.single_width >= args.double_width:
+    if (
+        args.single_width > 0
+        and args.double_width > 0
+        and args.single_width >= args.double_width
+    ):
         errors.append("--double-width must be greater than --single-width")
     if args.dpi < 72:
         errors.append(f"--dpi must be at least 72 (got {args.dpi})")
@@ -104,7 +105,9 @@ def _validate_profile_args(args: argparse.Namespace) -> list[str]:
         valid = {"pdf", "png", "tiff", "svg"}
         for fmt in args.formats:
             if fmt not in valid:
-                errors.append(f"Unknown format '{fmt}'. Valid: {', '.join(sorted(valid))}")
+                errors.append(
+                    f"Unknown format '{fmt}'. Valid: {', '.join(sorted(valid))}"
+                )
     return errors
 
 
@@ -113,16 +116,40 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Create a new journal profile from official author guidelines.",
         epilog="Example: python scripts/create_venue_profile.py "
-               "--id icml --field computer_science --source-url https://icml.cc/ --single-width 3.25 --double-width 6.75",
+        "--id icml --field computer_science --source-url https://icml.cc/ --single-width 3.25 --double-width 6.75",
     )
-    parser.add_argument("--id", required=True, help="Unique profile identifier (e.g., 'nature_biomedical')")
-    parser.add_argument("--field", required=True, help="Research field (e.g., 'biomedical', 'computer_science')")
-    parser.add_argument("--source-url", required=True, help="URL to official author guidelines")
+    parser.add_argument(
+        "--id",
+        required=True,
+        help="Unique profile identifier (e.g., 'nature_biomedical')",
+    )
+    parser.add_argument(
+        "--field",
+        required=True,
+        help="Research field (e.g., 'biomedical', 'computer_science')",
+    )
+    parser.add_argument(
+        "--source-url", required=True, help="URL to official author guidelines"
+    )
     parser.add_argument("--output", required=True, help="Output YAML file path")
-    parser.add_argument("--single-width", type=float, required=True, help="Single-column figure width in inches")
-    parser.add_argument("--double-width", type=float, required=True, help="Double-column figure width in inches")
-    parser.add_argument("--formats", nargs="+", default=["pdf", "png"], help="Output formats")
-    parser.add_argument("--dpi", type=int, default=600, help="Raster DPI (default: 600)")
+    parser.add_argument(
+        "--single-width",
+        type=float,
+        required=True,
+        help="Single-column figure width in inches",
+    )
+    parser.add_argument(
+        "--double-width",
+        type=float,
+        required=True,
+        help="Double-column figure width in inches",
+    )
+    parser.add_argument(
+        "--formats", nargs="+", default=["pdf", "png"], help="Output formats"
+    )
+    parser.add_argument(
+        "--dpi", type=int, default=600, help="Raster DPI (default: 600)"
+    )
     args = parser.parse_args()
 
     input_errors = _validate_profile_args(args)
@@ -133,9 +160,14 @@ def main() -> int:
         return VALIDATION_ERROR
 
     create(
-        args.id, args.field, args.source_url,
-        args.single_width, args.double_width,
-        args.formats, args.dpi, Path(args.output),
+        args.id,
+        args.field,
+        args.source_url,
+        args.single_width,
+        args.double_width,
+        args.formats,
+        args.dpi,
+        Path(args.output),
     )
     return SUCCESS
 

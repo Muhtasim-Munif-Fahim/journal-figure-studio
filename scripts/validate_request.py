@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from scripts.common import load_yaml, profile_path, read_table, resolve_request_path
-from scripts.exit_codes import INPUT_ERROR, SUCCESS, VALIDATION_ERROR
+from scripts.exit_codes import SUCCESS, VALIDATION_ERROR
 from scripts.logging_config import setup_logger
 from scripts.validate_profile import validate
 from scripts.version import __version__
@@ -17,9 +17,15 @@ from scripts.version import __version__
 logger = setup_logger(__name__)
 
 REQUIRED: set[str] = {
-    "figure_id", "research_field", "profile", "layout",
-    "data_paths", "analysis_script", "claim",
-    "caption_takeaway", "output_dir",
+    "figure_id",
+    "research_field",
+    "profile",
+    "layout",
+    "data_paths",
+    "analysis_script",
+    "claim",
+    "caption_takeaway",
+    "output_dir",
 }
 FIGURE_REQUIRED: set[str] = {"type", "source", "x", "y", "xlabel", "ylabel"}
 VALID_LAYOUTS: set[str] = {"single", "double"}
@@ -28,8 +34,16 @@ DEFAULT_MAX_CLAIM_LENGTH: int = 1000
 FIGURE_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9.-]{0,63}$")
 
 VALID_FIGURE_TYPES: set[str] = {
-    "bar", "ablation", "line", "time_series", "training_curve",
-    "scatter", "distribution", "forest", "heatmap", "calibration",
+    "bar",
+    "ablation",
+    "line",
+    "time_series",
+    "training_curve",
+    "scatter",
+    "distribution",
+    "forest",
+    "heatmap",
+    "calibration",
 }
 
 
@@ -37,7 +51,16 @@ def _is_named_profile(profile: dict[str, Any]) -> bool:
     return bool(profile.get("source_url"))
 
 
-SUPPORTED_COLUMN_KEYS: set[str] = {"x", "y", "group", "lower", "upper", "column", "row", "values"}
+SUPPORTED_COLUMN_KEYS: set[str] = {
+    "x",
+    "y",
+    "group",
+    "lower",
+    "upper",
+    "column",
+    "row",
+    "values",
+}
 
 
 def _validate_figure_spec(
@@ -46,7 +69,7 @@ def _validate_figure_spec(
     index: int,
     request_path: Path,
 ) -> None:
-    prefix = f"figure" if index == 0 else f"figures[{index}]"
+    prefix = "figure" if index == 0 else f"figures[{index}]"
     if not isinstance(spec, dict):
         errors.append(f"{prefix} must be a dict")
         return
@@ -101,18 +124,23 @@ def validate_request(
     if not isinstance(request, dict):
         return ["request must contain a YAML mapping"]
     errors: list[str] = [
-        f"missing request key: {key}"
-        for key in sorted(REQUIRED - set(request))
+        f"missing request key: {key}" for key in sorted(REQUIRED - set(request))
     ]
     if errors:
         return errors
 
     figure_id = request.get("figure_id")
     if not isinstance(figure_id, str) or not FIGURE_ID_PATTERN.fullmatch(figure_id):
-        errors.append("figure_id must be 1-64 characters using letters, numbers, dots, or hyphens")
+        errors.append(
+            "figure_id must be 1-64 characters using letters, numbers, dots, or hyphens"
+        )
 
     has_figure = "figure" in request
-    has_figures = "figures" in request and isinstance(request.get("figures"), list) and len(request["figures"]) > 0
+    has_figures = (
+        "figures" in request
+        and isinstance(request.get("figures"), list)
+        and len(request["figures"]) > 0
+    )
     if not has_figure and not has_figures:
         errors.append("request must include 'figure' or 'figures' key")
         return errors
@@ -168,10 +196,16 @@ def validate_request(
         is_named = _is_named_profile(profile)
         errors.extend(validate(profile, require_current=is_named))
 
-    if not isinstance(request.get("output_dir"), str) or not request["output_dir"].strip():
+    if (
+        not isinstance(request.get("output_dir"), str)
+        or not request["output_dir"].strip()
+    ):
         errors.append("output_dir is required")
 
-    if request.get("caption_takeaway") and len(request["caption_takeaway"]) > DEFAULT_MAX_CAPTION_LENGTH:
+    if (
+        request.get("caption_takeaway")
+        and len(request["caption_takeaway"]) > DEFAULT_MAX_CAPTION_LENGTH
+    ):
         msg = "caption_takeaway exceeds 200 characters"
         if strict:
             errors.append(msg)

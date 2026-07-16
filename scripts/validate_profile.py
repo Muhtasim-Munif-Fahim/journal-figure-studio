@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import argparse
-from datetime import date, datetime, timezone
+from datetime import date
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -13,12 +13,21 @@ from scripts.constants import MIN_FONT_PT, MIN_RASTER_DPI
 from scripts.exit_codes import SUCCESS, VALIDATION_ERROR
 from scripts.version import __version__
 
-
 REQUIRED: set[str] = {
-    "id", "version", "field", "verified_at", "stale_after_days",
-    "formats", "raster_dpi", "dimensions_inches", "fonts",
-    "caption", "style", "rules",
-    "color_mode", "source_url",
+    "id",
+    "version",
+    "field",
+    "verified_at",
+    "stale_after_days",
+    "formats",
+    "raster_dpi",
+    "dimensions_inches",
+    "fonts",
+    "caption",
+    "style",
+    "rules",
+    "color_mode",
+    "source_url",
 }
 # Constants moved to constants.py
 
@@ -37,8 +46,7 @@ def validate(
         List of validation error strings. Empty list means valid.
     """
     errors: list[str] = [
-        f"missing profile key: {key}"
-        for key in sorted(REQUIRED - set(profile))
+        f"missing profile key: {key}" for key in sorted(REQUIRED - set(profile))
     ]
     if errors:
         return errors
@@ -66,17 +74,23 @@ def validate(
         if double <= 0:
             errors.append(f"dimensions_inches.double must be positive (got {double})")
         if single >= double:
-            errors.append(f"dimensions_inches.single ({single}) must be less than double ({double})")
+            errors.append(
+                f"dimensions_inches.single ({single}) must be less than double ({double})"
+            )
         aspect = dimensions.get("aspect_ratio", 0)
         if aspect and (aspect <= 0 or aspect >= 2):
-            errors.append(f"dimensions_inches.aspect_ratio ({aspect}) should be between 0 and 2")
+            errors.append(
+                f"dimensions_inches.aspect_ratio ({aspect}) should be between 0 and 2"
+            )
 
     raster_dpi = profile.get("raster_dpi", MIN_RASTER_DPI)
     if not isinstance(raster_dpi, (int, float)) or isinstance(raster_dpi, bool):
         errors.append("raster_dpi must be numeric")
         raster_dpi = MIN_RASTER_DPI
     if isinstance(raster_dpi, (int, float)) and raster_dpi < MIN_RASTER_DPI:
-        errors.append(f"raster_dpi must be at least {MIN_RASTER_DPI} (got {raster_dpi})")
+        errors.append(
+            f"raster_dpi must be at least {MIN_RASTER_DPI} (got {raster_dpi})"
+        )
 
     fonts = profile.get("fonts", {})
     if not isinstance(fonts, dict):
@@ -87,7 +101,9 @@ def validate(
             errors.append(f"minimum_pt must be at least {MIN_FONT_PT}")
 
     formats = profile.get("formats")
-    if not isinstance(formats, list) or not all(isinstance(fmt, str) for fmt in formats):
+    if not isinstance(formats, list) or not all(
+        isinstance(fmt, str) for fmt in formats
+    ):
         errors.append("formats must be a list of strings")
     elif not set(formats).issubset({"pdf", "png", "tiff", "svg"}):
         errors.append("formats contains an unsupported output format")
@@ -100,16 +116,16 @@ def validate(
         verified_str = profile.get("verified_at")
         if verified_str:
             try:
-                verified_str_clean = str(verified_str).split("T")[0].split("+")[0].split(" ")[0]
+                verified_str_clean = (
+                    str(verified_str).split("T")[0].split("+")[0].split(" ")[0]
+                )
                 verified = date.fromisoformat(verified_str_clean)
                 age = (date.today() - verified).days
                 if age < 0:
                     errors.append("verified_at cannot be in the future")
                 stale_after = int(profile.get("stale_after_days", 365))
                 if age > stale_after:
-                    errors.append(
-                        f"named profile is stale by {age - stale_after} days"
-                    )
+                    errors.append(f"named profile is stale by {age - stale_after} days")
             except (ValueError, TypeError):
                 errors.append(f"invalid verified_at format: {verified_str}")
     elif require_current:
@@ -125,7 +141,9 @@ def main() -> int:
         epilog="Example: python scripts/validate_profile.py assets/profiles/universal.yaml",
     )
     parser.add_argument("profile", help="Path to profile YAML file")
-    parser.add_argument("--require-current", action="store_true", help="Fail if profile is stale")
+    parser.add_argument(
+        "--require-current", action="store_true", help="Fail if profile is stale"
+    )
     parser.add_argument("--version", action="store_true", help="Print version and exit")
     args, _ = parser.parse_known_args()
     if args.version:

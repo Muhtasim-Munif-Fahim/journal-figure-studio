@@ -10,7 +10,7 @@ from typing import Any
 import matplotlib.image as mpimg
 
 from scripts.common import load_yaml, sha256, write_json
-from scripts.exit_codes import INPUT_ERROR, RUNTIME_ERROR, SUCCESS, VALIDATION_ERROR
+from scripts.exit_codes import INPUT_ERROR, SUCCESS, VALIDATION_ERROR
 from scripts.version import __version__
 
 REQUIRED_OUTPUTS: list[str] = [
@@ -37,10 +37,22 @@ def check(
         Audit report dict with status ("pass" or "block"), errors, and metadata.
     """
     if not isinstance(metadata, dict):
-        return {"status": "block", "profile": None, "errors": ["metadata must be a mapping"], "warnings": [], "metadata": metadata}
+        return {
+            "status": "block",
+            "profile": None,
+            "errors": ["metadata must be a mapping"],
+            "warnings": [],
+            "metadata": metadata,
+        }
     profile_data = metadata.get("profile")
     if not isinstance(profile_data, dict) or not profile_data.get("id"):
-        return {"status": "block", "profile": None, "errors": ["metadata.profile.id is required"], "warnings": [], "metadata": metadata}
+        return {
+            "status": "block",
+            "profile": None,
+            "errors": ["metadata.profile.id is required"],
+            "warnings": [],
+            "metadata": metadata,
+        }
     profile_id = str(profile_data["id"])
     profile_path = package / "profiles" / f"{profile_id}.yaml"
     if not profile_path.exists():
@@ -50,9 +62,7 @@ def check(
     figure_id: str = metadata["figure_id"]
     errors: list[str] = []
 
-    required: list[Path] = [
-        package / name for name in REQUIRED_OUTPUTS
-    ]
+    required: list[Path] = [package / name for name in REQUIRED_OUTPUTS]
     for fmt in profile.get("formats", []):
         required.append(package / f"{figure_id}.{fmt}")
 
@@ -69,12 +79,15 @@ def check(
     declared_outputs = metadata.get("outputs", {})
     if isinstance(declared_outputs, dict):
         actual_outputs = {
-            path.name for path in package.glob(f"{figure_id}.*")
+            path.name
+            for path in package.glob(f"{figure_id}.*")
             if path.suffix.lower() in {".pdf", ".png", ".tiff", ".svg"}
         }
         undeclared = actual_outputs - set(declared_outputs)
         if undeclared:
-            errors.append(f"outputs missing metadata entries: {', '.join(sorted(undeclared))}")
+            errors.append(
+                f"outputs missing metadata entries: {', '.join(sorted(undeclared))}"
+            )
 
     pdf_path = package / f"{figure_id}.pdf"
     if pdf_path.exists():
@@ -87,11 +100,15 @@ def check(
         try:
             image = mpimg.imread(str(png_path))
             dims = metadata.get("dimensions_inches", [0])
-            width_inches = dims[0] if isinstance(dims, list) else dims.get("width", 3.35)
+            width_inches = (
+                dims[0] if isinstance(dims, list) else dims.get("width", 3.35)
+            )
             target_dpi = int(profile.get("raster_dpi", 300))
             min_pixels = int(width_inches * target_dpi * 0.95)
             if image.shape[1] < min_pixels:
-                errors.append(f"PNG width {image.shape[1]} is below expected {min_pixels} pixels")
+                errors.append(
+                    f"PNG width {image.shape[1]} is below expected {min_pixels} pixels"
+                )
         except (OSError, ValueError, IndexError, TypeError) as exc:
             errors.append(f"PNG output is invalid: {exc}")
 
@@ -124,7 +141,9 @@ def check(
             errors.append("figure_metadata.json is empty")
         meta_size_kb = meta_size / 1024
         if meta_size_kb > 100:
-            errors.append(f"figure_metadata.json is unexpectedly large ({meta_size_kb:.0f} KB)")
+            errors.append(
+                f"figure_metadata.json is unexpectedly large ({meta_size_kb:.0f} KB)"
+            )
     else:
         errors.append("figure_metadata.json is missing")
 
@@ -134,7 +153,9 @@ def check(
         if isinstance(metadata, dict):
             missing_meta = expected_keys - set(metadata.keys())
             if missing_meta:
-                audit_warnings.append(f"metadata missing expected keys: {', '.join(sorted(missing_meta))}")
+                audit_warnings.append(
+                    f"metadata missing expected keys: {', '.join(sorted(missing_meta))}"
+                )
 
     warning_count = len(audit_warnings)
     status = "pass" if not errors else "block"
@@ -156,9 +177,15 @@ def main() -> int:
         description="Audit a rendered publication package for completeness and quality.",
         epilog="Exit code: 0 = pass, 1 = issues found",
     )
-    parser.add_argument("--package", required=True, help="Path to output package directory")
-    parser.add_argument("--strict", action="store_true", help="Treat warnings as errors")
-    parser.add_argument("--verbose", action="store_true", help="Show detailed audit info")
+    parser.add_argument(
+        "--package", required=True, help="Path to output package directory"
+    )
+    parser.add_argument(
+        "--strict", action="store_true", help="Treat warnings as errors"
+    )
+    parser.add_argument(
+        "--verbose", action="store_true", help="Show detailed audit info"
+    )
     parser.add_argument("--version", action="store_true", help="Print version and exit")
     args = parser.parse_args()
     if args.version:
@@ -185,7 +212,11 @@ def main() -> int:
             report["errors"] = report.get("errors", []) + report.get("warnings", [])
             report["warnings"] = []
     write_json(package / "figure_audit.json", report)
-    status_icon = {"pass": "PASS", "pass_with_warnings": "PASS (with warnings)", "block": "BLOCK"}.get(report["status"], "UNKNOWN")
+    status_icon = {
+        "pass": "PASS",
+        "pass_with_warnings": "PASS (with warnings)",
+        "block": "BLOCK",
+    }.get(report["status"], "UNKNOWN")
     print(f"Audit: {status_icon}")
     if report.get("errors"):
         print("Errors:")
@@ -195,7 +226,11 @@ def main() -> int:
         print("Warnings:")
         for w in report["warnings"]:
             print(f"  ? {w}")
-    return SUCCESS if report["status"] in {"pass", "pass_with_warnings"} else VALIDATION_ERROR
+    return (
+        SUCCESS
+        if report["status"] in {"pass", "pass_with_warnings"}
+        else VALIDATION_ERROR
+    )
 
 
 if __name__ == "__main__":

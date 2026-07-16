@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import pandas as pd
 import yaml
@@ -47,20 +47,16 @@ def load_yaml(path: str | Path) -> dict[str, Any]:
     return payload
 
 
-def write_json(path: str | Path | dict, payload: Any = None) -> None:
+def write_json(path: str | Path, payload: Any = None) -> None:
     """Write a JSON-serialisable object to a file with sorted keys and indentation.
 
     Args:
         path: Output file path (or data dict if payload is None).
         payload: Data to serialise (or None if path is data).
     """
-    if payload is None and isinstance(path, dict):
-        raise TypeError("write_json requires a file path as first argument")
-    target = Path(path) if not isinstance(path, dict) else Path("output.json")
+    target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(
-        json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8"
-    )
+    target.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
 
 
 def sha256(file_path: str | Path) -> str:
@@ -86,6 +82,7 @@ VALID_NUMERIC_KINDS: set[str] = {"i", "u", "f", "c"}
 def default_json_serializer(obj: Any) -> str:
     """Default JSON serializer for non-serializable types."""
     return str(obj)
+
 
 TABLE_FORMAT_READERS: dict[str, Any] = {
     ".csv": pd.read_csv,

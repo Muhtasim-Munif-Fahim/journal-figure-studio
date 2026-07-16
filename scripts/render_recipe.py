@@ -19,16 +19,35 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import yaml
+from matplotlib.axes import Axes
 
 try:
-    from scripts.common import load_yaml, profile_path, read_table, resolve_request_path, sha256, write_json
+    from scripts.common import (
+        load_yaml,
+        profile_path,
+        read_table,
+        resolve_request_path,
+        sha256,
+        write_json,
+    )
 except ModuleNotFoundError:  # pragma: no cover - used by copied standalone packages
-    from common import load_yaml, profile_path, read_table, resolve_request_path, sha256, write_json
-from scripts.constants import PALETTES, SUPPORTED_FIGURE_TYPES, STAT_ANNOTATION_THRESHOLDS
+    from common import (  # type: ignore[no-redef]
+        load_yaml,
+        profile_path,
+        read_table,
+        resolve_request_path,
+        sha256,
+        write_json,
+    )
+from scripts.constants import (
+    PALETTES,
+    STAT_ANNOTATION_THRESHOLDS,
+    SUPPORTED_FIGURE_TYPES,
+)
 from scripts.exit_codes import INPUT_ERROR, RUNTIME_ERROR, SUCCESS, VALIDATION_ERROR
 from scripts.logging_config import setup_logger
-from scripts.version import __version__
 from scripts.validate_request import validate_request
+from scripts.version import __version__
 
 logger = setup_logger(__name__)
 
@@ -36,16 +55,21 @@ logger = setup_logger(__name__)
 def _latex_escape(value: str) -> str:
     """Escape caption text for inclusion in a LaTeX document."""
     replacements = {
-        "\\": r"\textbackslash{}", "&": r"\&", "%": r"\%",
-        "$": r"\$", "#": r"\#", "_": r"\_", "{": r"\{", "}": r"\}",
+        "\\": r"\textbackslash{}",
+        "&": r"\&",
+        "%": r"\%",
+        "$": r"\$",
+        "#": r"\#",
+        "_": r"\_",
+        "{": r"\{",
+        "}": r"\}",
     }
     return "".join(replacements.get(char, char) for char in value)
+
 
 # Backward-compatible aliases
 SUPPORTED_TYPES: set[str] = SUPPORTED_FIGURE_TYPES
 STAT_ANNOTATIONS: dict[float, str] = dict(STAT_ANNOTATION_THRESHOLDS)
-
-
 
 
 def _get_palette(profile: dict[str, Any]) -> list[str]:
@@ -115,7 +139,7 @@ def apply_style(profile: dict[str, Any], layout: str) -> tuple[float, float]:
 
 
 def _add_significance_annotation(
-    ax: plt.Axes,
+    ax: Axes,
     x1: float,
     x2: float,
     y: float,
@@ -123,7 +147,13 @@ def _add_significance_annotation(
     line_height: float = 0.02,
 ) -> None:
     bracket_y = y + line_height
-    ax.plot([x1, x1, x2, x2], [y, bracket_y, bracket_y, y], color="black", linewidth=0.6, clip_on=False)
+    ax.plot(
+        [x1, x1, x2, x2],
+        [y, bracket_y, bracket_y, y],
+        color="black",
+        linewidth=0.6,
+        clip_on=False,
+    )
     symbol: str = "n.s."
     fontsize: int = 7
     for threshold_val in sorted(STAT_ANNOTATION_THRESHOLDS.keys()):
@@ -132,12 +162,18 @@ def _add_significance_annotation(
             fontsize = 8
             break
     ax.text(
-        (x1 + x2) / 2, bracket_y + line_height * 1.5,
-        symbol, ha="center", va="bottom", fontsize=fontsize,
+        (x1 + x2) / 2,
+        bracket_y + line_height * 1.5,
+        symbol,
+        ha="center",
+        va="bottom",
+        fontsize=fontsize,
     )
 
 
-def _draw_line(ax: plt.Axes, frame: Any, figure: dict[str, Any], palette: list[str]) -> None:
+def _draw_line(
+    ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
+) -> None:
     x, y, group = figure["x"], figure["y"], figure.get("group")
     lower, upper = figure.get("lower"), figure.get("upper")
     kind = figure.get("type", "line")
@@ -148,13 +184,32 @@ def _draw_line(ax: plt.Axes, frame: Any, figure: dict[str, Any], palette: list[s
         color = palette[idx % len(palette)]
         ax.plot(subset[x], subset[y], label=label, color=color)
         if lower and upper:
-            ax.fill_between(subset[x], subset[lower], subset[upper], color=color, alpha=0.18, linewidth=0)
+            ax.fill_between(
+                subset[x],
+                subset[lower],
+                subset[upper],
+                color=color,
+                alpha=0.18,
+                linewidth=0,
+            )
     if kind == "calibration":
-        limits = [min(frame[x].min(), frame[y].min()), max(frame[x].max(), frame[y].max())]
-        ax.plot(limits, limits, color="#555555", linestyle="--", linewidth=0.8, label="Perfect calibration")
+        limits = [
+            min(frame[x].min(), frame[y].min()),
+            max(frame[x].max(), frame[y].max()),
+        ]
+        ax.plot(
+            limits,
+            limits,
+            color="#555555",
+            linestyle="--",
+            linewidth=0.8,
+            label="Perfect calibration",
+        )
 
 
-def _draw_bar(ax: plt.Axes, frame: Any, figure: dict[str, Any], palette: list[str]) -> None:
+def _draw_bar(
+    ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
+) -> None:
     x, y, group = figure["x"], figure["y"], figure.get("group")
     lower, upper = figure.get("lower"), figure.get("upper")
     groups = [(None, frame)] if not group else list(frame.groupby(group, sort=False))
@@ -163,52 +218,98 @@ def _draw_bar(ax: plt.Axes, frame: Any, figure: dict[str, Any], palette: list[st
     bar_width = 0.8 / total
     positions = np.arange(len(categories))
     for idx, (name, subset) in enumerate(groups):
-        subset = subset.assign(_category=subset[x].astype(str)).set_index("_category").reindex(categories)
+        subset = (
+            subset.assign(_category=subset[x].astype(str))
+            .set_index("_category")
+            .reindex(categories)
+        )
         offset = (idx - (total - 1) / 2) * bar_width
         errors = None
         if lower and upper:
             errors = np.vstack([subset[y] - subset[lower], subset[upper] - subset[y]])
-        ax.bar(positions + offset, subset[y], bar_width, yerr=errors, capsize=2.5,
-               label=None if name is None else str(name), color=palette[idx % len(palette)],
-               edgecolor="white", linewidth=0.5)
+        ax.bar(
+            positions + offset,
+            subset[y],
+            bar_width,
+            yerr=errors,
+            capsize=2.5,
+            label=None if name is None else str(name),
+            color=palette[idx % len(palette)],
+            edgecolor="white",
+            linewidth=0.5,
+        )
     ax.set_xticks(positions, categories)
 
 
-def _draw_scatter(ax: plt.Axes, frame: Any, figure: dict[str, Any], palette: list[str]) -> None:
+def _draw_scatter(
+    ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
+) -> None:
     x, y, group = figure["x"], figure["y"], figure.get("group")
     groups = [(None, frame)] if not group else list(frame.groupby(group, sort=False))
     for idx, (name, subset) in enumerate(groups):
-        ax.scatter(subset[x], subset[y], label=None if name is None else str(name),
-                   color=palette[idx % len(palette)], alpha=0.8, edgecolor="white", linewidth=0.35)
+        ax.scatter(
+            subset[x],
+            subset[y],
+            label=None if name is None else str(name),
+            color=palette[idx % len(palette)],
+            alpha=0.8,
+            edgecolor="white",
+            linewidth=0.35,
+        )
 
 
-def _draw_distribution(ax: plt.Axes, frame: Any, figure: dict[str, Any], palette: list[str]) -> None:
+def _draw_distribution(
+    ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
+) -> None:
     x, y = figure["x"], figure["y"]
     categories = list(dict.fromkeys(frame[x].astype(str)))
-    values = [frame.loc[frame[x].astype(str) == cat, y].dropna().to_numpy() for cat in categories]
-    boxes = ax.boxplot(values, labels=categories, patch_artist=True, medianprops={"color": "black"})
+    values = [
+        frame.loc[frame[x].astype(str) == cat, y].dropna().to_numpy()
+        for cat in categories
+    ]
+    boxes = ax.boxplot(
+        values, tick_labels=categories, patch_artist=True, medianprops={"color": "black"}
+    )
     for idx, patch in enumerate(boxes["boxes"]):
         patch.set_facecolor(palette[idx % len(palette)])
         patch.set_alpha(0.8)
 
 
-def _draw_forest(ax: plt.Axes, frame: Any, figure: dict[str, Any], palette: list[str]) -> None:
+def _draw_forest(
+    ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
+) -> None:
     x, y = figure["x"], figure["y"]
     lower, upper = figure.get("lower"), figure.get("upper")
     if not lower or not upper:
         raise ValueError("forest figures require lower and upper columns")
     ordered = frame.iloc[::-1]
     errors = np.vstack([ordered[y] - ordered[lower], ordered[upper] - ordered[y]])
-    ax.errorbar(ordered[y], np.arange(len(ordered)), xerr=errors, fmt="o", color=palette[0], capsize=2.5)
+    ax.errorbar(
+        ordered[y],
+        np.arange(len(ordered)),
+        xerr=errors,
+        fmt="o",
+        color=palette[0],
+        capsize=2.5,
+    )
     ax.axvline(0, color="#555555", linewidth=0.8, linestyle="--")
     ax.set_yticks(np.arange(len(ordered)), ordered[x].astype(str))
 
 
-def _draw_heatmap(ax: plt.Axes, frame: Any, figure: dict[str, Any], palette: list[str]) -> None:
+def _draw_heatmap(
+    ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
+) -> None:
     x, y, group = figure["x"], figure["y"], figure.get("group")
-    matrix = frame.pivot(index=figure.get("row", x), columns=figure.get("column", group or x), values=y)
+    matrix = frame.pivot(
+        index=figure.get("row", x), columns=figure.get("column", group or x), values=y
+    )
     image = ax.imshow(matrix.to_numpy(), cmap="cividis", aspect="auto")
-    ax.set_xticks(np.arange(len(matrix.columns)), matrix.columns.astype(str), rotation=45, ha="right")
+    ax.set_xticks(
+        np.arange(len(matrix.columns)),
+        matrix.columns.astype(str),
+        rotation=45,
+        ha="right",
+    )
     ax.set_yticks(np.arange(len(matrix.index)), matrix.index.astype(str))
     plt.colorbar(image, ax=ax, label=figure.get("colorbar_label", y))
 
@@ -233,7 +334,9 @@ def validate_figure_data(frame: Any, figure: dict[str, Any]) -> list[str]:
     for key in ("x", "y", "group", "lower", "upper", "row", "column", "values"):
         col = figure.get(key)
         if col and col not in frame.columns:
-            errors.append(f"Column '{col}' not found in data. Available: {list(frame.columns)}")
+            errors.append(
+                f"Column '{col}' not found in data. Available: {list(frame.columns)}"
+            )
         elif col and key in {"x", "y", "lower", "upper"}:
             if frame[col].isna().all():
                 errors.append(f"Column '{col}' has all missing values")
@@ -243,13 +346,17 @@ def validate_figure_data(frame: Any, figure: dict[str, Any]) -> list[str]:
         errors.append("lower and upper must be provided together")
     if figure.get("lower") and figure.get("upper") and figure.get("y") in frame:
         lower, upper, estimate = figure["lower"], figure["upper"], figure["y"]
-        if ((frame[lower] > frame[upper]) | (frame[lower] > frame[estimate]) | (frame[upper] < frame[estimate])).any():
+        if (
+            (frame[lower] > frame[upper])
+            | (frame[lower] > frame[estimate])
+            | (frame[upper] < frame[estimate])
+        ).any():
             errors.append("interval bounds must satisfy lower <= estimate <= upper")
     return errors
 
 
 def draw(
-    ax: plt.Axes,
+    ax: Axes,
     frame: Any,
     figure: dict[str, Any],
     palette: list[str],
@@ -275,7 +382,9 @@ def draw(
             p_val = float(figure["p_value"])
             y_max = frame[figure["y"]].max()
             if y_max is not None and y_max > 0:
-                _add_significance_annotation(ax, 0, len(unique_x) - 1, y_max * 1.1, p_val)
+                _add_significance_annotation(
+                    ax, 0, len(unique_x) - 1, y_max * 1.1, p_val
+                )
         except (TypeError, ValueError, KeyError) as exc:
             logger.warning("Could not add significance annotation: %s", exc)
 
@@ -304,7 +413,9 @@ def _render_figures(
 
     if len(figures) > 1:
         panels = int(math.ceil(len(figures) ** 0.5))
-        fig, axes = plt.subplots(panels, panels, figsize=(width * panels, height * panels))
+        fig, axes = plt.subplots(
+            panels, panels, figsize=(width * panels, height * panels)
+        )
         axes_flat = axes.flatten() if panels > 1 else [axes]
         for i, spec in enumerate(figures):
             src = spec.get("source", "")
@@ -320,7 +431,9 @@ def _render_figures(
             frame = read_table(source)
             validation_errors = validate_figure_data(frame, spec)
             if validation_errors:
-                raise ValueError(f"Panel {i} data validation failed: {'; '.join(validation_errors)}")
+                raise ValueError(
+                    f"Panel {i} data validation failed: {'; '.join(validation_errors)}"
+                )
             draw(axes_flat[i], frame, spec, palette)
         for j in range(len(figures), len(axes_flat)):
             axes_flat[j].set_visible(False)
@@ -349,7 +462,8 @@ def _render_figures(
         fig.savefig(stem.with_suffix(".svg"))
     plt.close(fig)
     created = [
-        path for path in output.glob(f"{request['figure_id']}.*")
+        path
+        for path in output.glob(f"{request['figure_id']}.*")
         if path.suffix.lower() in {".pdf", ".png", ".tiff", ".svg"}
     ]
     return width, height, created
@@ -362,10 +476,16 @@ def main() -> int:
         epilog="Example: python scripts/render_recipe.py --request assets/figure_request.example.yaml",
     )
     parser.add_argument("--request", required=True, help="Path to figure_request.yaml")
-    parser.add_argument("--profiles-dir", help="Custom profiles directory (default: assets/profiles)")
+    parser.add_argument(
+        "--profiles-dir", help="Custom profiles directory (default: assets/profiles)"
+    )
     parser.add_argument("--verbose", action="store_true", help="Enable debug logging")
     parser.add_argument("--version", action="store_true", help="Print version and exit")
-    parser.add_argument("--validate-only", action="store_true", help="Validate request without rendering")
+    parser.add_argument(
+        "--validate-only",
+        action="store_true",
+        help="Validate request without rendering",
+    )
     args, remaining = parser.parse_known_args()
 
     if args.version:
@@ -402,7 +522,11 @@ def main() -> int:
         print("\n".join(f"  ! {error}" for error in failures))
         return VALIDATION_ERROR
 
-    logger.info("Loaded request %s with profile %s", request.get("figure_id", "unknown"), request["profile"])
+    logger.info(
+        "Loaded request %s with profile %s",
+        request.get("figure_id", "unknown"),
+        request["profile"],
+    )
     figures_to_check = request.get("figures", [request.get("figure", {})])
     for i, fig in enumerate(figures_to_check):
         src = fig.get("source", "")
@@ -417,13 +541,15 @@ def main() -> int:
         print("Request validation passed.")
         return SUCCESS
 
-    source_path = resolve_request_path(request_path, figures_to_check[0].get("source", ""))
+    source_path = resolve_request_path(
+        request_path, figures_to_check[0].get("source", "")
+    )
     if not source_path.exists():
         print(f"ERROR: Data source not found: {source_path}")
         return INPUT_ERROR
 
     try:
-        frame = read_table(source_path)
+        read_table(source_path)
     except Exception as exc:
         print(f"ERROR: Could not read data source {source_path}: {exc}")
         return RUNTIME_ERROR
@@ -487,7 +613,12 @@ def main() -> int:
     packaged_scripts.mkdir(exist_ok=True)
     for script_file in Path(__file__).parent.glob("*.py"):
         copy_if_distinct(script_file, packaged_scripts / script_file.name)
-    copy_if_distinct(Path(__file__).with_name("version.py") if Path(__file__).with_name("version.py").exists() else None, output / "version.py")
+    copy_if_distinct(
+        Path(__file__).with_name("version.py")
+        if Path(__file__).with_name("version.py").exists()
+        else None,
+        output / "version.py",
+    )
 
     input_paths: set[Path] = set()
     for item in request.get("data_paths", []):
@@ -510,7 +641,11 @@ def main() -> int:
     metadata: dict[str, Any] = {
         "figure_id": request["figure_id"],
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "profile": {"id": profile["id"], "version": profile["version"], "verified_at": str(profile["verified_at"])},
+        "profile": {
+            "id": profile["id"],
+            "version": profile["version"],
+            "verified_at": str(profile["verified_at"]),
+        },
         "inputs": inputs,
         "outputs": outputs,
         "figure_count": len(figures_to_check),
@@ -521,7 +656,7 @@ def main() -> int:
         "platform": platform.platform(),
         "matplotlib": matplotlib.__version__,
         "numpy": np.__version__,
-        "reproduce_command": f"python figure.py --request figure_request.yaml --profiles-dir profiles",
+        "reproduce_command": "python figure.py --request figure_request.yaml --profiles-dir profiles",
     }
     write_json(output / "figure_metadata.json", metadata)
     print(f"Rendered publication package at {output}")

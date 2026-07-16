@@ -24,27 +24,52 @@ SUPPORTED_FORMATS: set[str] = {"pdf", "png", "tiff", "svg"}
 """Output formats supported by the rendering engine."""
 
 SUPPORTED_FIGURE_TYPES: set[str] = {
-    "bar", "ablation", "line", "time_series", "training_curve",
-    "scatter", "distribution", "forest", "heatmap", "calibration",
+    "bar",
+    "ablation",
+    "line",
+    "time_series",
+    "training_curve",
+    "scatter",
+    "distribution",
+    "forest",
+    "heatmap",
+    "calibration",
 }
 """All figure types that the dispatch system can render."""
 
 PALETTES: dict[str, list[str]] = {
     "okabe_ito": [
-        "#0072B2", "#D55E00", "#009E73", "#E69F00",
-        "#56B4E9", "#CC79A7", "#999999",
+        "#0072B2",
+        "#D55E00",
+        "#009E73",
+        "#E69F00",
+        "#56B4E9",
+        "#CC79A7",
+        "#999999",
     ],
     "nature": [
-        "#3B4992", "#EE0000", "#008B45", "#631879",
-        "#008280", "#808180",
+        "#3B4992",
+        "#EE0000",
+        "#008B45",
+        "#631879",
+        "#008280",
+        "#808180",
     ],
     "nejm": [
-        "#0072B5", "#BC3C29", "#20854E", "#E18727",
-        "#7876B1", "#6F99AD",
+        "#0072B5",
+        "#BC3C29",
+        "#20854E",
+        "#E18727",
+        "#7876B1",
+        "#6F99AD",
     ],
     "lancet": [
-        "#00468B", "#AD002A", "#42B540", "#925E9F",
-        "#ED0000", "#1B1919",
+        "#00468B",
+        "#AD002A",
+        "#42B540",
+        "#925E9F",
+        "#ED0000",
+        "#1B1919",
     ],
 }
 """Named colour palettes. Key is normalized (lowercase, underscores)."""

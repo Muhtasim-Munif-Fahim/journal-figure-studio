@@ -10,14 +10,15 @@ Exits with code 0 if all checks pass.
 from __future__ import annotations
 
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-CHECKS: list[tuple[str, callable]] = []
+CHECKS: list[tuple[str, Callable[[], object]]] = []
 
 
-def check(name: str, fn: callable) -> None:
+def check(name: str, fn: Callable[[], object]) -> None:
     CHECKS.append((name, fn))
 
 
@@ -48,9 +49,15 @@ check("logging_config import", lambda: __import__("scripts.logging_config"))
 check("constants import", lambda: __import__("scripts.constants"))
 check("exit_codes import", lambda: __import__("scripts.exit_codes"))
 
-check("profile loads", lambda: __import__("scripts.common", fromlist=["load_yaml"]).load_yaml(
-    Path(__file__).resolve().parent.parent / "assets" / "profiles" / "universal.yaml"
-))
+check(
+    "profile loads",
+    lambda: __import__("scripts.common", fromlist=["load_yaml"]).load_yaml(
+        Path(__file__).resolve().parent.parent
+        / "assets"
+        / "profiles"
+        / "universal.yaml"
+    ),
+)
 
 if __name__ == "__main__":
     sys.exit(run_all())

@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from scripts.common import read_table, sha256, write_json
-from scripts.exit_codes import SUCCESS
+from scripts.exit_codes import INPUT_ERROR, RUNTIME_ERROR, SUCCESS
 from scripts.version import __version__
 
 
@@ -70,8 +70,12 @@ def main() -> int:
         description="Inspect tabular data files and produce a JSON summary.",
         epilog="Example: python scripts/inspect_results.py results.csv --output summary.json",
     )
-    parser.add_argument("data", nargs="+", help="Data files to inspect (CSV, Parquet, JSON, JSONL)")
-    parser.add_argument("--output", default="figure_context.json", help="Output JSON path")
+    parser.add_argument(
+        "data", nargs="+", help="Data files to inspect (CSV, Parquet, JSON, JSONL)"
+    )
+    parser.add_argument(
+        "--output", default="figure_context.json", help="Output JSON path"
+    )
     parser.add_argument("--version", action="store_true", help="Print version and exit")
     args, _ = parser.parse_known_args()
     if args.version:
@@ -85,7 +89,9 @@ def main() -> int:
             continue
         try:
             inputs.append(inspect(path))
-            print(f"  Inspected: {path.name} ({inputs[-1]['rows']} rows, {inputs[-1]['columns']} columns)")
+            print(
+                f"  Inspected: {path.name} ({inputs[-1]['rows']} rows, {inputs[-1]['columns']} columns)"
+            )
         except Exception as exc:
             print(f"  ERROR inspecting {path.name}: {exc}")
             return RUNTIME_ERROR
