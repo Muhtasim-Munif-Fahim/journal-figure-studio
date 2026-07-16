@@ -6,6 +6,7 @@ import argparse
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from scripts.common import load_yaml
 from scripts.constants import MIN_FONT_PT, MIN_RASTER_DPI
@@ -87,6 +88,9 @@ def validate(
 
     source_url = profile.get("source_url")
     if source_url:
+        parsed_url = urlparse(str(source_url))
+        if parsed_url.scheme not in {"http", "https"} or not parsed_url.netloc:
+            errors.append("source_url must be an absolute HTTP(S) URL")
         verified_str = profile.get("verified_at")
         if verified_str:
             try:
