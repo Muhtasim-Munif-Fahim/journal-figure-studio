@@ -311,8 +311,7 @@ def _render_figures(
             frame = read_table(source)
             validation_errors = validate_figure_data(frame, spec)
             if validation_errors:
-                for err in validation_errors:
-                    logger.warning("Panel %d: %s", i, err)
+                raise ValueError(f"Panel {i} data validation failed: {'; '.join(validation_errors)}")
             draw(axes_flat[i], frame, spec, palette)
         for j in range(len(figures), len(axes_flat)):
             axes_flat[j].set_visible(False)
@@ -327,8 +326,7 @@ def _render_figures(
         frame = read_table(source)
         validation_errors = validate_figure_data(frame, spec)
         if validation_errors:
-            for err in validation_errors:
-                logger.warning("Data validation: %s", err)
+            raise ValueError(f"Data validation failed: {'; '.join(validation_errors)}")
         fig, ax = plt.subplots(figsize=(width, height))
         draw(ax, frame, spec, palette)
         fig.tight_layout()
