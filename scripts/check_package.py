@@ -10,7 +10,7 @@ from typing import Any
 import matplotlib.image as mpimg
 
 from scripts.common import load_yaml, write_json
-from scripts.exit_codes import RUNTIME_ERROR, SUCCESS, VALIDATION_ERROR
+from scripts.exit_codes import INPUT_ERROR, RUNTIME_ERROR, SUCCESS, VALIDATION_ERROR
 from scripts.version import __version__
 
 REQUIRED_OUTPUTS: list[str] = [
@@ -36,7 +36,12 @@ def check(
     Returns:
         Audit report dict with status ("pass" or "block"), errors, and metadata.
     """
-    profile_id: str = metadata["profile"]["id"]
+    if not isinstance(metadata, dict):
+        return {"status": "block", "profile": None, "errors": ["metadata must be a mapping"], "warnings": [], "metadata": metadata}
+    profile_data = metadata.get("profile")
+    if not isinstance(profile_data, dict) or not profile_data.get("id"):
+        return {"status": "block", "profile": None, "errors": ["metadata.profile.id is required"], "warnings": [], "metadata": metadata}
+    profile_id = str(profile_data["id"])
     profile_path = package / "profiles" / f"{profile_id}.yaml"
     if not profile_path.exists():
         profile_path = package / "profile.yaml"
@@ -147,7 +152,11 @@ def main() -> int:
     if not meta_path.exists():
         print(f"ERROR: figure_metadata.json not found in {package}")
         return INPUT_ERROR
-    metadata = json.loads(meta_path.read_text(encoding="utf-8"))
+    try:
+        metadata = json.loads(meta_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"ERROR: Invalid figure_metadata.json: {exc}")
+        return INPUT_ERROR
     report = check(metadata, package)
     if args.strict:
         total_issues = len(report.get("errors", [])) + len(report.get("warnings", []))
