@@ -47,6 +47,21 @@ def _make_request_yaml(
 
 
 class TestValidateRequest:
+    def test_non_mapping_figure_is_reported(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path, overrides={"figure": "bar"})
+        assert any("figure must be a mapping" in e for e in validate_request(path))
+
+    def test_non_mapping_panel_is_reported(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path, overrides={"figures": ["bad"]})
+        assert any("figures[0]" in e for e in validate_request(path))
+
+    def test_data_paths_must_be_list(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path, overrides={"data_paths": "data.csv"})
+        assert any("data_paths must be a list" in e for e in validate_request(path))
+
+    def test_blank_output_dir_is_rejected(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path, overrides={"output_dir": "   "})
+        assert any("output_dir" in e for e in validate_request(path))
     def test_valid_request_passes(self, tmp_path: Path):
         path = _make_request_yaml(tmp_path)
         errors = validate_request(path)

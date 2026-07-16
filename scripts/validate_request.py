@@ -84,6 +84,8 @@ def validate_request(
         List of validation error strings. Empty list means valid.
     """
     request = load_yaml(request_path)
+    if not isinstance(request, dict):
+        return ["request must contain a YAML mapping"]
     errors: list[str] = [
         f"missing request key: {key}"
         for key in sorted(REQUIRED - set(request))
@@ -100,6 +102,9 @@ def validate_request(
     if request["layout"] not in VALID_LAYOUTS:
         errors.append("layout must be 'single' or 'double'")
 
+    if has_figure and not isinstance(request["figure"], dict):
+        errors.append("figure must be a mapping")
+        has_figure = False
     if has_figure:
         figure_type = request["figure"].get("type")
         if figure_type and figure_type not in VALID_FIGURE_TYPES:
@@ -111,6 +116,9 @@ def validate_request(
 
     if has_figures:
         for i, spec in enumerate(request["figures"]):
+            if not isinstance(spec, dict):
+                errors.append(f"figures[{i}] must be a mapping")
+                continue
             ft = spec.get("type")
             if ft and ft not in VALID_FIGURE_TYPES:
                 errors.append(
@@ -119,7 +127,14 @@ def validate_request(
                 )
             _validate_figure_spec(errors, spec, i, Path(request_path))
 
-    for value in request.get("data_paths", []):
+    data_paths = request.get("data_paths", [])
+    if not isinstance(data_paths, list):
+        errors.append("data_paths must be a list")
+        data_paths = []
+    for value in data_paths:
+        if not isinstance(value, str) or not value.strip():
+            errors.append(f"data path must be a non-empty string: {value!r}")
+            continue
         if not resolve_request_path(request_path, value).exists():
             errors.append(f"data path does not exist: {value}")
 
@@ -135,7 +150,7 @@ def validate_request(
         is_named = _is_named_profile(profile)
         errors.extend(validate(profile, require_current=is_named))
 
-    if not request.get("output_dir"):
+    if not isinstance(request.get("output_dir"), str) or not request["output_dir"].strip():
         errors.append("output_dir is required")
 
     if request.get("caption_takeaway") and len(request["caption_takeaway"]) > DEFAULT_MAX_CAPTION_LENGTH:
