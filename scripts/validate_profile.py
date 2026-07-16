@@ -47,6 +47,8 @@ def validate(
         errors.append(f"unknown profile keys: {', '.join(sorted(invalid_keys))}")
 
     dimensions = profile["dimensions_inches"]
+    if not isinstance(dimensions, dict):
+        return ["dimensions_inches must be a mapping"]
     if not {"single", "double"}.issubset(dimensions):
         errors.append("dimensions_inches requires 'single' and 'double' width keys")
     else:
@@ -63,14 +65,25 @@ def validate(
             errors.append(f"dimensions_inches.aspect_ratio ({aspect}) should be between 0 and 2")
 
     raster_dpi = profile.get("raster_dpi", MIN_RASTER_DPI)
+    if not isinstance(raster_dpi, (int, float)) or isinstance(raster_dpi, bool):
+        errors.append("raster_dpi must be numeric")
+        raster_dpi = MIN_RASTER_DPI
     if isinstance(raster_dpi, (int, float)) and raster_dpi < MIN_RASTER_DPI:
         errors.append(f"raster_dpi must be at least {MIN_RASTER_DPI} (got {raster_dpi})")
 
     fonts = profile.get("fonts", {})
-    if isinstance(fonts, dict):
+    if not isinstance(fonts, dict):
+        errors.append("fonts must be a mapping")
+    else:
         min_pt = fonts.get("minimum_pt", MIN_FONT_PT)
         if isinstance(min_pt, (int, float)) and min_pt < MIN_FONT_PT:
             errors.append(f"minimum_pt must be at least {MIN_FONT_PT}")
+
+    formats = profile.get("formats")
+    if not isinstance(formats, list) or not all(isinstance(fmt, str) for fmt in formats):
+        errors.append("formats must be a list of strings")
+    elif not set(formats).issubset({"pdf", "png", "tiff", "svg"}):
+        errors.append("formats contains an unsupported output format")
 
     source_url = profile.get("source_url")
     if source_url:
@@ -80,6 +93,8 @@ def validate(
                 verified_str_clean = str(verified_str).split("T")[0].split("+")[0].split(" ")[0]
                 verified = date.fromisoformat(verified_str_clean)
                 age = (date.today() - verified).days
+                if age < 0:
+                    errors.append("verified_at cannot be in the future")
                 stale_after = int(profile.get("stale_after_days", 365))
                 if age > stale_after:
                     errors.append(

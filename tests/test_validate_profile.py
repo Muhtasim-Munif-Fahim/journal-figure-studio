@@ -46,6 +46,15 @@ def _make_profile(**overrides: Any) -> dict[str, Any]:
 
 
 class TestValidateProfile:
+    def test_invalid_nested_types_are_reported(self):
+        profile = _make_profile()
+        profile["dimensions_inches"] = []
+        assert "dimensions_inches must be a mapping" in validate(profile)
+
+    def test_future_verification_date_is_rejected(self):
+        profile = _make_profile()
+        profile["verified_at"] = "2999-01-01"
+        assert any("future" in error for error in validate(profile))
     def test_valid_profile_passes(self):
         errors = validate(_make_profile())
         assert errors == []
