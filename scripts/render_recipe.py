@@ -72,7 +72,6 @@ def apply_style(profile: dict[str, Any], layout: str) -> tuple[float, float]:
         try:
             plt.style.use(mplstyle)
             logger.info("Applied matplotlib style: %s", mplstyle)
-            return width, height
         except Exception as exc:
             logger.warning("Failed to load matplotlib style '%s': %s", mplstyle, exc)
 
