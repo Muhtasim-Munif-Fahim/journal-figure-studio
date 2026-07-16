@@ -232,6 +232,10 @@ def validate_figure_data(frame: Any, figure: dict[str, Any]) -> list[str]:
                 errors.append(f"Column '{col}' has no valid data")
     if bool(figure.get("lower")) != bool(figure.get("upper")):
         errors.append("lower and upper must be provided together")
+    if figure.get("lower") and figure.get("upper") and figure.get("y") in frame:
+        lower, upper, estimate = figure["lower"], figure["upper"], figure["y"]
+        if ((frame[lower] > frame[upper]) | (frame[lower] > frame[estimate]) | (frame[upper] < frame[estimate])).any():
+            errors.append("interval bounds must satisfy lower <= estimate <= upper")
     return errors
 
 
