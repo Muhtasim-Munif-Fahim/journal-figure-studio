@@ -25,6 +25,7 @@ from scripts.constants import PALETTES, SUPPORTED_FIGURE_TYPES, STAT_ANNOTATION_
 from scripts.exit_codes import INPUT_ERROR, RUNTIME_ERROR, SUCCESS, VALIDATION_ERROR
 from scripts.logging_config import setup_logger
 from scripts.version import __version__
+from scripts.validate_request import validate_request
 
 logger = setup_logger(__name__)
 
@@ -377,6 +378,13 @@ def main() -> int:
         print(f"ERROR: Profile not found: {profile_file}")
         return INPUT_ERROR
     profile = load_yaml(profile_file)
+
+    request_errors = validate_request(request_path, args.profiles_dir)
+    failures = [error for error in request_errors if not error.startswith("[warn]")]
+    if failures:
+        print("ERROR: Figure request validation failed:")
+        print("\n".join(f"  ! {error}" for error in failures))
+        return VALIDATION_ERROR
 
     logger.info("Loaded request %s with profile %s", request.get("figure_id", "unknown"), request["profile"])
     figures_to_check = request.get("figures", [request.get("figure", {})])
