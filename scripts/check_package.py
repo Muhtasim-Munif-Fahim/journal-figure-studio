@@ -88,11 +88,14 @@ def check(
 
     svg_path = package / f"{figure_id}.svg"
     if svg_path.exists():
-        svg_content = svg_path.read_text(encoding="utf-8")
-        if "<svg" not in svg_content:
-            errors.append("SVG output is invalid")
-        elif 'xmlns="http://www.w3.org/2000/svg"' not in svg_content:
-            errors.append("SVG output missing SVG namespace")
+        try:
+            svg_content = svg_path.read_text(encoding="utf-8")
+            if "<svg" not in svg_content:
+                errors.append("SVG output is invalid")
+            elif 'xmlns="http://www.w3.org/2000/svg"' not in svg_content:
+                errors.append("SVG output missing SVG namespace")
+        except (OSError, UnicodeDecodeError) as exc:
+            errors.append(f"SVG output is unreadable: {exc}")
 
     fonts = profile.get("fonts", {})
     if isinstance(fonts, dict):
