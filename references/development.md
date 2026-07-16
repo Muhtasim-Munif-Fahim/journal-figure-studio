@@ -4,7 +4,7 @@
 ```bash
 git clone https://github.com/Muhtasim-Munif-Fahim/journal-figure-studio.git
 cd journal-figure-studio
-pip install -r requirements.txt
+python -m pip install -e ".[dev]"
 pip install -r requirements-dev.txt
 pre-commit install
 ```

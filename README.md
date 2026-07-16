@@ -67,11 +67,11 @@ The execution instructions are in [`SKILL.md`](SKILL.md).
 ```bash
 git clone https://github.com/Muhtasim-Munif-Fahim/journal-figure-studio.git
 cd journal-figure-studio
-python -m pip install -r requirements.txt
+     python -m pip install -e ".[dev]"
 python -m pytest -q
 ```
 
-Requires Python 3.10+ and the packages listed in [`requirements.txt`](requirements.txt).
+Requires Python 3.10+ and the dependencies declared in `pyproject.toml`.
 
 ## Quick Start
 
