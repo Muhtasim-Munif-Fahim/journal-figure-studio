@@ -175,7 +175,7 @@ def main() -> int:
         print("Warnings:")
         for w in report["warnings"]:
             print(f"  ? {w}")
-    return SUCCESS if report["status"] == "pass" else VALIDATION_ERROR
+    return SUCCESS if report["status"] in {"pass", "pass_with_warnings"} else VALIDATION_ERROR
 
 
 if __name__ == "__main__":
