@@ -422,7 +422,12 @@ def main() -> int:
     output.mkdir(parents=True, exist_ok=True)
     logger.info("Output directory: %s", output)
 
-    width, height, created = _render_figures(request, profile, output, request_path)
+    try:
+        width, height, created = _render_figures(request, profile, output, request_path)
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        logger.exception("Rendering failed")
+        print(f"ERROR: Rendering failed: {exc}")
+        return RUNTIME_ERROR
     logger.info("Rendered %d output files", len(created))
 
     caption_takeaway = request.get("caption_takeaway", "")
