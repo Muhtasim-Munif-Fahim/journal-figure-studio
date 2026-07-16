@@ -9,7 +9,7 @@ from typing import Any
 
 import matplotlib.image as mpimg
 
-from scripts.common import load_yaml, write_json
+from scripts.common import load_yaml, sha256, write_json
 from scripts.exit_codes import INPUT_ERROR, RUNTIME_ERROR, SUCCESS, VALIDATION_ERROR
 from scripts.version import __version__
 
@@ -59,6 +59,13 @@ def check(
     for path in required:
         if not path.exists():
             errors.append(f"missing output: {path.name}")
+
+    for name, expected_hash in metadata.get("outputs", {}).items():
+        output_path = package / name
+        if output_path.exists() and isinstance(expected_hash, str):
+            actual_hash = sha256(output_path)
+            if actual_hash != expected_hash:
+                errors.append(f"output hash mismatch: {name}")
 
     pdf_path = package / f"{figure_id}.pdf"
     if pdf_path.exists():
