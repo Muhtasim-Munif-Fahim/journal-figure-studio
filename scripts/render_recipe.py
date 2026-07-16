@@ -32,6 +32,15 @@ from scripts.validate_request import validate_request
 
 logger = setup_logger(__name__)
 
+
+def _latex_escape(value: str) -> str:
+    """Escape caption text for inclusion in a LaTeX document."""
+    replacements = {
+        "\\": r"\textbackslash{}", "&": r"\&", "%": r"\%",
+        "$": r"\$", "#": r"\#", "_": r"\_", "{": r"\{", "}": r"\}",
+    }
+    return "".join(replacements.get(char, char) for char in value)
+
 # Backward-compatible aliases
 SUPPORTED_TYPES: set[str] = SUPPORTED_FIGURE_TYPES
 STAT_ANNOTATIONS: dict[float, str] = dict(STAT_ANNOTATION_THRESHOLDS)
@@ -437,7 +446,7 @@ def main() -> int:
         caption = f"Figure: {request['figure_id']}"
     (output / "caption.md").write_text(caption + "\n", encoding="utf-8")
 
-    latex_caption = caption.replace("**", "").replace("_", "\\_")
+    latex_caption = _latex_escape(caption.replace("**", ""))
     latex = (
         "% Figure: " + request["figure_id"] + "\n"
         "\\begin{figure}[t]\n\\centering\n"
