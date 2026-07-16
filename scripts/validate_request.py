@@ -74,6 +74,13 @@ def _validate_figure_spec(
         errors.append(f"{prefix}: {exc}")
     except Exception as exc:
         errors.append(f"{prefix}: unexpected error reading {source}: {exc}")
+    if "p_value" in spec:
+        try:
+            p_value = float(spec["p_value"])
+            if not 0 <= p_value <= 1:
+                errors.append(f"{prefix}.p_value must be between 0 and 1")
+        except (TypeError, ValueError):
+            errors.append(f"{prefix}.p_value must be numeric")
 
 
 def validate_request(
