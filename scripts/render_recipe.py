@@ -218,15 +218,17 @@ _DISPATCH: dict[str, Any] = {
 def validate_figure_data(frame: Any, figure: dict[str, Any]) -> list[str]:
     """Validate that required columns exist and have data in the frame."""
     errors: list[str] = []
-    for key in ("x", "y"):
+    for key in ("x", "y", "group", "lower", "upper", "row", "column", "values"):
         col = figure.get(key)
         if col and col not in frame.columns:
             errors.append(f"Column '{col}' not found in data. Available: {list(frame.columns)}")
-        elif col:
+        elif col and key in {"x", "y", "lower", "upper"}:
             if frame[col].isna().all():
                 errors.append(f"Column '{col}' has all missing values")
             if len(frame[col].dropna()) == 0:
                 errors.append(f"Column '{col}' has no valid data")
+    if bool(figure.get("lower")) != bool(figure.get("upper")):
+        errors.append("lower and upper must be provided together")
     return errors
 
 
