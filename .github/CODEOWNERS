@@ -1,0 +1,26 @@
+# Code owners for journal-figure-studio
+#
+# Every PR requests review from the listed owner automatically.
+# Later matches win, so the specific rules below override the catch-all.
+
+# Catch-all
+*                           @Muhtasim-Munif-Fahim
+
+# Rendering, validation, and provenance — determinism rules apply
+/scripts/                   @Muhtasim-Munif-Fahim
+
+# Public schemas: changes here are breaking under SemVer
+/assets/profiles/           @Muhtasim-Munif-Fahim
+/references/request-schema.md   @Muhtasim-Munif-Fahim
+
+# Release, CI, and supply chain
+/.github/                   @Muhtasim-Munif-Fahim
+/pyproject.toml             @Muhtasim-Munif-Fahim
+/.pre-commit-config.yaml    @Muhtasim-Munif-Fahim
+
+# Governance and policy
+/SECURITY.md                @Muhtasim-Munif-Fahim
+/GOVERNANCE.md              @Muhtasim-Munif-Fahim
+/CODE_OF_CONDUCT.md         @Muhtasim-Munif-Fahim
+/CONTRIBUTING.md            @Muhtasim-Munif-Fahim
+/LICENSE                    @Muhtasim-Munif-Fahim

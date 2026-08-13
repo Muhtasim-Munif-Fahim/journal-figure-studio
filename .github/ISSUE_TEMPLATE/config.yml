@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or usage help
+    url: https://github.com/Muhtasim-Munif-Fahim/journal-figure-studio/discussions/categories/q-a
+    about: How do I render X, why does my profile validate this way, which figure type fits my data. Please search first.
+  - name: Report a security vulnerability
+    url: https://github.com/Muhtasim-Munif-Fahim/journal-figure-studio/security/advisories/new
+    about: Report privately. Do not open a public issue for a security problem.
+  - name: Documentation and troubleshooting
+    url: https://github.com/Muhtasim-Munif-Fahim/journal-figure-studio#readme
+    about: README, FAQ, troubleshooting, request schema, and profile creation guides.
+  - name: Propose a new venue profile
+    url: https://github.com/Muhtasim-Munif-Fahim/journal-figure-studio/discussions/categories/ideas
+    about: Bring the published author guidelines for the venue — profiles must cite a source.
