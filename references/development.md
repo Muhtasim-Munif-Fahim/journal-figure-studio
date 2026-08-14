@@ -5,7 +5,6 @@
 git clone https://github.com/Muhtasim-Munif-Fahim/journal-figure-studio.git
 cd journal-figure-studio
 python -m pip install -e ".[dev]"
-pip install -r requirements-dev.txt
 pre-commit install
 ```
 
