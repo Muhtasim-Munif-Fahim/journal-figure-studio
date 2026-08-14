@@ -7,10 +7,26 @@ on:
 jobs:
   stale:
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
     steps:
       - uses: actions/stale@v9
         with:
-          stale-issue-message: "This issue has been marked stale."
-          stale-pr-message: "This PR has been marked stale."
+          stale-issue-message: >
+            This issue has had no activity for 90 days and is being marked
+            stale. Comment to keep it open; otherwise it will be closed in 30
+            days. A closed issue is not a rejection and can be reopened.
+          stale-pr-message: >
+            This pull request has had no activity for 90 days and is being
+            marked stale. Comment or push to keep it open; otherwise it will be
+            closed in 30 days. A closed PR is not a rejection and can be
+            reopened.
+          close-issue-message: >
+            Closing after 30 days without activity. Comment to reopen.
+          close-pr-message: >
+            Closing after 30 days without activity. Comment or push to reopen.
           days-before-stale: 90
           days-before-close: 30
+          exempt-issue-labels: "security,pinned,blocked"
+          exempt-pr-labels: "dependencies,security,pinned,blocked"
