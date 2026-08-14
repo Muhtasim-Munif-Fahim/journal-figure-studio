@@ -7,7 +7,9 @@ on:
 jobs:
   automerge:
     runs-on: ubuntu-latest
-    if: contains(github.event.pull_request.labels.*.name, 'dependencies')
+    if: >
+      github.actor == 'dependabot[bot]' &&
+      contains(github.event.pull_request.labels.*.name, 'dependencies')
     permissions:
       contents: write
       pull-requests: write
@@ -15,3 +17,8 @@ jobs:
       - uses: fastify/github-action-merge-dependabot@v3
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          # Patch and minor bumps merge once CI is green. Major bumps are left
+          # open on purpose: they can change action or library behaviour and
+          # need a human to look. See the "Dependency updates" section of
+          # CONTRIBUTING.md.
+          target: minor
