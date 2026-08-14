@@ -130,7 +130,10 @@ def read_table(file_path: str | Path) -> pd.DataFrame:
             f"Hint: check the file extension."
         )
     try:
-        return reader(source)
+        # The reader table is heterogeneous (pandas exposes each reader with its
+        # own signature), so it is typed loosely; narrow the result back here.
+        frame: pd.DataFrame = reader(source)
+        return frame
     except ImportError as exc:
         raise ValueError(f"Optional dependency required for '{suffix}': {exc}") from exc
     except (OSError, TypeError, ValueError) as exc:

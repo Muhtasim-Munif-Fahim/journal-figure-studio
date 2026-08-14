@@ -114,27 +114,32 @@ def apply_style(profile: dict[str, Any], layout: str) -> tuple[float, float]:
         if family == "sans-serif"
         else ["Times New Roman", "Liberation Serif", "DejaVu Serif"]
     )
-    plt.rcParams.update(
-        {
-            "font.family": family,
-            f"font.{family}": fonts,
-            "font.size": profile["fonts"]["minimum_pt"],
-            "axes.labelsize": profile["fonts"]["axis_pt"],
-            "xtick.labelsize": profile["fonts"]["minimum_pt"],
-            "ytick.labelsize": profile["fonts"]["minimum_pt"],
-            "legend.fontsize": profile["fonts"]["minimum_pt"],
-            "axes.spines.top": bool(profile["style"].get("top_right_spines", False)),
-            "axes.spines.right": bool(profile["style"].get("top_right_spines", False)),
-            "axes.grid": profile["style"].get("grid", False),
-            "axes.linewidth": 0.65,
-            "lines.linewidth": 1.35,
-            "savefig.dpi": profile["raster_dpi"],
-            "savefig.bbox": "tight",
-            "savefig.pad_inches": 0.04,
-            "pdf.fonttype": 42,
-            "ps.fonttype": 42,
-        }
-    )
+    # matplotlib types rcParams keys as a Literal of every known setting, so the
+    # interpolated `font.{family}` key cannot be checked statically even though
+    # both possible values ("font.sans-serif", "font.serif") are valid keys.
+    rc_updates: dict[str, Any] = {
+        "font.family": family,
+        f"font.{family}": fonts,
+        "font.size": profile["fonts"]["minimum_pt"],
+        "axes.labelsize": profile["fonts"]["axis_pt"],
+        "xtick.labelsize": profile["fonts"]["minimum_pt"],
+        "ytick.labelsize": profile["fonts"]["minimum_pt"],
+        "legend.fontsize": profile["fonts"]["minimum_pt"],
+        "axes.spines.top": bool(profile["style"].get("top_right_spines", False)),
+        "axes.spines.right": bool(profile["style"].get("top_right_spines", False)),
+        "axes.grid": profile["style"].get("grid", False),
+        "axes.linewidth": 0.65,
+        "lines.linewidth": 1.35,
+        "savefig.dpi": profile["raster_dpi"],
+        "savefig.bbox": "tight",
+        "savefig.pad_inches": 0.04,
+        "pdf.fonttype": 42,
+        "ps.fonttype": 42,
+    }
+    # `font.{family}` is built at runtime, so mypy cannot match it against the
+    # Literal of valid rcParams keys. Both values it can take,
+    # "font.sans-serif" and "font.serif", are valid keys.
+    plt.rcParams.update(rc_updates)  # type: ignore[arg-type]
     return width, height
 
 
