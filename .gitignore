@@ -22,3 +22,6 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+
+# Output of the example request (assets/figure_request.example.yaml)
+assets/figures/

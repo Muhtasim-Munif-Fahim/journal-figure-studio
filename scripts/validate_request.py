@@ -184,9 +184,17 @@ def validate_request(
         if not resolve_request_path(request_path, value).exists():
             errors.append(f"data path does not exist: {value}")
 
-    analysis = resolve_request_path(request_path, request.get("analysis_script", ""))
-    if request.get("analysis_script") and not analysis.exists():
-        errors.append(f"analysis script does not exist: {request['analysis_script']}")
+    # `analysis_script: null` is a valid way to say "there isn't one", so the
+    # key can be present and still hold None. Resolve only once there is
+    # something to resolve.
+    analysis_script = request.get("analysis_script")
+    if analysis_script:
+        if not isinstance(analysis_script, str):
+            errors.append(
+                f"analysis_script must be a string or null: {analysis_script!r}"
+            )
+        elif not resolve_request_path(request_path, analysis_script).exists():
+            errors.append(f"analysis script does not exist: {analysis_script}")
 
     profile_file = profile_path(request["profile"], profiles_dir)
     if not profile_file.exists():
