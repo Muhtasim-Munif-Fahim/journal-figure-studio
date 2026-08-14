@@ -51,6 +51,10 @@ dev = [
     "mypy>=1.8",
     "ruff>=0.3",
     "pre-commit>=3.6",
+    # tests/test_common.py round-trips parquet and feather, both of which
+    # pandas delegates to pyarrow.
+    "pyarrow>=15.0",
+    "pandas-stubs",
 ]
 
 [tool.setuptools.packages.find]
@@ -69,7 +73,7 @@ markers = [
 ]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.12"
 strict = true
 warn_unused_configs = true
 check_untyped_defs = true
@@ -77,6 +81,15 @@ disallow_untyped_defs = true
 no_implicit_optional = true
 show_error_codes = true
 exclude = ["build/", "dist/"]
+
+# numpy ships stubs that use PEP 695 `type` statements. Checking this project
+# against its minimum supported runtime (3.10) makes mypy parse those stubs
+# under 3.10 syntax rules and abort before it reaches our own code. Skipping
+# the import keeps the project's own target at 3.10 without type-checking
+# numpy's stubs for us.
+[[tool.mypy.overrides]]
+module = ["numpy.*"]
+follow_imports = "skip"
 
 [tool.ruff]
 line-length = 88
