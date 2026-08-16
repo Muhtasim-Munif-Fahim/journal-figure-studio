@@ -45,6 +45,7 @@ check-package = "scripts.check_package:main"
 inspect-data = "scripts.inspect_results:main"
 create-profile = "scripts.create_venue_profile:main"
 audit-palette = "scripts.audit_palette:main"
+audit-caption = "scripts.audit_caption:main"
 compare-figures = "scripts.compare_packages:main"
 
 [project.optional-dependencies]
