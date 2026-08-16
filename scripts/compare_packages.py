@@ -37,7 +37,7 @@ def compare_metadata(
         for key in environment_keys
         if baseline.get(key) != current.get(key)
     }
-    report = {
+    report: dict[str, Any] = {
         "figure_id": {
             "baseline": baseline.get("figure_id"),
             "current": current.get("figure_id"),
