@@ -39,6 +39,7 @@ Changelog = "https://github.com/Muhtasim-Munif-Fahim/journal-figure-studio/blob/
 [project.scripts]
 render-figure = "scripts.render_recipe:main"
 validate-request = "scripts.validate_request:main"
+validate-requests = "scripts.validate_batch:main"
 validate-profile = "scripts.validate_profile:main"
 check-package = "scripts.check_package:main"
 inspect-data = "scripts.inspect_results:main"
