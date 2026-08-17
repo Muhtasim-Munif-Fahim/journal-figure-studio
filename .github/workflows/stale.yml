@@ -3,6 +3,15 @@ name: Stale
 on:
   schedule:
     - cron: "0 0 * * *"
+  # Schedule-only workflows are invisible until midnight, so a bad bump of the
+  # action or a bad option is only noticed once it has already acted on issues.
+  # This allows a run on demand, with a dry run as the default.
+  workflow_dispatch:
+    inputs:
+      debug-only:
+        description: "Dry run: log what would be marked or closed, change nothing"
+        type: boolean
+        default: true
 
 jobs:
   stale:
@@ -13,6 +22,8 @@ jobs:
     steps:
       - uses: actions/stale@v11
         with:
+          # Only ever true for a manual run; the scheduled run is unaffected.
+          debug-only: ${{ inputs.debug-only || false }}
           stale-issue-message: >
             This issue has had no activity for 90 days and is being marked
             stale. Comment to keep it open; otherwise it will be closed in 30
