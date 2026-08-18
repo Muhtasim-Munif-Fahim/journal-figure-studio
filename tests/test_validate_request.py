@@ -6,7 +6,6 @@ import yaml
 
 from scripts.validate_request import validate_request
 
-
 REQUIRED_KEYS = [
     "figure_id", "research_field", "profile", "layout",
     "data_paths", "analysis_script", "claim",

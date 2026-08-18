@@ -31,6 +31,7 @@ FIGURE_REQUIRED: set[str] = {"type", "source", "x", "y", "xlabel", "ylabel"}
 VALID_LAYOUTS: set[str] = {"single", "double"}
 DEFAULT_MAX_CAPTION_LENGTH: int = 200
 DEFAULT_MAX_CLAIM_LENGTH: int = 1000
+DEFAULT_MAX_ALT_TEXT_LENGTH: int = 1000
 FIGURE_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9.-]{0,63}$")
 
 VALID_FIGURE_TYPES: set[str] = {
@@ -226,6 +227,13 @@ def validate_request(
             errors.append(msg)
         else:
             errors.append(f"[warn] {msg}")
+
+    alt_text = request.get("alt_text")
+    if alt_text is not None:
+        if not isinstance(alt_text, str) or not alt_text.strip():
+            errors.append("alt_text must be a non-empty string when provided")
+        elif len(alt_text) > DEFAULT_MAX_ALT_TEXT_LENGTH:
+            errors.append("alt_text exceeds 1000 characters")
 
     return errors
 

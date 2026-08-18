@@ -7,6 +7,7 @@ data_paths:
 analysis_script: null
 claim: "The selected method improves the primary metric relative to the reported baselines."
 caption_takeaway: "The selected method has the highest mean score; error bars show 95% confidence intervals."
+alt_text: "Bar chart comparing primary metric scores for three methods. The selected method has the tallest bar, with 95% confidence intervals shown for every method."
 figure:
   type: bar
   source: example_data.csv

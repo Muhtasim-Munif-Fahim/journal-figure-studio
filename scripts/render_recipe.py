@@ -92,6 +92,25 @@ def copy_if_distinct(source: Path | None, destination: Path) -> None:
         shutil.copy2(source, destination)
 
 
+def write_accessibility_artifacts(
+    request: dict[str, Any], output: Path
+) -> list[Path]:
+    """Write screen-reader text supplied with a figure request."""
+
+    alt_text = request.get("alt_text")
+    if not isinstance(alt_text, str) or not alt_text.strip():
+        return []
+    destination = output / "alt_text.txt"
+    destination.write_text(alt_text.strip() + "\n", encoding="utf-8")
+    payload = {
+        "figure_id": request["figure_id"],
+        "alt_text": alt_text.strip(),
+    }
+    accessibility = output / "accessibility.json"
+    write_json(accessibility, payload)
+    return [destination, accessibility]
+
+
 def apply_style(profile: dict[str, Any], layout: str) -> tuple[float, float]:
     """Configure matplotlib rcParams from profile settings and return figure dimensions.
 
@@ -592,6 +611,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         f"and place the caption below.\n",
         encoding="utf-8",
     )
+    accessibility_files = write_accessibility_artifacts(request, output)
 
     packed = copy.deepcopy(request)
     packed.pop("_request_path", None)
@@ -655,6 +675,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         "inputs": inputs,
         "outputs": outputs,
         "figure_count": len(figures_to_check),
+        "accessibility": {
+            "alt_text_present": bool(accessibility_files),
+            "files": [path.name for path in accessibility_files],
+        },
         "layout": request["layout"],
         "dimensions_inches": {"width": width, "height": height},
         "studio_version": __version__,
