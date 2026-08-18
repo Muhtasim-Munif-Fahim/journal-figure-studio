@@ -9,6 +9,7 @@ import math
 import platform
 import shutil
 import sys
+from collections.abc import Sequence
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -474,7 +475,7 @@ def _render_figures(
     return width, height, created
 
 
-def main() -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     """Parse CLI args, load request and profile, render figure package."""
     parser = argparse.ArgumentParser(
         description="Render a reproducible academic figure from a YAML request.",
@@ -491,7 +492,7 @@ def main() -> int:
         action="store_true",
         help="Validate request without rendering",
     )
-    args, remaining = parser.parse_known_args()
+    args, remaining = parser.parse_known_args(argv)
 
     if args.version:
         print(f"journal-figure-studio v{__version__}")
