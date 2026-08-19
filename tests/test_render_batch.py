@@ -20,6 +20,8 @@ def test_render_batch_processes_independent_requests(monkeypatch) -> None:
     assert summary["processed"] == 3
     assert summary["succeeded"] == 2
     assert summary["failed"] == 1
+    assert summary["duration_seconds"] >= 0
+    assert all(result["duration_seconds"] >= 0 for result in summary["results"])
     assert all("--validate-only" in call for call in calls)
 
 

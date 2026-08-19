@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import time
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -29,18 +30,21 @@ def render_batch(
             argv.extend(["--profiles-dir", str(profiles_dir)])
         if validate_only:
             argv.append("--validate-only")
+        started = time.perf_counter()
         try:
             exit_code = int(render_one(argv))
             error = None
         except Exception as exc:  # keep independent requests running
             exit_code = 1
             error = f"{type(exc).__name__}: {exc}"
+        duration_seconds = time.perf_counter() - started
         results.append(
             {
                 "request": str(request),
                 "success": exit_code == SUCCESS,
                 "exit_code": exit_code,
                 "error": error,
+                "duration_seconds": duration_seconds,
             }
         )
         if exit_code != SUCCESS and stop_on_error:
@@ -52,6 +56,7 @@ def render_batch(
         "processed": len(results),
         "succeeded": len(results) - failed,
         "failed": failed,
+        "duration_seconds": sum(result["duration_seconds"] for result in results),
         "results": results,
     }
 
