@@ -6,7 +6,7 @@ import argparse
 import json
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 import matplotlib.image as mpimg
 
@@ -22,6 +22,48 @@ REQUIRED_OUTPUTS: list[str] = [
     "latex_include.tex",
     "word_insertion.txt",
 ]
+
+
+def build_manifest(
+    package: Path,
+    metadata: dict[str, Any],
+    *,
+    exclude: Iterable[str] = ("package_manifest.json",),
+) -> dict[str, Any]:
+    """Build a deterministic file-level provenance manifest for a package."""
+
+    excluded = {Path(value).as_posix() for value in exclude}
+    output_names = set(metadata.get("outputs", {}))
+    files: list[dict[str, Any]] = []
+    for path in sorted(package.rglob("*")):
+        if not path.is_file():
+            continue
+        relative = path.relative_to(package).as_posix()
+        if relative in excluded:
+            continue
+        if relative in output_names:
+            role = "figure-output"
+        elif relative == "figure_metadata.json":
+            role = "metadata"
+        elif relative.startswith("profiles/") or relative == "profile.yaml":
+            role = "profile"
+        elif relative in {"figure.py", "common.py", "figure_request.yaml"}:
+            role = "reproduction-source"
+        else:
+            role = "package-file"
+        files.append(
+            {
+                "path": relative,
+                "size_bytes": path.stat().st_size,
+                "sha256": sha256(path),
+                "role": role,
+            }
+        )
+    return {
+        "schema_version": 1,
+        "figure_id": metadata.get("figure_id"),
+        "files": files,
+    }
 
 
 def check(
@@ -215,6 +257,10 @@ def main() -> int:
         help="Require SHA-256 hashes for every declared figure output",
     )
     parser.add_argument(
+        "--manifest",
+        help="Write a file-level SHA-256 provenance manifest to this path",
+    )
+    parser.add_argument(
         "--verbose", action="store_true", help="Show detailed audit info"
     )
     parser.add_argument("--version", action="store_true", help="Print version and exit")
@@ -242,6 +288,20 @@ def main() -> int:
             report["status"] = "block"
             report["errors"] = report.get("errors", []) + report.get("warnings", [])
             report["warnings"] = []
+    if args.manifest:
+        manifest_path = Path(args.manifest)
+        if not manifest_path.is_absolute():
+            manifest_path = package / manifest_path
+        try:
+            relative_manifest = manifest_path.relative_to(package).as_posix()
+            excluded = {relative_manifest}
+        except ValueError:
+            excluded = set()
+        write_json(
+            manifest_path,
+            build_manifest(package, metadata, exclude=excluded),
+        )
+        report["manifest"] = str(manifest_path)
     write_json(package / "figure_audit.json", report)
     status_icon = {
         "pass": "PASS",

@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.check_package import check
+from scripts.check_package import build_manifest, check
 from scripts.common import sha256
 
 
@@ -109,6 +109,22 @@ class TestCheckPackage:
 
         assert audit["status"] == "block"
         assert any("output hash" in error for error in audit["errors"])
+
+    def test_manifest_lists_hash_size_and_role_for_package_files(self, tmp_path: Path):
+        output_dir = tmp_path / "output"
+        output_dir.mkdir()
+        _ensure_profile(output_dir)
+        metadata = _make_metadata(output_dir)
+        _build_package(output_dir, metadata)
+
+        manifest = build_manifest(output_dir, metadata)
+        entries = {entry["path"]: entry for entry in manifest["files"]}
+
+        assert manifest["schema_version"] == 1
+        assert entries["test-fig.pdf"]["role"] == "figure-output"
+        assert entries["test-fig.pdf"]["size_bytes"] > 0
+        assert entries["test-fig.pdf"]["sha256"] == sha256(output_dir / "test-fig.pdf")
+        assert list(entries) == sorted(entries)
 
     def test_missing_output_file_fails(self, tmp_path: Path):
         output_dir = tmp_path / "output"
