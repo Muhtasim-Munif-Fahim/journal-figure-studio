@@ -8,6 +8,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
+
 from scripts.common import load_yaml, profile_path, read_table, resolve_request_path
 from scripts.exit_codes import SUCCESS, VALIDATION_ERROR
 from scripts.logging_config import setup_logger
@@ -46,6 +48,7 @@ VALID_FIGURE_TYPES: set[str] = {
     "heatmap",
     "calibration",
 }
+NUMERIC_FIGURE_TYPES: set[str] = set(VALID_FIGURE_TYPES)
 
 
 def _is_named_profile(profile: dict[str, Any]) -> bool:
@@ -81,7 +84,10 @@ def _validate_figure_spec(
         errors.append(f"{prefix}.source does not exist: {spec.get('source')}")
         return
     try:
-        columns = set(read_table(source).columns)
+        frame = read_table(source)
+        columns = set(frame.columns)
+        if frame.empty:
+            errors.append(f"{prefix}.source must contain at least one data row")
         for col_key in SUPPORTED_COLUMN_KEYS:
             value = spec.get(col_key)
             if value is not None and not isinstance(value, str):
@@ -90,6 +96,17 @@ def _validate_figure_spec(
                 errors.append(
                     f"{prefix}.{col_key} ('{value}') is not a column "
                     f"in {spec['source']}. Available columns: {', '.join(sorted(columns))}"
+                )
+        numeric_keys: set[str] = set()
+        if spec.get("type") in NUMERIC_FIGURE_TYPES:
+            numeric_keys.update({"y", "values"})
+        if spec.get("lower") and spec.get("upper"):
+            numeric_keys.update({"lower", "upper"})
+        for col_key in sorted(numeric_keys):
+            column = spec.get(col_key)
+            if column in frame.columns and not pd.api.types.is_numeric_dtype(frame[column]):
+                errors.append(
+                    f"{prefix}.{col_key} ('{column}') must reference a numeric column"
                 )
         lower, upper = spec.get("lower"), spec.get("upper")
         if bool(lower) != bool(upper):

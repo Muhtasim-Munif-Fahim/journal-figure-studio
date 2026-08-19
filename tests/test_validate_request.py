@@ -71,6 +71,19 @@ class TestValidateRequest:
             }
         })
         assert any("both lower and upper" in e for e in validate_request(path))
+
+    def test_numeric_figure_fields_reject_text_columns(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        (tmp_path / "data.csv").write_text("category,value\nA,not-a-number\n")
+        errors = validate_request(path)
+        assert any("must reference a numeric column" in e for e in errors)
+
+    def test_empty_source_is_rejected(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        (tmp_path / "data.csv").write_text("category,value\n")
+        errors = validate_request(path)
+        assert any("at least one data row" in e for e in errors)
+
     def test_valid_request_passes(self, tmp_path: Path):
         path = _make_request_yaml(tmp_path)
         errors = validate_request(path)
