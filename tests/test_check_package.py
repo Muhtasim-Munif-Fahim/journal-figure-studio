@@ -97,6 +97,19 @@ class TestCheckPackage:
         audit = check(metadata, output_dir)
         assert audit["status"] == "pass"
 
+    def test_require_hashes_blocks_missing_output_hash(self, tmp_path: Path):
+        output_dir = tmp_path / "output"
+        output_dir.mkdir()
+        _ensure_profile(output_dir)
+        metadata = _make_metadata(output_dir)
+        _build_package(output_dir, metadata)
+        metadata["outputs"].pop("test-fig.png")
+
+        audit = check(metadata, output_dir, require_hashes=True)
+
+        assert audit["status"] == "block"
+        assert any("output hash" in error for error in audit["errors"])
+
     def test_missing_output_file_fails(self, tmp_path: Path):
         output_dir = tmp_path / "output"
         output_dir.mkdir()

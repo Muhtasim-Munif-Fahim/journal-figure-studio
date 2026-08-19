@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -26,6 +27,8 @@ REQUIRED_OUTPUTS: list[str] = [
 def check(
     metadata: dict[str, Any],
     package: Path,
+    *,
+    require_hashes: bool = False,
 ) -> dict[str, Any]:
     """Audit a rendered publication package for completeness and quality.
 
@@ -70,13 +73,36 @@ def check(
         if not path.exists():
             errors.append(f"missing output: {path.name}")
 
-    for name, expected_hash in metadata.get("outputs", {}).items():
+    declared_outputs = metadata.get("outputs", {})
+    if not isinstance(declared_outputs, dict):
+        errors.append("metadata.outputs must be a mapping")
+        declared_outputs = {}
+    figure_output_names = {
+        path.name
+        for path in required
+        if path.suffix.lower() in {".pdf", ".png", ".tiff", ".svg"}
+    }
+    if require_hashes:
+        for name in sorted(figure_output_names):
+            expected_hash = declared_outputs.get(name)
+            if not isinstance(expected_hash, str) or not re.fullmatch(
+                r"[0-9a-f]{64}", expected_hash
+            ):
+                errors.append(f"missing or invalid output hash: {name}")
+
+    for name, expected_hash in declared_outputs.items():
         output_path = package / name
+        if require_hashes and (
+            not isinstance(expected_hash, str)
+            or not re.fullmatch(r"[0-9a-f]{64}", expected_hash)
+        ):
+            if name not in figure_output_names:
+                errors.append(f"missing or invalid output hash: {name}")
+            continue
         if output_path.exists() and isinstance(expected_hash, str):
             actual_hash = sha256(output_path)
             if actual_hash != expected_hash:
                 errors.append(f"output hash mismatch: {name}")
-    declared_outputs = metadata.get("outputs", {})
     if isinstance(declared_outputs, dict):
         actual_outputs = {
             path.name
@@ -184,6 +210,11 @@ def main() -> int:
         "--strict", action="store_true", help="Treat warnings as errors"
     )
     parser.add_argument(
+        "--require-hashes",
+        action="store_true",
+        help="Require SHA-256 hashes for every declared figure output",
+    )
+    parser.add_argument(
         "--verbose", action="store_true", help="Show detailed audit info"
     )
     parser.add_argument("--version", action="store_true", help="Print version and exit")
@@ -204,7 +235,7 @@ def main() -> int:
     except (OSError, json.JSONDecodeError) as exc:
         print(f"ERROR: Invalid figure_metadata.json: {exc}")
         return INPUT_ERROR
-    report = check(metadata, package)
+    report = check(metadata, package, require_hashes=args.require_hashes)
     if args.strict:
         total_issues = len(report.get("errors", [])) + len(report.get("warnings", []))
         if total_issues > 0:
