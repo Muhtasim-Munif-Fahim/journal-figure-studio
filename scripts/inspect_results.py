@@ -50,11 +50,23 @@ def inspect(path: Path) -> dict[str, Any]:
         }
         for column in frame.columns
     ]
+    fully_null_columns = [
+        column for column in frame.columns if int(frame[column].isna().sum()) == len(frame)
+    ]
+    constant_columns = [
+        column
+        for column in frame.columns
+        if column not in fully_null_columns
+        and int(frame[column].nunique(dropna=True)) <= 1
+    ]
     result: dict[str, Any] = {
         "path": str(path.resolve()),
         "sha256": sha256(path),
         "rows": int(len(frame)),
         "columns": len(frame.columns),
+        "duplicate_rows": int(frame.duplicated().sum()),
+        "constant_columns": sorted(constant_columns),
+        "fully_null_columns": sorted(fully_null_columns),
         "column_details": columns,
         "completeness": round(filled_cells / total_cells, 4) if total_cells else 1.0,
         "size_bytes": path.stat().st_size,
