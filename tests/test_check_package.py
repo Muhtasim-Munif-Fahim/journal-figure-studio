@@ -3,8 +3,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 from scripts.check_package import build_manifest, check, verify_manifest
 from scripts.common import sha256
 
