@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.check_package import build_manifest, check
+from scripts.check_package import build_manifest, check, verify_manifest
 from scripts.common import sha256
 
 
@@ -162,3 +162,50 @@ class TestCheckPackage:
         audit = check(metadata, output_dir)
         errors = audit.get("errors", [])
         assert any("minimum" in e.lower() or "font" in e.lower() for e in errors)
+
+class TestVerifyManifest:
+    def _build_verified_package(self, tmp_path: Path):
+        output_dir = tmp_path / "output"
+        output_dir.mkdir()
+        _ensure_profile(output_dir)
+        metadata = _make_metadata(output_dir)
+        _build_package(output_dir, metadata)
+        manifest_path = output_dir / "package_manifest.json"
+        manifest_path.write_text(
+            json.dumps(build_manifest(output_dir, metadata, exclude=("package_manifest.json",)))
+        )
+        return output_dir
+
+    def test_unchanged_package_passes(self, tmp_path: Path):
+        output_dir = self._build_verified_package(tmp_path)
+        result = verify_manifest(output_dir)
+        assert result["status"] == "pass"
+        assert result["drifted"] == []
+        assert result["missing"] == []
+
+    def test_missing_manifest_blocks(self, tmp_path: Path):
+        output_dir = tmp_path / "output"
+        output_dir.mkdir()
+        result = verify_manifest(output_dir)
+        assert result["status"] == "block"
+        assert any("missing" in error for error in result["errors"])
+
+    def test_drifted_file_is_reported(self, tmp_path: Path):
+        output_dir = self._build_verified_package(tmp_path)
+        (output_dir / "figure.py").write_text("# changed after packaging\n")
+        result = verify_manifest(output_dir)
+        assert result["status"] == "block"
+        assert "figure.py" in result["drifted"]
+
+    def test_deleted_file_is_reported(self, tmp_path: Path):
+        output_dir = self._build_verified_package(tmp_path)
+        (output_dir / "caption.md").unlink()
+        result = verify_manifest(output_dir)
+        assert result["status"] == "block"
+        assert "caption.md" in result["missing"]
+
+    def test_unlisted_file_is_reported(self, tmp_path: Path):
+        output_dir = self._build_verified_package(tmp_path)
+        (output_dir / "scratch.txt").write_text("extra\n")
+        result = verify_manifest(output_dir)
+        assert "scratch.txt" in result["unlisted"]

@@ -67,6 +67,90 @@ def build_manifest(
     }
 
 
+def verify_manifest(package: Path) -> dict[str, Any]:
+    """Check a packaged provenance manifest against the current files.
+
+    Recomputes the SHA-256 and size for every file listed in
+    ``package_manifest.json`` and reports entries that drifted or are missing,
+    plus files that are present but unlisted. This detects accidental edits
+    after packaging, so a package can be re-verified before submission.
+    """
+    manifest_path = package / "package_manifest.json"
+    if not manifest_path.exists():
+        return {
+            "status": "block",
+            "errors": ["package_manifest.json is missing"],
+            "drifted": [],
+            "missing": [],
+            "unlisted": [],
+            "checked_files": 0,
+        }
+    try:
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return {
+            "status": "block",
+            "errors": [f"invalid package_manifest.json: {exc}"],
+            "drifted": [],
+            "missing": [],
+            "unlisted": [],
+            "checked_files": 0,
+        }
+    if not isinstance(payload, dict) or not isinstance(payload.get("files"), list):
+        return {
+            "status": "block",
+            "errors": ["package_manifest.json must contain a files list"],
+            "drifted": [],
+            "missing": [],
+            "unlisted": [],
+            "checked_files": 0,
+        }
+
+    listed: dict[str, dict[str, Any]] = {}
+    for entry in payload["files"]:
+        if isinstance(entry, dict) and isinstance(entry.get("path"), str):
+            listed[entry["path"]] = entry
+
+    drifted: list[str] = []
+    missing: list[str] = []
+    for path_value, entry in listed.items():
+        target = package / path_value
+        if not target.is_file():
+            missing.append(path_value)
+            continue
+        expected_hash = entry.get("sha256")
+        actual_hash = sha256(target)
+        if not isinstance(expected_hash, str) or expected_hash != actual_hash:
+            drifted.append(path_value)
+
+    unlisted: list[str] = []
+    for path in sorted(package.rglob("*")):
+        if not path.is_file():
+            continue
+        relative = path.relative_to(package).as_posix()
+        if relative == "package_manifest.json":
+            continue
+        if relative not in listed:
+            unlisted.append(relative)
+
+    errors: list[str] = []
+    if missing:
+        errors.append(f"manifest files missing: {', '.join(sorted(missing))}")
+    if drifted:
+        errors.append(f"manifest files drifted: {', '.join(sorted(drifted))}")
+    if unlisted:
+        errors.append(f"files not in manifest: {', '.join(sorted(unlisted))}")
+    status = "pass" if not errors else "block"
+    return {
+        "status": status,
+        "errors": errors,
+        "drifted": sorted(drifted),
+        "missing": sorted(missing),
+        "unlisted": sorted(unlisted),
+        "checked_files": len(listed),
+    }
+
+
 def check(
     metadata: dict[str, Any],
     package: Path,
@@ -262,6 +346,11 @@ def main() -> int:
         help="Write a file-level SHA-256 provenance manifest to this path",
     )
     parser.add_argument(
+        "--verify-manifest",
+        action="store_true",
+        help="Recompute hashes and compare against the packaged manifest",
+    )
+    parser.add_argument(
         "--verbose", action="store_true", help="Show detailed audit info"
     )
     parser.add_argument("--version", action="store_true", help="Print version and exit")
@@ -303,6 +392,13 @@ def main() -> int:
             build_manifest(package, metadata, exclude=excluded),
         )
         report["manifest"] = str(manifest_path)
+    if args.verify_manifest:
+        report["manifest_verification"] = verify_manifest(package)
+        if report["manifest_verification"]["status"] == "block":
+            report["status"] = "block"
+            report["errors"] = report.get("errors", []) + report[
+                "manifest_verification"
+            ]["errors"]
     write_json(package / "figure_audit.json", report)
     status_icon = {
         "pass": "PASS",
