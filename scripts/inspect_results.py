@@ -84,7 +84,7 @@ def inspect(path: Path) -> dict[str, Any]:
             count = int(((values < lower) | (values > upper)).sum())
             outliers[str(column)] = {
                 "count": count,
-                "ratio": round(count / len(values), 6),
+                "ratio": float(count / len(values)),
                 "lower_fence": round(lower, 6),
                 "upper_fence": round(upper, 6),
             }
