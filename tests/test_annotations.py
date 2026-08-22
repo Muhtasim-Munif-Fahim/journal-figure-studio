@@ -65,3 +65,20 @@ def test_draw_applies_requested_axis_scales() -> None:
     assert ax.get_xscale() == "log"
     assert ax.get_yscale() == "log"
     plt.close(fig)
+
+
+def test_bar_figures_can_label_observed_values() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    draw(
+        ax,
+        pd.DataFrame({"category": ["A", "B"], "value": [1.0, 2.5]}),
+        {"type": "bar", "x": "category", "y": "value", "xlabel": "Category", "ylabel": "Value", "show_values": True},
+        ["#000000"],
+    )
+    assert {text.get_text() for text in ax.texts} == {"1", "2.5"}
+    plt.close(fig)

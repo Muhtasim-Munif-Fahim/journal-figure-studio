@@ -252,7 +252,7 @@ def _draw_bar(
         errors = None
         if lower and upper:
             errors = np.vstack([subset[y] - subset[lower], subset[upper] - subset[y]])
-        ax.bar(
+        bars = ax.bar(
             positions + offset,
             subset[y],
             bar_width,
@@ -263,6 +263,8 @@ def _draw_bar(
             edgecolor="white",
             linewidth=0.5,
         )
+        if figure.get("show_values", False):
+            ax.bar_label(bars, fmt="%.3g", padding=2, fontsize=7)
     ax.set_xticks(positions, categories)
 
 

@@ -118,6 +118,8 @@ def _validate_figure_spec(
                 errors.append(
                     f"{prefix}.{axis_key} must be one of: {', '.join(sorted(VALID_AXIS_SCALES))}"
                 )
+        if "show_values" in spec and not isinstance(spec["show_values"], bool):
+            errors.append(f"{prefix}.show_values must be a boolean")
     except ValueError as exc:
         errors.append(f"{prefix}: {exc}")
     except Exception as exc:
