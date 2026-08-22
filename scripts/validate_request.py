@@ -65,6 +65,7 @@ SUPPORTED_COLUMN_KEYS: set[str] = {
     "row",
     "values",
 }
+VALID_AXIS_SCALES: set[str] = {"linear", "log"}
 
 
 def _validate_figure_spec(
@@ -111,6 +112,12 @@ def _validate_figure_spec(
         lower, upper = spec.get("lower"), spec.get("upper")
         if bool(lower) != bool(upper):
             errors.append(f"{prefix} must provide both lower and upper columns")
+        for axis_key in ("x_scale", "y_scale"):
+            scale = spec.get(axis_key)
+            if scale is not None and scale not in VALID_AXIS_SCALES:
+                errors.append(
+                    f"{prefix}.{axis_key} must be one of: {', '.join(sorted(VALID_AXIS_SCALES))}"
+                )
     except ValueError as exc:
         errors.append(f"{prefix}: {exc}")
     except Exception as exc:

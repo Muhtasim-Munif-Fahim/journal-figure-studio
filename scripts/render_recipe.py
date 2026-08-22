@@ -397,6 +397,10 @@ def draw(
     handler(ax, frame, figure, palette)
     ax.set_xlabel(figure["xlabel"])
     ax.set_ylabel(figure["ylabel"])
+    if figure.get("x_scale"):
+        ax.set_xscale(figure["x_scale"])
+    if figure.get("y_scale"):
+        ax.set_yscale(figure["y_scale"])
     grp = figure.get("group")
     has_groups = bool(grp) and grp in frame.columns and frame[grp].nunique() > 1
     if has_groups or kind == "calibration":

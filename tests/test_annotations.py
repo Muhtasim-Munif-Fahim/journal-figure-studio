@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.render_recipe import _add_significance_annotation
+from scripts.render_recipe import _add_significance_annotation, draw
 
 
 class TestSignificanceAnnotation:
@@ -47,3 +47,21 @@ class TestSignificanceAnnotation:
         texts = [t.get_text() for t in ax.texts]
         assert "n.s." in texts
         plt.close(fig)
+
+
+def test_draw_applies_requested_axis_scales() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    draw(
+        ax,
+        pd.DataFrame({"x": [1, 10], "y": [2, 20]}),
+        {"type": "line", "x": "x", "y": "y", "xlabel": "x", "ylabel": "y", "x_scale": "log", "y_scale": "log"},
+        ["#000000"],
+    )
+    assert ax.get_xscale() == "log"
+    assert ax.get_yscale() == "log"
+    plt.close(fig)

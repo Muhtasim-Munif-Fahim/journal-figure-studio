@@ -89,6 +89,13 @@ class TestValidateRequest:
         errors = validate_request(path)
         assert errors == []
 
+    def test_axis_scales_must_be_supported(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["y_scale"] = "symlog"
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        assert any("y_scale must be one of" in error for error in validate_request(path))
+
     def test_missing_figure_id(self, tmp_path: Path):
         path = _make_request_yaml(tmp_path, overrides={})
         request = yaml.safe_load(path.read_text())
