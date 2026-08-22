@@ -73,6 +73,22 @@ def inspect(path: Path) -> dict[str, Any]:
     }
     if not numeric.empty:
         result["numeric_summary"] = numeric.describe().round(6).to_dict()
+        outliers: dict[str, dict[str, float | int]] = {}
+        for column in numeric.columns:
+            values = numeric[column].dropna()
+            if values.empty:
+                continue
+            q1, q3 = values.quantile([0.25, 0.75])
+            iqr = float(q3 - q1)
+            lower, upper = float(q1 - 1.5 * iqr), float(q3 + 1.5 * iqr)
+            count = int(((values < lower) | (values > upper)).sum())
+            outliers[str(column)] = {
+                "count": count,
+                "ratio": round(count / len(values), 6),
+                "lower_fence": round(lower, 6),
+                "upper_fence": round(upper, 6),
+            }
+        result["numeric_outliers_iqr"] = outliers
     return result
 
 

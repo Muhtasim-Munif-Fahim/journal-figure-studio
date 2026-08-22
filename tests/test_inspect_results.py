@@ -39,6 +39,14 @@ def test_inspect_reports_completeness(tmp_path) -> None:
     assert result["completeness"] == 0.5
 
 
+def test_inspect_reports_iqr_outlier_diagnostics(tmp_path) -> None:
+    path = _write_csv(tmp_path, pd.DataFrame({"score": [1, 2, 2, 3, 3, 20]}))
+    result = inspect(path)
+    diagnostic = result["numeric_outliers_iqr"]["score"]
+    assert diagnostic["count"] == 1
+    assert diagnostic["ratio"] == pytest.approx(1 / 6)
+
+
 def test_inspect_parquet(tmp_path) -> None:
     pytest.importorskip("pyarrow")
     frame = pd.DataFrame({"a": [1, 2], "b": ["x", "y"]})
