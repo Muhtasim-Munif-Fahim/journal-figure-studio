@@ -272,6 +272,7 @@ def _draw_scatter(
     ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
 ) -> None:
     x, y, group = figure["x"], figure["y"], figure.get("group")
+    size = figure.get("size")
     groups = [(None, frame)] if not group else list(frame.groupby(group, sort=False))
     for idx, (name, subset) in enumerate(groups):
         ax.scatter(
@@ -282,6 +283,7 @@ def _draw_scatter(
             alpha=0.8,
             edgecolor="white",
             linewidth=0.35,
+            s=subset[size] if size else None,
         )
 
 
@@ -358,7 +360,7 @@ _DISPATCH: dict[str, Any] = {
 def validate_figure_data(frame: Any, figure: dict[str, Any]) -> list[str]:
     """Validate that required columns exist and have data in the frame."""
     errors: list[str] = []
-    for key in ("x", "y", "group", "lower", "upper", "row", "column", "values"):
+    for key in ("x", "y", "group", "lower", "upper", "row", "column", "values", "size"):
         col = figure.get(key)
         if col and col not in frame.columns:
             errors.append(
@@ -369,6 +371,12 @@ def validate_figure_data(frame: Any, figure: dict[str, Any]) -> list[str]:
                 errors.append(f"Column '{col}' has all missing values")
             if len(frame[col].dropna()) == 0:
                 errors.append(f"Column '{col}' has no valid data")
+    size = figure.get("size")
+    if size and size in frame.columns:
+        if not np.issubdtype(frame[size].dtype, np.number):
+            errors.append(f"Column '{size}' must be numeric for scatter marker sizes")
+        elif (frame[size].dropna() <= 0).any():
+            errors.append(f"Column '{size}' must contain only positive marker sizes")
     if bool(figure.get("lower")) != bool(figure.get("upper")):
         errors.append("lower and upper must be provided together")
     if figure.get("lower") and figure.get("upper") and figure.get("y") in frame:

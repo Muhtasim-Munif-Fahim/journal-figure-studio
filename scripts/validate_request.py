@@ -64,6 +64,7 @@ SUPPORTED_COLUMN_KEYS: set[str] = {
     "column",
     "row",
     "values",
+    "size",
 }
 VALID_AXIS_SCALES: set[str] = {"linear", "log"}
 
@@ -101,6 +102,8 @@ def _validate_figure_spec(
         numeric_keys: set[str] = set()
         if spec.get("type") in NUMERIC_FIGURE_TYPES:
             numeric_keys.update({"y", "values"})
+        if spec.get("size"):
+            numeric_keys.add("size")
         if spec.get("lower") and spec.get("upper"):
             numeric_keys.update({"lower", "upper"})
         for col_key in sorted(numeric_keys):

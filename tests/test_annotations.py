@@ -82,3 +82,20 @@ def test_bar_figures_can_label_observed_values() -> None:
     )
     assert {text.get_text() for text in ax.texts} == {"1", "2.5"}
     plt.close(fig)
+
+
+def test_scatter_figures_can_map_marker_size_from_a_column() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    draw(
+        ax,
+        pd.DataFrame({"x": [1, 2], "y": [3, 4], "weight": [40, 100]}),
+        {"type": "scatter", "x": "x", "y": "y", "size": "weight", "xlabel": "x", "ylabel": "y"},
+        ["#000000"],
+    )
+    assert ax.collections[0].get_sizes().tolist() == [40, 100]
+    plt.close(fig)
