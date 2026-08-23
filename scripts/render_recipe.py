@@ -411,6 +411,10 @@ def draw(
         ax.set_xscale(figure["x_scale"])
     if figure.get("y_scale"):
         ax.set_yscale(figure["y_scale"])
+    if figure.get("xlim"):
+        ax.set_xlim(figure["xlim"])
+    if figure.get("ylim"):
+        ax.set_ylim(figure["ylim"])
     grp = figure.get("group")
     has_groups = bool(grp) and grp in frame.columns and frame[grp].nunique() > 1
     if has_groups or kind == "calibration":

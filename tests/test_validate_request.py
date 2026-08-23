@@ -96,6 +96,13 @@ class TestValidateRequest:
         path.write_text(yaml.safe_dump(request), encoding="utf-8")
         assert any("y_scale must be one of" in error for error in validate_request(path))
 
+    def test_axis_limits_must_be_ascending_numeric_pairs(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["ylim"] = [2, 1]
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        assert any("ylim must be an ascending" in error for error in validate_request(path))
+
     def test_missing_figure_id(self, tmp_path: Path):
         path = _make_request_yaml(tmp_path, overrides={})
         request = yaml.safe_load(path.read_text())

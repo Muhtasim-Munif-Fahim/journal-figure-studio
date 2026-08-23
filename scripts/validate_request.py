@@ -121,6 +121,18 @@ def _validate_figure_spec(
                 errors.append(
                     f"{prefix}.{axis_key} must be one of: {', '.join(sorted(VALID_AXIS_SCALES))}"
                 )
+        for limit_key in ("xlim", "ylim"):
+            limits = spec.get(limit_key)
+            if limits is not None:
+                if (
+                    not isinstance(limits, list)
+                    or len(limits) != 2
+                    or not all(isinstance(value, (int, float)) for value in limits)
+                    or limits[0] >= limits[1]
+                ):
+                    errors.append(
+                        f"{prefix}.{limit_key} must be an ascending two-number list"
+                    )
         if "show_values" in spec and not isinstance(spec["show_values"], bool):
             errors.append(f"{prefix}.show_values must be a boolean")
     except ValueError as exc:

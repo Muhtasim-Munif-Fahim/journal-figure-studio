@@ -67,6 +67,24 @@ def test_draw_applies_requested_axis_scales() -> None:
     plt.close(fig)
 
 
+def test_draw_applies_requested_axis_limits() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    draw(
+        ax,
+        pd.DataFrame({"x": [1, 2], "y": [3, 4]}),
+        {"type": "line", "x": "x", "y": "y", "xlabel": "x", "ylabel": "y", "xlim": [0, 5], "ylim": [0, 10]},
+        ["#000000"],
+    )
+    assert ax.get_xlim() == (0.0, 5.0)
+    assert ax.get_ylim() == (0.0, 10.0)
+    plt.close(fig)
+
+
 def test_bar_figures_can_label_observed_values() -> None:
     import matplotlib
     matplotlib.use("Agg")
