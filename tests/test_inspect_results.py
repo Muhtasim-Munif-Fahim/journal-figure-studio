@@ -47,6 +47,17 @@ def test_inspect_reports_iqr_outlier_diagnostics(tmp_path) -> None:
     assert diagnostic["ratio"] == pytest.approx(1 / 6)
 
 
+def test_inspect_reports_pairwise_numeric_correlations(tmp_path) -> None:
+    path = _write_csv(
+        tmp_path,
+        pd.DataFrame({"dose": [1, 2, 3], "response": [2, 4, 6], "label": ["a", "b", "c"]}),
+    )
+    result = inspect(path)
+    correlations = result["numeric_correlations_pearson"]
+    assert correlations["dose"]["response"] == pytest.approx(1.0)
+    assert "label" not in correlations
+
+
 def test_inspect_parquet(tmp_path) -> None:
     pytest.importorskip("pyarrow")
     frame = pd.DataFrame({"a": [1, 2], "b": ["x", "y"]})

@@ -73,6 +73,10 @@ def inspect(path: Path) -> dict[str, Any]:
     }
     if not numeric.empty:
         result["numeric_summary"] = numeric.describe().round(6).to_dict()
+        if len(numeric.columns) >= 2:
+            result["numeric_correlations_pearson"] = (
+                numeric.corr(method="pearson").round(6).to_dict()
+            )
         outliers: dict[str, dict[str, float | int]] = {}
         for column in numeric.columns:
             values = numeric[column].dropna()
