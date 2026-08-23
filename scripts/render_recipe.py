@@ -285,6 +285,22 @@ def _draw_scatter(
             linewidth=0.35,
             s=subset[size] if size else None,
         )
+    if figure.get("trendline"):
+        x_values = np.asarray(frame[x], dtype=float)
+        y_values = np.asarray(frame[y], dtype=float)
+        finite = np.isfinite(x_values) & np.isfinite(y_values)
+        x_values, y_values = x_values[finite], y_values[finite]
+        if len(x_values) >= 2 and np.unique(x_values).size >= 2:
+            coefficients = np.polyfit(x_values, y_values, deg=1)
+            order = np.argsort(x_values)
+            ax.plot(
+                x_values[order],
+                np.polyval(coefficients, x_values[order]),
+                color="#555555",
+                linestyle="--",
+                linewidth=1.0,
+                label="Linear trend",
+            )
 
 
 def _draw_distribution(
@@ -377,6 +393,14 @@ def validate_figure_data(frame: Any, figure: dict[str, Any]) -> list[str]:
             errors.append(f"Column '{size}' must be numeric for scatter marker sizes")
         elif (frame[size].dropna() <= 0).any():
             errors.append(f"Column '{size}' must contain only positive marker sizes")
+    if figure.get("trendline"):
+        if figure.get("type") != "scatter":
+            errors.append("trendline is supported only for scatter figures")
+        elif not (
+            np.issubdtype(frame[figure["x"]].dtype, np.number)
+            and np.issubdtype(frame[figure["y"]].dtype, np.number)
+        ):
+            errors.append("scatter trendlines require numeric x and y columns")
     if bool(figure.get("lower")) != bool(figure.get("upper")):
         errors.append("lower and upper must be provided together")
     if figure.get("lower") and figure.get("upper") and figure.get("y") in frame:

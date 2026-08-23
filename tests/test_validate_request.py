@@ -103,6 +103,13 @@ class TestValidateRequest:
         path.write_text(yaml.safe_dump(request), encoding="utf-8")
         assert any("ylim must be an ascending" in error for error in validate_request(path))
 
+    def test_trendline_requires_a_scatter_figure(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["trendline"] = True
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        assert any("trendline is supported only" in error for error in validate_request(path))
+
     def test_missing_figure_id(self, tmp_path: Path):
         path = _make_request_yaml(tmp_path, overrides={})
         request = yaml.safe_load(path.read_text())

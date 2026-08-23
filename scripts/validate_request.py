@@ -102,6 +102,8 @@ def _validate_figure_spec(
         numeric_keys: set[str] = set()
         if spec.get("type") in NUMERIC_FIGURE_TYPES:
             numeric_keys.update({"y", "values"})
+        if spec.get("trendline"):
+            numeric_keys.add("x")
         if spec.get("size"):
             numeric_keys.add("size")
         if spec.get("lower") and spec.get("upper"):
@@ -135,6 +137,11 @@ def _validate_figure_spec(
                     )
         if "show_values" in spec and not isinstance(spec["show_values"], bool):
             errors.append(f"{prefix}.show_values must be a boolean")
+        if "trendline" in spec:
+            if not isinstance(spec["trendline"], bool):
+                errors.append(f"{prefix}.trendline must be a boolean")
+            elif spec["trendline"] and spec.get("type") != "scatter":
+                errors.append(f"{prefix}.trendline is supported only for scatter figures")
     except ValueError as exc:
         errors.append(f"{prefix}: {exc}")
     except Exception as exc:

@@ -117,3 +117,21 @@ def test_scatter_figures_can_map_marker_size_from_a_column() -> None:
     )
     assert ax.collections[0].get_sizes().tolist() == [40, 100]
     plt.close(fig)
+
+
+def test_scatter_figures_can_draw_a_linear_trendline() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    draw(
+        ax,
+        pd.DataFrame({"x": [1, 2, 3], "y": [3, 5, 7]}),
+        {"type": "scatter", "x": "x", "y": "y", "xlabel": "x", "ylabel": "y", "trendline": True},
+        ["#000000"],
+    )
+    assert len(ax.lines) == 1
+    assert ax.lines[0].get_label() == "Linear trend"
+    plt.close(fig)
