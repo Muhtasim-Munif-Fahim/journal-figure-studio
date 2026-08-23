@@ -142,6 +142,13 @@ def _validate_figure_spec(
                 errors.append(f"{prefix}.trendline must be a boolean")
             elif spec["trendline"] and spec.get("type") != "scatter":
                 errors.append(f"{prefix}.trendline is supported only for scatter figures")
+        if "orientation" in spec:
+            if spec["orientation"] not in {"vertical", "horizontal"}:
+                errors.append(f"{prefix}.orientation must be 'vertical' or 'horizontal'")
+            elif spec.get("type") not in {"bar", "ablation"}:
+                errors.append(
+                    f"{prefix}.orientation is supported only for bar and ablation figures"
+                )
     except ValueError as exc:
         errors.append(f"{prefix}: {exc}")
     except Exception as exc:

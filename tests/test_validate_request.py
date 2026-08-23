@@ -110,6 +110,13 @@ class TestValidateRequest:
         path.write_text(yaml.safe_dump(request), encoding="utf-8")
         assert any("trendline is supported only" in error for error in validate_request(path))
 
+    def test_orientation_must_be_supported_for_bar_figures(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["orientation"] = "diagonal"
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        assert any("orientation must be" in error for error in validate_request(path))
+
     def test_missing_figure_id(self, tmp_path: Path):
         path = _make_request_yaml(tmp_path, overrides={})
         request = yaml.safe_load(path.read_text())

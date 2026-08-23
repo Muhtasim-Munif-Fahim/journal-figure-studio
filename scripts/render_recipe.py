@@ -237,6 +237,7 @@ def _draw_bar(
 ) -> None:
     x, y, group = figure["x"], figure["y"], figure.get("group")
     lower, upper = figure.get("lower"), figure.get("upper")
+    orientation = figure.get("orientation", "vertical")
     groups = [(None, frame)] if not group else list(frame.groupby(group, sort=False))
     categories = list(dict.fromkeys(frame[x].astype(str)))
     total = len(groups)
@@ -252,20 +253,27 @@ def _draw_bar(
         errors = None
         if lower and upper:
             errors = np.vstack([subset[y] - subset[lower], subset[upper] - subset[y]])
-        bars = ax.bar(
-            positions + offset,
-            subset[y],
-            bar_width,
-            yerr=errors,
-            capsize=2.5,
-            label=None if name is None else str(name),
-            color=palette[idx % len(palette)],
-            edgecolor="white",
-            linewidth=0.5,
-        )
+        common = {
+            "capsize": 2.5,
+            "label": None if name is None else str(name),
+            "color": palette[idx % len(palette)],
+            "edgecolor": "white",
+            "linewidth": 0.5,
+        }
+        if orientation == "horizontal":
+            bars = ax.barh(
+                positions + offset, subset[y], bar_width, xerr=errors, **common
+            )
+        else:
+            bars = ax.bar(
+                positions + offset, subset[y], bar_width, yerr=errors, **common
+            )
         if figure.get("show_values", False):
             ax.bar_label(bars, fmt="%.3g", padding=2, fontsize=7)
-    ax.set_xticks(positions, categories)
+    if orientation == "horizontal":
+        ax.set_yticks(positions, categories)
+    else:
+        ax.set_xticks(positions, categories)
 
 
 def _draw_scatter(
@@ -401,6 +409,8 @@ def validate_figure_data(frame: Any, figure: dict[str, Any]) -> list[str]:
             and np.issubdtype(frame[figure["y"]].dtype, np.number)
         ):
             errors.append("scatter trendlines require numeric x and y columns")
+    if figure.get("orientation") and figure.get("type") not in {"bar", "ablation"}:
+        errors.append("orientation is supported only for bar and ablation figures")
     if bool(figure.get("lower")) != bool(figure.get("upper")):
         errors.append("lower and upper must be provided together")
     if figure.get("lower") and figure.get("upper") and figure.get("y") in frame:

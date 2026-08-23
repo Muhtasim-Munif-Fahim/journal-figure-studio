@@ -102,6 +102,23 @@ def test_bar_figures_can_label_observed_values() -> None:
     plt.close(fig)
 
 
+def test_bar_figures_can_use_horizontal_orientation() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    draw(
+        ax,
+        pd.DataFrame({"category": ["Long category A", "Long category B"], "value": [1.0, 2.5]}),
+        {"type": "bar", "x": "category", "y": "value", "xlabel": "Value", "ylabel": "Category", "orientation": "horizontal"},
+        ["#000000"],
+    )
+    assert [label.get_text() for label in ax.get_yticklabels()] == ["Long category A", "Long category B"]
+    plt.close(fig)
+
+
 def test_scatter_figures_can_map_marker_size_from_a_column() -> None:
     import matplotlib
     matplotlib.use("Agg")
