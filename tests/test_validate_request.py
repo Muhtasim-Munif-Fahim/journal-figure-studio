@@ -183,6 +183,36 @@ class TestValidateRequest:
         )
         errors = validate_request(path, profiles_dir=profiles_dir)
         assert any("raster_dpi >= 300" in e for e in errors)
+    def test_facet_by_unknown_column_is_rejected(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["facet_by"] = "missing_col"
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("facet_by" in e for e in errors)
+
+    def test_facet_ncols_must_be_positive_integer(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["facet_ncols"] = 0
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any(
+            "facet_ncols must be a positive integer" in e for e in errors
+        )
+
+    def test_facet_in_multi_panel_request_is_rejected(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        panel = dict(request["figure"])
+        panel["facet_by"] = "category"
+        del request["figure"]
+        request["figures"] = [panel]
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any(
+            "faceting applies only to single-figure requests" in e for e in errors
+        )
     def test_current_schema_version_is_accepted(self, tmp_path: Path):
         path = _make_request_yaml(tmp_path, overrides={"schema_version": 1})
         assert validate_request(path) == []

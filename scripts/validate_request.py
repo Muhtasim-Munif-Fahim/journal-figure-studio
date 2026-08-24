@@ -69,6 +69,7 @@ SUPPORTED_COLUMN_KEYS: set[str] = {
     "row",
     "values",
     "size",
+    "facet_by",
 }
 VALID_AXIS_SCALES: set[str] = {"linear", "log"}
 
@@ -142,6 +143,16 @@ def _validate_figure_spec(
                     errors.append(
                         f"{prefix}.{limit_key} must be an ascending two-number list"
                     )
+        if "facet_ncols" in spec:
+            facet_ncols = spec["facet_ncols"]
+            if (
+                not isinstance(facet_ncols, int)
+                or isinstance(facet_ncols, bool)
+                or facet_ncols < 1
+            ):
+                errors.append(
+                    f"{prefix}.facet_ncols must be a positive integer"
+                )
         if "show_values" in spec and not isinstance(spec["show_values"], bool):
             errors.append(f"{prefix}.show_values must be a boolean")
         if "trendline" in spec:
@@ -228,6 +239,10 @@ def validate_request(
             if not isinstance(spec, dict):
                 errors.append(f"figures[{i}] must be a mapping")
                 continue
+            if "facet_by" in spec or "facet_ncols" in spec:
+                errors.append(
+                    f"figures[{i}]: faceting applies only to single-figure requests"
+                )
             ft = spec.get("type")
             if ft and ft not in VALID_FIGURE_TYPES:
                 errors.append(

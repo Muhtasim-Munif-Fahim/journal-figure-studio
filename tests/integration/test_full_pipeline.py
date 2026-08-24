@@ -119,6 +119,44 @@ class TestFullPipeline:
         content = (output_dir / "svg-test.svg").read_text()
         assert "<svg" in content
 
+    def test_faceted_request_renders_small_multiples(self, tmp_path):
+        import matplotlib.pyplot as plt
+
+        from scripts.render_recipe import main as render_main
+
+        data_path = tmp_path / "facets.csv"
+        data_path.write_text(
+            "category,value,facet\nA,10,x\nB,20,x\nA,15,y\nB,25,y\n",
+            encoding="utf-8",
+        )
+        request = {
+            "figure_id": "facet-fig",
+            "research_field": "computer_science",
+            "profile": "universal",
+            "layout": "single",
+            "data_paths": [str(data_path)],
+            "analysis_script": None,
+            "claim": "Values rise in every facet.",
+            "caption_takeaway": "B exceeds A in both facets (n = 2 per cell).",
+            "figure": {
+                "type": "bar",
+                "source": str(data_path),
+                "x": "category",
+                "y": "value",
+                "xlabel": "Category",
+                "ylabel": "Value",
+                "facet_by": "facet",
+                "facet_ncols": 2,
+            },
+            "output_dir": str(tmp_path / "output"),
+        }
+        request_path = tmp_path / "request.yaml"
+        request_path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        assert render_main(["--request", str(request_path)]) == 0
+        output_dir = tmp_path / "output"
+        assert (output_dir / "facet-fig.pdf").exists()
+        assert (output_dir / "facet-fig.png").exists()
+        plt.close("all")
     def test_format_matrix_exports_exactly_the_requested_files(self, tmp_path):
         import matplotlib.pyplot as plt
 

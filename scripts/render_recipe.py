@@ -383,6 +383,14 @@ def _draw_heatmap(
     plt.colorbar(image, ax=ax, label=figure.get("colorbar_label", y))
 
 
+def _facet_subsets(frame: Any, column: str) -> list[tuple[str, Any]]:
+    """Split a frame into ordered (facet value, subset) small multiples."""
+    values = list(dict.fromkeys(frame[column].astype(str)))
+    return [
+        (value, frame[frame[column].astype(str) == value]) for value in values
+    ]
+
+
 _DISPATCH: dict[str, Any] = {
     "line": _draw_line,
     "time_series": _draw_line,
@@ -400,7 +408,7 @@ _DISPATCH: dict[str, Any] = {
 def validate_figure_data(frame: Any, figure: dict[str, Any]) -> list[str]:
     """Validate that required columns exist and have data in the frame."""
     errors: list[str] = []
-    for key in ("x", "y", "group", "lower", "upper", "row", "column", "values", "size"):
+    for key in ("x", "y", "group", "lower", "upper", "row", "column", "values", "size", "facet_by"):
         col = figure.get(key)
         if col and col not in frame.columns:
             errors.append(
@@ -544,8 +552,25 @@ def _render_figures(
         validation_errors = validate_figure_data(frame, spec)
         if validation_errors:
             raise ValueError(f"Data validation failed: {'; '.join(validation_errors)}")
-        fig, ax = plt.subplots(figsize=(width, height))
-        draw(ax, frame, spec, palette)
+        facet_column = spec.get("facet_by")
+        if facet_column:
+            facets = _facet_subsets(frame, facet_column)
+            ncols = spec.get("facet_ncols") or min(len(facets), 3)
+            ncols = max(1, min(int(ncols), len(facets)))
+            nrows = math.ceil(len(facets) / ncols)
+            fig, axes = plt.subplots(
+                nrows, ncols, figsize=(width * ncols, height * nrows),
+                squeeze=False,
+            )
+            axes_flat = [axis for row in axes for axis in row]
+            for axis, (value, subset) in zip(axes_flat, facets):
+                draw(axis, subset, spec, palette)
+                axis.set_title(value, fontsize="small")
+            for axis in axes_flat[len(facets):]:
+                axis.set_visible(False)
+        else:
+            fig, ax = plt.subplots(figsize=(width, height))
+            draw(ax, frame, spec, palette)
         fig.tight_layout()
         stem = output / request["figure_id"]
 
