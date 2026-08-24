@@ -11,6 +11,7 @@ from typing import Any
 import pandas as pd
 
 from scripts.common import load_yaml, profile_path, read_table, resolve_request_path
+from scripts.constants import MIN_RASTER_DPI, SUPPORTED_FORMATS
 from scripts.exit_codes import SUCCESS, VALIDATION_ERROR
 from scripts.logging_config import setup_logger
 from scripts.validate_profile import validate
@@ -69,6 +70,9 @@ SUPPORTED_COLUMN_KEYS: set[str] = {
     "size",
 }
 VALID_AXIS_SCALES: set[str] = {"linear", "log"}
+
+VECTOR_FORMATS: set[str] = {"pdf", "svg"}
+RASTER_FORMATS: set[str] = {"png", "tiff"}
 
 
 def _validate_figure_spec(
@@ -255,6 +259,7 @@ def validate_request(
             errors.append(f"analysis script does not exist: {analysis_script}")
 
     profile_file = profile_path(request["profile"], profiles_dir)
+    profile: dict[str, Any] | None = None
     if not profile_file.exists():
         errors.append(f"profile does not exist: '{request['profile']}'")
     else:
@@ -277,6 +282,38 @@ def validate_request(
                 f"unsupported schema_version {version}; "
                 f"this release expects {REQUEST_SCHEMA_VERSION}"
             )
+
+    if "formats" in request:
+        export_matrix = request["formats"]
+        if not isinstance(export_matrix, list) or not all(
+            isinstance(fmt, str) for fmt in export_matrix
+        ):
+            errors.append("formats must be a list of format names")
+        elif not export_matrix:
+            errors.append("formats must name at least one output format")
+        else:
+            unsupported = sorted(set(export_matrix) - SUPPORTED_FORMATS)
+            if unsupported:
+                errors.append(
+                    f"formats contains unsupported entries: {', '.join(unsupported)}"
+                )
+            else:
+                if not set(export_matrix) & VECTOR_FORMATS:
+                    errors.append(
+                        "formats must include at least one vector format"
+                    )
+                raster = sorted(set(export_matrix) & RASTER_FORMATS)
+                requested_dpi = (profile or {}).get("raster_dpi")
+                if (
+                    raster
+                    and isinstance(requested_dpi, (int, float))
+                    and not isinstance(requested_dpi, bool)
+                    and requested_dpi < MIN_RASTER_DPI
+                ):
+                    errors.append(
+                        f"raster formats {', '.join(raster)} require "
+                        f"raster_dpi >= {MIN_RASTER_DPI} (profile has {requested_dpi})"
+                    )
     if (
         request.get("caption_takeaway")
         and len(request["caption_takeaway"]) > DEFAULT_MAX_CAPTION_LENGTH

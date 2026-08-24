@@ -137,6 +137,52 @@ class TestValidateRequest:
         errors = validate_request(path)
         assert errors
 
+    def test_format_matrix_is_accepted(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path, overrides={"formats": ["pdf", "tiff"]})
+        assert validate_request(path) == []
+
+    def test_format_matrix_requires_a_vector_format(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path, overrides={"formats": ["png", "tiff"]})
+        assert any(
+            "at least one vector format" in e for e in validate_request(path)
+        )
+
+    def test_format_matrix_rejects_unsupported_entries(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path, overrides={"formats": ["pdf", "jpg"]})
+        errors = validate_request(path)
+        assert any("unsupported entries: jpg" in e for e in errors)
+
+    def test_format_matrix_must_be_a_list(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path, overrides={"formats": "pdf"})
+        assert any(
+            "formats must be a list of format names" in e for e in validate_request(path)
+        )
+
+    def test_raster_formats_require_minimum_profile_dpi(self, tmp_path: Path):
+        profiles_dir = tmp_path / "profiles"
+        profiles_dir.mkdir()
+        profile = {
+            "id": "lowdpi",
+            "version": 1,
+            "field": "testing",
+            "source_url": None,
+            "verified_at": "2026-08-01",
+            "stale_after_days": 365,
+            "formats": ["pdf", "png"],
+            "raster_dpi": 150,
+            "color_mode": "RGB",
+            "dimensions_inches": {"single": 3.0, "double": 6.5},
+            "fonts": {"family": "sans-serif", "minimum_pt": 7, "axis_pt": 8},
+            "caption": {"position": "below"},
+            "style": {"palette": "okabe_ito"},
+            "rules": {},
+        }
+        (profiles_dir / "lowdpi.yaml").write_text(yaml.safe_dump(profile))
+        path = _make_request_yaml(
+            tmp_path, overrides={"profile": "lowdpi", "formats": ["pdf", "png"]}
+        )
+        errors = validate_request(path, profiles_dir=profiles_dir)
+        assert any("raster_dpi >= 300" in e for e in errors)
     def test_current_schema_version_is_accepted(self, tmp_path: Path):
         path = _make_request_yaml(tmp_path, overrides={"schema_version": 1})
         assert validate_request(path) == []

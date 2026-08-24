@@ -531,12 +531,26 @@ def _render_figures(
         fig.tight_layout()
         stem = output / request["figure_id"]
 
-    fig.savefig(stem.with_suffix(".pdf"))
-    fig.savefig(stem.with_suffix(".png"), dpi=profile["raster_dpi"])
-    if request.get("export_tiff") or "tiff" in profile.get("formats", []):
-        fig.savefig(stem.with_suffix(".tiff"), dpi=profile["raster_dpi"])
-    if request.get("export_svg") or "svg" in profile.get("formats", []):
-        fig.savefig(stem.with_suffix(".svg"))
+    requested = request.get("formats")
+    if requested:
+        if not {"pdf", "svg"} & set(requested):
+            raise ValueError(
+                "export formats must include at least one vector format"
+            )
+        export_formats = [
+            fmt for fmt in ("pdf", "png", "tiff", "svg") if fmt in requested
+        ]
+    else:
+        export_formats = ["pdf", "png"]
+        if request.get("export_tiff") or "tiff" in profile.get("formats", []):
+            export_formats.append("tiff")
+        if request.get("export_svg") or "svg" in profile.get("formats", []):
+            export_formats.append("svg")
+    for fmt in export_formats:
+        if fmt == "pdf" or fmt == "svg":
+            fig.savefig(stem.with_suffix(f".{fmt}"))
+        else:
+            fig.savefig(stem.with_suffix(f".{fmt}"), dpi=profile["raster_dpi"])
     plt.close(fig)
     created = [
         path
