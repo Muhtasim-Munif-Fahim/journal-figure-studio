@@ -253,7 +253,7 @@ def _draw_bar(
         errors = None
         if lower and upper:
             errors = np.vstack([subset[y] - subset[lower], subset[upper] - subset[y]])
-        common = {
+        common: dict[str, Any] = {
             "capsize": 2.5,
             "label": None if name is None else str(name),
             "color": palette[idx % len(palette)],
