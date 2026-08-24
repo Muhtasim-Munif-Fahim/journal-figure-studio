@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
@@ -19,6 +20,12 @@ UNCERTAINTY_TERMS = (
     " interval",
 )
 SIGNIFICANCE_TERMS = ("p-value", "p value", "significance", "statistically")
+SAMPLE_SIZE_PATTERN = re.compile(r"\b[nN]\s*=\s*\d+")
+ABBREVIATION_PATTERN = re.compile(r"\b[A-Z][A-Z0-9]{1,}\b")
+DEFINED_ABBREVIATION_PATTERN = re.compile(r"\(([A-Z][A-Z0-9]{1,})\)")
+ROMAN_NUMERALS: set[str] = {
+    "II", "III", "IV", "VI", "VII", "VIII", "IX", "XI", "XII",
+}
 
 
 def audit_caption(request: Mapping[str, Any]) -> list[dict[str, str]]:
@@ -76,6 +83,32 @@ def audit_caption(request: Mapping[str, Any]) -> list[dict[str, str]]:
                 "severity": "warning",
                 "message": "multi-panel caption lacks panel titles for panels "
                 + ", ".join(unlabeled_panels),
+            }
+        )
+
+    if not SAMPLE_SIZE_PATTERN.search(caption):
+        findings.append(
+            {
+                "code": "missing_sample_size",
+                "severity": "warning",
+                "message": "caption should state the sample size "
+                "(for example, n = 24)",
+            }
+        )
+
+    defined = set(DEFINED_ABBREVIATION_PATTERN.findall(caption))
+    undefined = [
+        token
+        for token in dict.fromkeys(ABBREVIATION_PATTERN.findall(caption))
+        if token not in defined and token not in ROMAN_NUMERALS
+    ]
+    if undefined:
+        findings.append(
+            {
+                "code": "undefined_abbreviations",
+                "severity": "warning",
+                "message": "abbreviations used without definition: "
+                + ", ".join(undefined),
             }
         )
     return findings
