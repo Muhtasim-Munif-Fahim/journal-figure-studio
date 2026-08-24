@@ -47,6 +47,7 @@ from scripts.constants import (
 )
 from scripts.exit_codes import INPUT_ERROR, RUNTIME_ERROR, SUCCESS, VALIDATION_ERROR
 from scripts.logging_config import setup_logger
+from scripts.template_presets import resolve_template
 from scripts.validate_request import validate_request
 from scripts.version import __version__
 
@@ -111,13 +112,23 @@ def write_accessibility_artifacts(
     return [destination, accessibility]
 
 
-def apply_style(profile: dict[str, Any], layout: str) -> tuple[float, float]:
+def apply_style(
+    profile: dict[str, Any], layout: str, template: str | None = None
+) -> tuple[float, float]:
     """Configure matplotlib rcParams from profile settings and return figure dimensions.
 
     If the profile includes a ``style.mplstyle`` key, it is loaded as a
     matplotlib style sheet, giving users full control over rcParams.
+    A journal ``template`` preset overrides geometry, fonts, and raster
+    resolution from the profile.
     """
-    width = profile["dimensions_inches"][layout]
+    preset = resolve_template(template) if template else None
+    if preset:
+        width = float(
+            preset["double_width_in"] if layout == "double" else preset["width_in"]
+        )
+    else:
+        width = profile["dimensions_inches"][layout]
     height = width * float(profile["dimensions_inches"].get("aspect_ratio", 0.68))
 
     mplstyle = profile.get("style", {}).get("mplstyle")
@@ -128,7 +139,12 @@ def apply_style(profile: dict[str, Any], layout: str) -> tuple[float, float]:
         except Exception as exc:
             logger.warning("Failed to load matplotlib style '%s': %s", mplstyle, exc)
 
-    family = profile["fonts"]["family"]
+    family = preset["font_family"] if preset else profile["fonts"]["family"]
+    minimum_pt = (
+        preset["minimum_pt"] if preset else profile["fonts"]["minimum_pt"]
+    )
+    axis_pt = preset["axis_pt"] if preset else profile["fonts"]["axis_pt"]
+    raster_dpi = preset["raster_dpi"] if preset else profile["raster_dpi"]
     fonts: list[str] = (
         ["Arial", "Helvetica", "DejaVu Sans"]
         if family == "sans-serif"
@@ -140,17 +156,17 @@ def apply_style(profile: dict[str, Any], layout: str) -> tuple[float, float]:
     rc_updates: dict[str, Any] = {
         "font.family": family,
         f"font.{family}": fonts,
-        "font.size": profile["fonts"]["minimum_pt"],
-        "axes.labelsize": profile["fonts"]["axis_pt"],
-        "xtick.labelsize": profile["fonts"]["minimum_pt"],
-        "ytick.labelsize": profile["fonts"]["minimum_pt"],
-        "legend.fontsize": profile["fonts"]["minimum_pt"],
+        "font.size": minimum_pt,
+        "axes.labelsize": axis_pt,
+        "xtick.labelsize": minimum_pt,
+        "ytick.labelsize": minimum_pt,
+        "legend.fontsize": minimum_pt,
         "axes.spines.top": bool(profile["style"].get("top_right_spines", False)),
         "axes.spines.right": bool(profile["style"].get("top_right_spines", False)),
         "axes.grid": profile["style"].get("grid", False),
         "axes.linewidth": 0.65,
         "lines.linewidth": 1.35,
-        "savefig.dpi": profile["raster_dpi"],
+        "savefig.dpi": raster_dpi,
         "savefig.bbox": "tight",
         "savefig.pad_inches": 0.04,
         "pdf.fonttype": 42,
@@ -479,7 +495,9 @@ def _render_figures(
 
     Returns (width, height, created_output_paths).
     """
-    width, height = apply_style(profile, request["layout"])
+    width, height = apply_style(
+        profile, request["layout"], request.get("template")
+    )
     palette = _get_palette(profile)
     created: list[Path] = []
     base_path = request_path or Path(request.get("_request_path", ""))

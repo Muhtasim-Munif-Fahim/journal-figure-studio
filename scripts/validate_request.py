@@ -14,6 +14,7 @@ from scripts.common import load_yaml, profile_path, read_table, resolve_request_
 from scripts.constants import MIN_RASTER_DPI, SUPPORTED_FORMATS
 from scripts.exit_codes import SUCCESS, VALIDATION_ERROR
 from scripts.logging_config import setup_logger
+from scripts.template_presets import TEMPLATES
 from scripts.validate_profile import validate
 from scripts.version import __version__
 
@@ -283,6 +284,15 @@ def validate_request(
                 f"this release expects {REQUEST_SCHEMA_VERSION}"
             )
 
+    template = request.get("template")
+    if template is not None:
+        if not isinstance(template, str) or not template.strip():
+            errors.append("template must be a preset name")
+        elif template not in TEMPLATES:
+            errors.append(
+                f"unknown template '{template}'; "
+                f"available: {', '.join(sorted(TEMPLATES))}"
+            )
     if "formats" in request:
         export_matrix = request["formats"]
         if not isinstance(export_matrix, list) or not all(
