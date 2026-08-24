@@ -137,6 +137,28 @@ class TestValidateRequest:
         errors = validate_request(path)
         assert errors
 
+    def test_current_schema_version_is_accepted(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path, overrides={"schema_version": 1})
+        assert validate_request(path) == []
+
+    def test_unsupported_schema_version_is_rejected(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path, overrides={"schema_version": 99})
+        assert any(
+            "unsupported schema_version 99" in e for e in validate_request(path)
+        )
+
+    def test_non_integer_schema_version_is_rejected(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path, overrides={"schema_version": "1"})
+        assert any(
+            "schema_version must be an integer" in e for e in validate_request(path)
+        )
+
+    def test_boolean_schema_version_is_rejected(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path, overrides={"schema_version": True})
+        assert any(
+            "schema_version must be an integer" in e for e in validate_request(path)
+        )
+
     def test_missing_output_dir(self, tmp_path: Path):
         path = _make_request_yaml(tmp_path, overrides={"output_dir": ""})
         errors = validate_request(path)

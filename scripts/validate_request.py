@@ -34,6 +34,8 @@ VALID_LAYOUTS: set[str] = {"single", "double"}
 DEFAULT_MAX_CAPTION_LENGTH: int = 200
 DEFAULT_MAX_CLAIM_LENGTH: int = 1000
 DEFAULT_MAX_ALT_TEXT_LENGTH: int = 1000
+REQUEST_SCHEMA_VERSION: int = 1
+
 FIGURE_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9.-]{0,63}$")
 
 VALID_FIGURE_TYPES: set[str] = {
@@ -266,6 +268,15 @@ def validate_request(
     ):
         errors.append("output_dir is required")
 
+    if "schema_version" in request:
+        version = request["schema_version"]
+        if not isinstance(version, int) or isinstance(version, bool):
+            errors.append("schema_version must be an integer")
+        elif version != REQUEST_SCHEMA_VERSION:
+            errors.append(
+                f"unsupported schema_version {version}; "
+                f"this release expects {REQUEST_SCHEMA_VERSION}"
+            )
     if (
         request.get("caption_takeaway")
         and len(request["caption_takeaway"]) > DEFAULT_MAX_CAPTION_LENGTH
