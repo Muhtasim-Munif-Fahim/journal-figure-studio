@@ -51,6 +51,7 @@ VALID_FIGURE_TYPES: set[str] = {
     "forest",
     "heatmap",
     "calibration",
+    "waterfall",
 }
 NUMERIC_FIGURE_TYPES: set[str] = set(VALID_FIGURE_TYPES)
 

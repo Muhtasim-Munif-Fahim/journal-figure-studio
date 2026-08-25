@@ -157,6 +157,80 @@ class TestFullPipeline:
         assert (output_dir / "facet-fig.pdf").exists()
         assert (output_dir / "facet-fig.png").exists()
         plt.close("all")
+    def test_waterfall_request_renders_running_total_package(self, tmp_path):
+        import matplotlib.pyplot as plt
+
+        from scripts.render_recipe import main as render_main
+
+        data_path = tmp_path / "waterfall.csv"
+        data_path.write_text(
+            "stage,delta\nIntake,10\nRework,-4\nGains,3\n",
+            encoding="utf-8",
+        )
+        request = {
+            "figure_id": "waterfall-fig",
+            "research_field": "computer_science",
+            "profile": "universal",
+            "layout": "single",
+            "data_paths": [str(data_path)],
+            "analysis_script": None,
+            "claim": "Net change stays positive after rework.",
+            "caption_takeaway": "Running total ends at 9 units.",
+            "figure": {
+                "type": "waterfall",
+                "source": str(data_path),
+                "x": "stage",
+                "y": "delta",
+                "xlabel": "Stage",
+                "ylabel": "Delta",
+            },
+            "output_dir": str(tmp_path / "output"),
+        }
+        request_path = tmp_path / "request.yaml"
+        request_path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        assert render_main(["--request", str(request_path)]) == 0
+        output_dir = tmp_path / "output"
+        assert (output_dir / "waterfall-fig.pdf").exists()
+        assert (output_dir / "waterfall-fig.png").exists()
+        plt.close("all")
+
+    def test_draw_waterfall_connects_consecutive_stages(self, tmp_path):
+        import matplotlib
+        import matplotlib.pyplot as plt
+
+        from scripts.render_recipe import _get_palette, apply_style, draw
+        from scripts.common import SKILL_ROOT, read_table
+
+        matplotlib.use("Agg")
+        profile = yaml.safe_load(
+            (SKILL_ROOT / "assets" / "profiles" / "universal.yaml").read_text()
+        )
+        data_path = tmp_path / "waterfall.csv"
+        data_path.write_text(
+            "stage,delta\nIntake,10\nRework,-4\nGains,3\n",
+            encoding="utf-8",
+        )
+        apply_style(profile, "single")
+        fig, ax = plt.subplots()
+        spec = {
+            "type": "waterfall",
+            "x": "stage",
+            "y": "delta",
+            "xlabel": "Stage",
+            "ylabel": "Delta",
+        }
+        draw(ax, read_table(data_path), spec, _get_palette(profile))
+        assert [patch.get_height() for patch in ax.patches] == [10.0, -4.0, 3.0]
+        assert [patch.get_y() for patch in ax.patches] == [0.0, 10.0, 6.0]
+        connector_levels = sorted({float(line.get_ydata()[0]) for line in ax.lines})
+        assert connector_levels == [6.0, 10.0]
+        assert [tick.get_text() for tick in ax.get_xticklabels()] == [
+            "Intake",
+            "Rework",
+            "Gains",
+        ]
+        plt.close(fig)
+
     def test_format_matrix_exports_exactly_the_requested_files(self, tmp_path):
         import matplotlib.pyplot as plt
 

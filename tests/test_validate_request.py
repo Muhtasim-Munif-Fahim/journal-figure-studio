@@ -117,6 +117,13 @@ class TestValidateRequest:
         path.write_text(yaml.safe_dump(request), encoding="utf-8")
         assert any("orientation must be" in error for error in validate_request(path))
 
+    def test_waterfall_type_is_accepted(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["type"] = "waterfall"
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        assert validate_request(path) == []
+
     def test_missing_figure_id(self, tmp_path: Path):
         path = _make_request_yaml(tmp_path, overrides={})
         request = yaml.safe_load(path.read_text())

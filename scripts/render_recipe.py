@@ -383,6 +383,38 @@ def _draw_heatmap(
     plt.colorbar(image, ax=ax, label=figure.get("colorbar_label", y))
 
 
+def _draw_waterfall(
+    ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
+) -> None:
+    x, y = figure["x"], figure["y"]
+    categories = frame[x].astype(str)
+    deltas = frame[y].to_numpy(dtype=float)
+    positions = np.arange(len(categories))
+    bar_width = 0.8
+    starts = np.concatenate(([0.0], np.cumsum(deltas[:-1])))
+    ends = starts + deltas
+    ax.bar(
+        positions,
+        deltas,
+        bottom=starts,
+        color=[palette[0] if delta >= 0 else palette[1] for delta in deltas],
+        edgecolor="white",
+        linewidth=0.5,
+    )
+    connector_half_gap = bar_width / 4
+    for position, level in zip(positions[:-1], ends[:-1]):
+        ax.plot(
+            [
+                position + bar_width / 2 + connector_half_gap / 2,
+                position + bar_width / 2 + connector_half_gap * 3 / 2,
+            ],
+            [level, level],
+            color="#555555",
+            linewidth=0.8,
+        )
+    ax.set_xticks(positions, categories)
+
+
 def _facet_subsets(frame: Any, column: str) -> list[tuple[str, Any]]:
     """Split a frame into ordered (facet value, subset) small multiples."""
     values = list(dict.fromkeys(frame[column].astype(str)))
@@ -402,6 +434,7 @@ _DISPATCH: dict[str, Any] = {
     "distribution": _draw_distribution,
     "forest": _draw_forest,
     "heatmap": _draw_heatmap,
+    "waterfall": _draw_waterfall,
 }
 
 
