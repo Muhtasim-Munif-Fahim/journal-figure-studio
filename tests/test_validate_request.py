@@ -124,6 +124,36 @@ class TestValidateRequest:
         path.write_text(yaml.safe_dump(request), encoding="utf-8")
         assert validate_request(path) == []
 
+    def test_scatter_error_columns_are_accepted(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        (tmp_path / "data.csv").write_text("category,value,sigma\nA,1,0.2\nB,2,0.3\n")
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["type"] = "scatter"
+        request["figure"]["y_error"] = "sigma"
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        assert validate_request(path) == []
+
+    def test_error_columns_must_reference_numeric_columns(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        (tmp_path / "data.csv").write_text(
+            "category,value,sigma\nA,1,low\nB,2,high\n"
+        )
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["type"] = "scatter"
+        request["figure"]["x_error"] = "sigma"
+        request["figure"]["y_error"] = "sigma"
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("must reference a numeric column" in e for e in errors)
+
+    def test_error_columns_require_a_scatter_figure(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["y_error"] = "value"
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("supported only for scatter figures" in e for e in errors)
+
     def test_missing_figure_id(self, tmp_path: Path):
         path = _make_request_yaml(tmp_path, overrides={})
         request = yaml.safe_load(path.read_text())

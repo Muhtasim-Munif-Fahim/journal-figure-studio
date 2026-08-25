@@ -231,6 +231,83 @@ class TestFullPipeline:
         ]
         plt.close(fig)
 
+    def test_scatter_with_errors_renders_package(self, tmp_path):
+        import matplotlib.pyplot as plt
+
+        from scripts.render_recipe import main as render_main
+
+        data_path = tmp_path / "scatter.csv"
+        data_path.write_text(
+            "x,y,sigma_x,sigma_y\n1,2,0.1,0.3\n2,4,0.2,0.5\n3,5,0.1,0.4\n",
+            encoding="utf-8",
+        )
+        request = {
+            "figure_id": "scatter-errors",
+            "research_field": "computer_science",
+            "profile": "universal",
+            "layout": "single",
+            "data_paths": [str(data_path)],
+            "analysis_script": None,
+            "claim": "Signal grows with x within uncertainty.",
+            "caption_takeaway": "Error bars show one sigma.",
+            "figure": {
+                "type": "scatter",
+                "source": str(data_path),
+                "x": "x",
+                "y": "y",
+                "x_error": "sigma_x",
+                "y_error": "sigma_y",
+                "xlabel": "X",
+                "ylabel": "Y",
+            },
+            "output_dir": str(tmp_path / "output"),
+        }
+        request_path = tmp_path / "request.yaml"
+        request_path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        assert render_main(["--request", str(request_path)]) == 0
+        output_dir = tmp_path / "output"
+        assert (output_dir / "scatter-errors.pdf").exists()
+        assert (output_dir / "scatter-errors.png").exists()
+        plt.close("all")
+
+    def test_draw_scatter_overlays_error_bars(self, tmp_path):
+        import matplotlib
+        import matplotlib.pyplot as plt
+
+        from scripts.render_recipe import _get_palette, apply_style, draw
+        from scripts.common import SKILL_ROOT, read_table
+
+        matplotlib.use("Agg")
+        profile = yaml.safe_load(
+            (SKILL_ROOT / "assets" / "profiles" / "universal.yaml").read_text()
+        )
+        data_path = tmp_path / "scatter.csv"
+        data_path.write_text(
+            "x,y,sigma_x,sigma_y\n1,2,0.1,0.3\n2,4,0.2,0.5\n3,5,0.1,0.4\n",
+            encoding="utf-8",
+        )
+        apply_style(profile, "single")
+        fig, ax = plt.subplots()
+        spec = {
+            "type": "scatter",
+            "x": "x",
+            "y": "y",
+            "x_error": "sigma_x",
+            "y_error": "sigma_y",
+            "xlabel": "X",
+            "ylabel": "Y",
+        }
+        draw(ax, read_table(data_path), spec, _get_palette(profile))
+        error_containers = [
+            container
+            for container in ax.containers
+            if isinstance(container, matplotlib.container.ErrorbarContainer)
+        ]
+        assert len(error_containers) == 1
+        assert len(error_containers[0][1]) == 4
+        assert len(error_containers[0][2]) == 2
+        plt.close(fig)
+
     def test_format_matrix_exports_exactly_the_requested_files(self, tmp_path):
         import matplotlib.pyplot as plt
 

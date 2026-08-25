@@ -71,6 +71,8 @@ SUPPORTED_COLUMN_KEYS: set[str] = {
     "values",
     "size",
     "facet_by",
+    "x_error",
+    "y_error",
 }
 VALID_AXIS_SCALES: set[str] = {"linear", "log"}
 
@@ -115,6 +117,10 @@ def _validate_figure_spec(
             numeric_keys.add("x")
         if spec.get("size"):
             numeric_keys.add("size")
+        if spec.get("type") == "scatter":
+            for error_key in ("x_error", "y_error"):
+                if spec.get(error_key):
+                    numeric_keys.add(error_key)
         if spec.get("lower") and spec.get("upper"):
             numeric_keys.update({"lower", "upper"})
         for col_key in sorted(numeric_keys):
@@ -161,6 +167,11 @@ def _validate_figure_spec(
                 errors.append(f"{prefix}.trendline must be a boolean")
             elif spec["trendline"] and spec.get("type") != "scatter":
                 errors.append(f"{prefix}.trendline is supported only for scatter figures")
+        for error_key in ("x_error", "y_error"):
+            if spec.get(error_key) and spec.get("type") != "scatter":
+                errors.append(
+                    f"{prefix}.{error_key} is supported only for scatter figures"
+                )
         if "orientation" in spec:
             if spec["orientation"] not in {"vertical", "horizontal"}:
                 errors.append(f"{prefix}.orientation must be 'vertical' or 'horizontal'")

@@ -297,18 +297,32 @@ def _draw_scatter(
 ) -> None:
     x, y, group = figure["x"], figure["y"], figure.get("group")
     size = figure.get("size")
+    x_error, y_error = figure.get("x_error"), figure.get("y_error")
     groups = [(None, frame)] if not group else list(frame.groupby(group, sort=False))
     for idx, (name, subset) in enumerate(groups):
+        color = palette[idx % len(palette)]
         ax.scatter(
             subset[x],
             subset[y],
             label=None if name is None else str(name),
-            color=palette[idx % len(palette)],
+            color=color,
             alpha=0.8,
             edgecolor="white",
             linewidth=0.35,
             s=subset[size] if size else None,
         )
+        if x_error or y_error:
+            ax.errorbar(
+                subset[x],
+                subset[y],
+                xerr=subset[x_error].to_numpy(dtype=float) if x_error else None,
+                yerr=subset[y_error].to_numpy(dtype=float) if y_error else None,
+                fmt="none",
+                ecolor=color,
+                elinewidth=0.9,
+                capsize=2.5,
+                label=None,
+            )
     if figure.get("trendline"):
         x_values = np.asarray(frame[x], dtype=float)
         y_values = np.asarray(frame[y], dtype=float)
@@ -441,7 +455,20 @@ _DISPATCH: dict[str, Any] = {
 def validate_figure_data(frame: Any, figure: dict[str, Any]) -> list[str]:
     """Validate that required columns exist and have data in the frame."""
     errors: list[str] = []
-    for key in ("x", "y", "group", "lower", "upper", "row", "column", "values", "size", "facet_by"):
+    for key in (
+        "x",
+        "y",
+        "group",
+        "lower",
+        "upper",
+        "row",
+        "column",
+        "values",
+        "size",
+        "facet_by",
+        "x_error",
+        "y_error",
+    ):
         col = figure.get(key)
         if col and col not in frame.columns:
             errors.append(
@@ -468,6 +495,8 @@ def validate_figure_data(frame: Any, figure: dict[str, Any]) -> list[str]:
             errors.append("scatter trendlines require numeric x and y columns")
     if figure.get("orientation") and figure.get("type") not in {"bar", "ablation"}:
         errors.append("orientation is supported only for bar and ablation figures")
+    if (figure.get("x_error") or figure.get("y_error")) and figure.get("type") != "scatter":
+        errors.append("x_error and y_error are supported only for scatter figures")
     if bool(figure.get("lower")) != bool(figure.get("upper")):
         errors.append("lower and upper must be provided together")
     if figure.get("lower") and figure.get("upper") and figure.get("y") in frame:
