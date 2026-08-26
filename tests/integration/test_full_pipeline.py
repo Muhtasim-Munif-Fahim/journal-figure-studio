@@ -327,3 +327,75 @@ class TestFullPipeline:
 
         request_path = _write_matrix_request(tmp_path, ["png"])
         assert render_main(["--request", str(request_path)]) == VALIDATION_ERROR
+
+    def test_stacked_bar_request_renders_package(self, tmp_path):
+        import matplotlib.pyplot as plt
+
+        from scripts.render_recipe import main as render_main
+
+        data_path = tmp_path / "stacked.csv"
+        data_path.write_text(
+            "category,value,series\nA,10,treatment\nA,4,control\nB,15,treatment\nB,6,control\n",
+            encoding="utf-8",
+        )
+        request = {
+            "figure_id": "stacked-fig",
+            "research_field": "computer_science",
+            "profile": "universal",
+            "layout": "single",
+            "data_paths": [str(data_path)],
+            "analysis_script": None,
+            "claim": "Treatment contributes most of each total.",
+            "caption_takeaway": "Stacked totals reach 14 and 21 units.",
+            "figure": {
+                "type": "bar",
+                "source": str(data_path),
+                "x": "category",
+                "y": "value",
+                "stack": "series",
+                "xlabel": "Category",
+                "ylabel": "Value",
+            },
+            "output_dir": str(tmp_path / "output"),
+        }
+        request_path = tmp_path / "request.yaml"
+        request_path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        assert render_main(["--request", str(request_path)]) == 0
+        output_dir = tmp_path / "output"
+        assert (output_dir / "stacked-fig.pdf").exists()
+        assert (output_dir / "stacked-fig.png").exists()
+        plt.close("all")
+
+    def test_stacked_bar_with_negative_values_is_rejected(self, tmp_path):
+        from scripts.exit_codes import RUNTIME_ERROR
+
+        from scripts.render_recipe import main as render_main
+
+        data_path = tmp_path / "stacked.csv"
+        data_path.write_text(
+            "category,value,series\nA,10,treatment\nA,-4,control\n",
+            encoding="utf-8",
+        )
+        request = {
+            "figure_id": "stacked-neg",
+            "research_field": "computer_science",
+            "profile": "universal",
+            "layout": "single",
+            "data_paths": [str(data_path)],
+            "analysis_script": None,
+            "claim": "Totals are misleading with negative segments.",
+            "caption_takeaway": "Negative segment values are rejected.",
+            "figure": {
+                "type": "bar",
+                "source": str(data_path),
+                "x": "category",
+                "y": "value",
+                "stack": "series",
+                "xlabel": "Category",
+                "ylabel": "Value",
+            },
+            "output_dir": str(tmp_path / "output"),
+        }
+        request_path = tmp_path / "request.yaml"
+        request_path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        assert render_main(["--request", str(request_path)]) == RUNTIME_ERROR

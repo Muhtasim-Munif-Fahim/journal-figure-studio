@@ -117,6 +117,31 @@ class TestValidateRequest:
         path.write_text(yaml.safe_dump(request), encoding="utf-8")
         assert any("orientation must be" in error for error in validate_request(path))
 
+    def test_stack_must_reference_an_existing_column(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["stack"] = "missing"
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("not a column" in error for error in errors)
+
+    def test_stack_requires_bar_or_ablation_type(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["type"] = "line"
+        request["figure"]["stack"] = "category"
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        assert any("stack is supported only for bar" in error for error in validate_request(path))
+
+    def test_stack_conflicts_with_group(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["group"] = "category"
+        request["figure"]["stack"] = "category"
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("cannot be combined" in error for error in errors)
+
     def test_waterfall_type_is_accepted(self, tmp_path: Path):
         path = _make_request_yaml(tmp_path)
         request = yaml.safe_load(path.read_text())

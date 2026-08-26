@@ -73,6 +73,7 @@ SUPPORTED_COLUMN_KEYS: set[str] = {
     "facet_by",
     "x_error",
     "y_error",
+    "stack",
 }
 VALID_AXIS_SCALES: set[str] = {"linear", "log"}
 
@@ -171,6 +172,15 @@ def _validate_figure_spec(
             if spec.get(error_key) and spec.get("type") != "scatter":
                 errors.append(
                     f"{prefix}.{error_key} is supported only for scatter figures"
+                )
+        if spec.get("stack"):
+            if spec.get("type") not in {"bar", "ablation"}:
+                errors.append(
+                    f"{prefix}.stack is supported only for bar and ablation figures"
+                )
+            elif spec.get("group"):
+                errors.append(
+                    f"{prefix}.stack and group cannot be combined; pick one grouping mode"
                 )
         if "orientation" in spec:
             if spec["orientation"] not in {"vertical", "horizontal"}:

@@ -248,10 +248,49 @@ def _draw_line(
         )
 
 
+def _draw_stacked_segments(
+    ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
+) -> None:
+    x, y, stack = figure["x"], figure["y"], figure["stack"]
+    categories = list(dict.fromkeys(frame[x].astype(str)))
+    segments = sorted(set(frame[stack].astype(str)))
+    positions = np.arange(len(categories))
+    pivoted = (
+        frame.assign(_category=frame[x].astype(str), _segment=frame[stack].astype(str))
+        .groupby(["_category", "_segment"], sort=False)[y]
+        .sum()
+        .unstack("_segment")
+        .reindex(index=categories, columns=segments)
+        .fillna(0.0)
+    )
+    orientation = figure.get("orientation", "vertical")
+    bottoms = np.zeros(len(categories))
+    for idx, segment in enumerate(segments):
+        values = pivoted[segment].to_numpy(dtype=float)
+        common: dict[str, Any] = {
+            "label": segment,
+            "color": palette[idx % len(palette)],
+            "edgecolor": "white",
+            "linewidth": 0.5,
+        }
+        if orientation == "horizontal":
+            ax.barh(positions, values, 0.8, left=bottoms, **common)
+        else:
+            ax.bar(positions, values, 0.8, bottom=bottoms, **common)
+        bottoms += values
+    if orientation == "horizontal":
+        ax.set_yticks(positions, categories)
+    else:
+        ax.set_xticks(positions, categories)
+
+
 def _draw_bar(
     ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
 ) -> None:
     x, y, group = figure["x"], figure["y"], figure.get("group")
+    if figure.get("stack"):
+        _draw_stacked_segments(ax, frame, figure, palette)
+        return
     lower, upper = figure.get("lower"), figure.get("upper")
     orientation = figure.get("orientation", "vertical")
     groups = [(None, frame)] if not group else list(frame.groupby(group, sort=False))
@@ -468,6 +507,7 @@ def validate_figure_data(frame: Any, figure: dict[str, Any]) -> list[str]:
         "facet_by",
         "x_error",
         "y_error",
+        "stack",
     ):
         col = figure.get(key)
         if col and col not in frame.columns:
@@ -497,6 +537,21 @@ def validate_figure_data(frame: Any, figure: dict[str, Any]) -> list[str]:
         errors.append("orientation is supported only for bar and ablation figures")
     if (figure.get("x_error") or figure.get("y_error")) and figure.get("type") != "scatter":
         errors.append("x_error and y_error are supported only for scatter figures")
+    if figure.get("stack"):
+        if figure.get("type") not in {"bar", "ablation"}:
+            errors.append("stack is supported only for bar and ablation figures")
+        elif figure.get("group"):
+            errors.append("stack and group cannot be combined; pick one grouping mode")
+        elif figure.get("lower") or figure.get("upper"):
+            errors.append("interval bounds are not supported for stacked bars")
+        elif (
+            figure["y"] in frame.columns
+            and (frame[figure["y"]].dropna() < 0).any()
+        ):
+            errors.append(
+                "stacked bar values must be non-negative; "
+                f"column '{figure['y']}' contains negative values"
+            )
     if bool(figure.get("lower")) != bool(figure.get("upper")):
         errors.append("lower and upper must be provided together")
     if figure.get("lower") and figure.get("upper") and figure.get("y") in frame:
@@ -537,7 +592,7 @@ def draw(
         ax.set_ylim(figure["ylim"])
     grp = figure.get("group")
     has_groups = bool(grp) and grp in frame.columns and frame[grp].nunique() > 1
-    if has_groups or kind == "calibration":
+    if has_groups or kind == "calibration" or figure.get("stack"):
         ax.legend(frameon=False, fontsize="small")
     if figure.get("p_value") is not None:
         try:

@@ -152,3 +152,46 @@ def test_scatter_figures_can_draw_a_linear_trendline() -> None:
     assert len(ax.lines) == 1
     assert ax.lines[0].get_label() == "Linear trend"
     plt.close(fig)
+
+
+def test_bar_figures_can_stack_segments_by_a_column() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    frame = pd.DataFrame(
+        {
+            "category": ["A", "A", "B", "B"],
+            "value": [1.0, 2.0, 3.0, 4.0],
+            "series": ["treatment", "control", "treatment", "control"],
+        }
+    )
+    draw(
+        ax,
+        frame,
+        {"type": "bar", "x": "category", "y": "value", "stack": "series", "xlabel": "Category", "ylabel": "Value"},
+        ["#000000"],
+    )
+    assert len(ax.containers) == 2
+    first, second = ax.containers
+    assert [bar.get_height() for bar in first] == [2.0, 4.0]
+    assert [bar.get_height() for bar in second] == [1.0, 3.0]
+    assert [bar.get_y() for bar in second] == [2.0, 4.0]
+    assert {label.get_text() for label in ax.get_legend().get_texts()} == {"control", "treatment"}
+    assert [tick.get_text() for tick in ax.get_xticklabels()] == ["A", "B"]
+    plt.close(fig)
+
+
+def test_stacked_bar_values_must_be_non_negative() -> None:
+    import pandas as pd
+
+    from scripts.render_recipe import validate_figure_data
+
+    frame = pd.DataFrame({"category": ["A", "B"], "value": [-1.0, 2.0], "series": ["x", "y"]})
+    errors = validate_figure_data(
+        frame,
+        {"type": "bar", "x": "category", "y": "value", "stack": "series"},
+    )
+    assert any("non-negative" in error for error in errors)
