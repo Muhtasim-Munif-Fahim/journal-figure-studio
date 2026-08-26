@@ -11,7 +11,12 @@ from typing import Any
 import pandas as pd
 
 from scripts.common import load_yaml, profile_path, read_table, resolve_request_path
-from scripts.constants import MIN_RASTER_DPI, SUPPORTED_FORMATS
+from scripts.constants import (
+    LINE_FIGURE_TYPES,
+    MIN_RASTER_DPI,
+    SUPPORTED_FORMATS,
+    VALID_DRAW_STYLES,
+)
 from scripts.exit_codes import SUCCESS, VALIDATION_ERROR
 from scripts.logging_config import setup_logger
 from scripts.template_presets import TEMPLATES
@@ -176,6 +181,17 @@ def _validate_figure_spec(
             if label_value is not None and not isinstance(label_value, str):
                 errors.append(
                     f"{prefix}.{ref_label_key} must be a string when provided"
+                )
+        if "drawstyle" in spec:
+            drawstyle = spec["drawstyle"]
+            if drawstyle not in VALID_DRAW_STYLES:
+                errors.append(
+                    f"{prefix}.drawstyle must be one of: "
+                    f"{', '.join(sorted(VALID_DRAW_STYLES))}"
+                )
+            elif spec.get("type") not in LINE_FIGURE_TYPES:
+                errors.append(
+                    f"{prefix}.drawstyle is supported only for line figures"
                 )
         if "facet_ncols" in spec:
             facet_ncols = spec["facet_ncols"]

@@ -41,6 +41,7 @@ except ModuleNotFoundError:  # pragma: no cover - used by copied standalone pack
         write_json,
     )
 from scripts.constants import (
+    LINE_FIGURE_TYPES,
     PALETTES,
     STAT_ANNOTATION_THRESHOLDS,
     SUPPORTED_FIGURE_TYPES,
@@ -218,12 +219,16 @@ def _draw_line(
     x, y, group = figure["x"], figure["y"], figure.get("group")
     lower, upper = figure.get("lower"), figure.get("upper")
     kind = figure.get("type", "line")
+    drawstyle = figure.get("drawstyle")
     groups = [(None, frame)] if not group else list(frame.groupby(group, sort=False))
     for idx, (name, subset) in enumerate(groups):
         subset = subset.sort_values(x)
         label = None if name is None else str(name)
         color = palette[idx % len(palette)]
-        ax.plot(subset[x], subset[y], label=label, color=color)
+        plot_kwargs: dict[str, Any] = {"label": label, "color": color}
+        if drawstyle:
+            plot_kwargs["drawstyle"] = drawstyle
+        ax.plot(subset[x], subset[y], **plot_kwargs)
         if lower and upper:
             ax.fill_between(
                 subset[x],
@@ -535,6 +540,8 @@ def validate_figure_data(frame: Any, figure: dict[str, Any]) -> list[str]:
             errors.append("scatter trendlines require numeric x and y columns")
     if figure.get("orientation") and figure.get("type") not in {"bar", "ablation"}:
         errors.append("orientation is supported only for bar and ablation figures")
+    if figure.get("drawstyle") and figure.get("type") not in LINE_FIGURE_TYPES:
+        errors.append("drawstyle is supported only for line figures")
     if (figure.get("x_error") or figure.get("y_error")) and figure.get("type") != "scatter":
         errors.append("x_error and y_error are supported only for scatter figures")
     if figure.get("stack"):

@@ -245,3 +245,38 @@ def test_labeled_reference_line_appears_in_legend() -> None:
     legend_texts = {text.get_text() for text in ax.get_legend().get_texts()}
     assert "Target" in legend_texts
     plt.close(fig)
+
+
+def test_line_figures_can_use_a_stepped_drawstyle() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    draw(
+        ax,
+        pd.DataFrame({"x": [1, 2, 3], "y": [2, 5, 9]}),
+        {"type": "time_series", "x": "x", "y": "y", "xlabel": "x", "ylabel": "y", "drawstyle": "steps-post"},
+        ["#000000"],
+    )
+    assert ax.lines[0].get_drawstyle() == "steps-post"
+    assert ax.lines[0].get_ydata().tolist() == [2, 5, 9]
+    plt.close(fig)
+
+
+def test_line_figures_default_to_connected_segments() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    draw(
+        ax,
+        pd.DataFrame({"x": [1, 2, 3], "y": [2, 5, 9]}),
+        {"type": "line", "x": "x", "y": "y", "xlabel": "x", "ylabel": "y"},
+        ["#000000"],
+    )
+    assert ax.lines[0].get_drawstyle() == "default"
+    plt.close(fig)

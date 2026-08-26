@@ -38,6 +38,12 @@ SUPPORTED_FIGURE_TYPES: set[str] = {
 }
 """All figure types that the dispatch system can render."""
 
+LINE_FIGURE_TYPES: set[str] = {"line", "time_series", "training_curve", "calibration"}
+"""Figure types drawn as connected series and eligible for a drawstyle."""
+
+VALID_DRAW_STYLES: set[str] = {"default", "steps-pre", "steps-mid", "steps-post"}
+"""Line drawstyle options accepted by the rendering engine."""
+
 PALETTES: dict[str, list[str]] = {
     "okabe_ito": [
         "#0072B2",

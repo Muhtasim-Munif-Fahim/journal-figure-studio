@@ -174,6 +174,23 @@ class TestValidateRequest:
         errors = validate_request(path)
         assert any("hline_label must be a string" in error for error in errors)
 
+    def test_drawstyle_must_be_supported(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["type"] = "line"
+        request["figure"]["drawstyle"] = "steps-diagonal"
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("drawstyle must be one of" in error for error in errors)
+
+    def test_drawstyle_requires_a_line_figure(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["drawstyle"] = "steps-post"
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("drawstyle is supported only for line figures" in error for error in errors)
+
     def test_waterfall_type_is_accepted(self, tmp_path: Path):
         path = _make_request_yaml(tmp_path)
         request = yaml.safe_load(path.read_text())

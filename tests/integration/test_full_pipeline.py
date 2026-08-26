@@ -439,3 +439,41 @@ class TestFullPipeline:
         assert (output_dir / "reference-fig.pdf").exists()
         assert (output_dir / "reference-fig.png").exists()
         plt.close("all")
+
+    def test_stepped_time_series_renders_package(self, tmp_path):
+        import matplotlib.pyplot as plt
+
+        from scripts.render_recipe import main as render_main
+
+        data_path = tmp_path / "steps.csv"
+        data_path.write_text(
+            "epoch,accuracy\n1,0.61\n2,0.68\n3,0.72\n4,0.75\n",
+            encoding="utf-8",
+        )
+        request = {
+            "figure_id": "steps-fig",
+            "research_field": "computer_science",
+            "profile": "universal",
+            "layout": "single",
+            "data_paths": [str(data_path)],
+            "analysis_script": None,
+            "claim": "Accuracy improves monotonically across epochs.",
+            "caption_takeaway": "Stepped curve reflects per-epoch checkpoints.",
+            "figure": {
+                "type": "time_series",
+                "source": str(data_path),
+                "x": "epoch",
+                "y": "accuracy",
+                "xlabel": "Epoch",
+                "ylabel": "Accuracy",
+                "drawstyle": "steps-post",
+            },
+            "output_dir": str(tmp_path / "output"),
+        }
+        request_path = tmp_path / "request.yaml"
+        request_path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        assert render_main(["--request", str(request_path)]) == 0
+        output_dir = tmp_path / "output"
+        assert (output_dir / "steps-fig.pdf").exists()
+        assert (output_dir / "steps-fig.png").exists()
+        plt.close("all")
