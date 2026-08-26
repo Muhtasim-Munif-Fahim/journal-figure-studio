@@ -280,3 +280,246 @@ def test_line_figures_default_to_connected_segments() -> None:
     )
     assert ax.lines[0].get_drawstyle() == "default"
     plt.close(fig)
+
+def test_draw_twin_axis_with_line_series() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    draw(
+        ax,
+        pd.DataFrame({"x": [1, 2, 3], "y1": [10, 20, 15], "y2": [100, 200, 150]}),
+        {
+            "type": "line",
+            "x": "x",
+            "y": "y1",
+            "xlabel": "X",
+            "ylabel": "Primary",
+            "twin_y": {"y": "y2", "ylabel": "Secondary", "type": "line", "label": "Secondary"},
+        },
+        ["#000000", "#FF0000"],
+    )
+    # Check that twin axis was created
+    assert hasattr(ax, "right_ax") or len(ax.figure.axes) > 1
+    # Check legend contains both labels
+    legend = ax.get_legend()
+    assert legend is not None
+    legend_texts = {text.get_text() for text in legend.get_texts()}
+    assert "Secondary" in legend_texts
+    plt.close(fig)
+
+
+def test_draw_twin_axis_with_scatter_series() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    draw(
+        ax,
+        pd.DataFrame({"x": [1, 2, 3], "y1": [10, 20, 15], "y2": [100, 200, 150]}),
+        {
+            "type": "line",
+            "x": "x",
+            "y": "y1",
+            "xlabel": "X",
+            "ylabel": "Primary",
+            "twin_y": {"y": "y2", "ylabel": "Secondary", "type": "scatter", "label": "Scatter"},
+        },
+        ["#000000", "#FF0000"],
+    )
+    legend = ax.get_legend()
+    assert legend is not None
+    legend_texts = {text.get_text() for text in legend.get_texts()}
+    assert "Scatter" in legend_texts
+    plt.close(fig)
+
+
+def test_draw_twin_axis_with_bar_series() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    draw(
+        ax,
+        pd.DataFrame({"x": ["A", "B"], "y1": [10, 20], "y2": [100, 200]}),
+        {
+            "type": "bar",
+            "x": "x",
+            "y": "y1",
+            "xlabel": "X",
+            "ylabel": "Primary",
+            "twin_y": {"y": "y2", "ylabel": "Secondary", "type": "bar", "label": "Bar"},
+        },
+        ["#000000", "#FF0000"],
+    )
+    legend = ax.get_legend()
+    assert legend is not None
+    legend_texts = {text.get_text() for text in legend.get_texts()}
+    assert "Bar" in legend_texts
+    plt.close(fig)
+
+
+def test_twin_axis_validation_requires_y_column() -> None:
+    import pandas as pd
+    from scripts.validate_request import validate_request
+    from pathlib import Path
+    import tempfile
+    import yaml
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp)
+        data_path = tmp_path / "data.csv"
+        data_path.write_text("x,y1\n1,10\n2,20\n")
+        request = {
+            "figure_id": "test",
+            "research_field": "cs",
+            "profile": "universal",
+            "layout": "single",
+            "data_paths": [str(data_path)],
+            "analysis_script": None,
+            "claim": "test",
+            "caption_takeaway": "test",
+            "figure": {
+                "type": "line",
+                "source": str(data_path),
+                "x": "x",
+                "y": "y1",
+                "xlabel": "X",
+                "ylabel": "Y",
+                "twin_y": {"ylabel": "Secondary"},
+            },
+            "output_dir": str(tmp_path / "out"),
+        }
+        request_path = tmp_path / "request.yaml"
+        request_path.write_text(yaml.safe_dump(request))
+        errors = validate_request(request_path)
+        assert any("twin_y missing required" in error and "y" in error for error in errors)
+
+
+def test_twin_axis_validation_requires_ylabel() -> None:
+    import pandas as pd
+    from scripts.validate_request import validate_request
+    from pathlib import Path
+    import tempfile
+    import yaml
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp)
+        data_path = tmp_path / "data.csv"
+        data_path.write_text("x,y1,y2\n1,10,100\n2,20,200\n")
+        request = {
+            "figure_id": "test",
+            "research_field": "cs",
+            "profile": "universal",
+            "layout": "single",
+            "data_paths": [str(data_path)],
+            "analysis_script": None,
+            "claim": "test",
+            "caption_takeaway": "test",
+            "figure": {
+                "type": "line",
+                "source": str(data_path),
+                "x": "x",
+                "y": "y1",
+                "xlabel": "X",
+                "ylabel": "Y",
+                "twin_y": {"y": "y2"},
+            },
+            "output_dir": str(tmp_path / "out"),
+        }
+        request_path = tmp_path / "request.yaml"
+        request_path.write_text(yaml.safe_dump(request))
+        errors = validate_request(request_path)
+        assert any("twin_y missing required" in error and "ylabel" in error for error in errors)
+
+
+def test_twin_axis_validation_rejects_unknown_y_column() -> None:
+    import pandas as pd
+    from scripts.render_recipe import validate_figure_data
+
+    frame = pd.DataFrame({"x": [1, 2], "y1": [10, 20]})
+    errors = validate_figure_data(
+        frame,
+        {"type": "line", "x": "x", "y": "y1", "twin_y": {"y": "nonexistent", "ylabel": "Secondary"}},
+    )
+    assert any("not found" in error.lower() for error in errors)
+
+
+def test_twin_axis_validation_rejects_invalid_type() -> None:
+    import pandas as pd
+    from scripts.validate_request import validate_request
+    from pathlib import Path
+    import tempfile
+    import yaml
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp)
+        data_path = tmp_path / "data.csv"
+        data_path.write_text("x,y1,y2\n1,10,100\n2,20,200\n")
+        request = {
+            "figure_id": "test",
+            "research_field": "cs",
+            "profile": "universal",
+            "layout": "single",
+            "data_paths": [str(data_path)],
+            "analysis_script": None,
+            "claim": "test",
+            "caption_takeaway": "test",
+            "figure": {
+                "type": "line",
+                "source": str(data_path),
+                "x": "x",
+                "y": "y1",
+                "xlabel": "X",
+                "ylabel": "Y",
+                "twin_y": {"y": "y2", "ylabel": "Secondary", "type": "invalid_type"},
+            },
+            "output_dir": str(tmp_path / "out"),
+        }
+        request_path = tmp_path / "request.yaml"
+        request_path.write_text(yaml.safe_dump(request))
+        errors = validate_request(request_path)
+        assert any("twin_y.type must be one of" in error for error in errors)
+
+
+def test_twin_axis_validation_rejects_for_unsupported_primary() -> None:
+    import pandas as pd
+    from scripts.validate_request import validate_request
+    from pathlib import Path
+    import tempfile
+    import yaml
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp)
+        data_path = tmp_path / "data.csv"
+        data_path.write_text("x,y1,y2\n1,10,100\n2,20,200\n")
+        request = {
+            "figure_id": "test",
+            "research_field": "cs",
+            "profile": "universal",
+            "layout": "single",
+            "data_paths": [str(data_path)],
+            "analysis_script": None,
+            "claim": "test",
+            "caption_takeaway": "test",
+            "figure": {
+                "type": "heatmap",
+                "source": str(data_path),
+                "x": "x",
+                "y": "y1",
+                "xlabel": "X",
+                "ylabel": "Y",
+                "twin_y": {"y": "y2", "ylabel": "Secondary", "type": "line"},
+            },
+            "output_dir": str(tmp_path / "out"),
+        }
+        request_path = tmp_path / "request.yaml"
+        request_path.write_text(yaml.safe_dump(request))
+        errors = validate_request(request_path)
+        assert any("twin_y is supported only for line, scatter, and bar primary figures" in error for error in errors)

@@ -473,6 +473,90 @@ def _draw_waterfall(
     ax.set_xticks(positions, categories)
 
 
+
+def _draw_twin_axis(
+    ax: Axes, frame: Any, twin_spec: dict[str, Any], primary_figure: dict[str, Any], palette: list[str]
+) -> None:
+    """Render a series on a twin/secondary y-axis."""
+    x_col = primary_figure["x"]
+    y_col = twin_spec["y"]
+    twin_type = twin_spec.get("type", "line")
+    group_col = twin_spec.get("group")
+    label = twin_spec.get("label")
+    color = twin_spec.get("color")
+    lower_col = twin_spec.get("lower")
+    upper_col = twin_spec.get("upper")
+
+    # Use a distinct color from palette if not specified
+    if color is None:
+        color = palette[-1]  # Use last palette color as default for twin axis
+
+    groups = [(None, frame)] if not group_col else list(frame.groupby(group_col, sort=False))
+    for idx, (name, subset) in enumerate(groups):
+        subset = subset.sort_values(x_col)
+        series_label = label if label is not None else (str(name) if name is not None else "Twin series")
+        series_color = color if isinstance(color, str) else color[idx % len(color)] if color else palette[(idx + len(palette) - 1) % len(palette)]
+
+        if twin_type == "line":
+            drawstyle = twin_spec.get("drawstyle")
+            plot_kwargs = {"label": series_label, "color": series_color}
+            if drawstyle:
+                plot_kwargs["drawstyle"] = drawstyle
+            ax.plot(subset[x_col], subset[y_col], **plot_kwargs)
+            if lower_col and upper_col:
+                ax.fill_between(
+                    subset[x_col],
+                    subset[lower_col],
+                    subset[upper_col],
+                    color=series_color,
+                    alpha=0.18,
+                    linewidth=0,
+                )
+        elif twin_type == "scatter":
+            ax.scatter(
+                subset[x_col],
+                subset[y_col],
+                label=series_label,
+                color=series_color,
+                alpha=0.8,
+                edgecolor="white",
+                linewidth=0.35,
+            )
+            if lower_col and upper_col:
+                errors = np.vstack([subset[y_col] - subset[lower_col], subset[upper_col] - subset[y_col]])
+                ax.errorbar(
+                    subset[x_col],
+                    subset[y_col],
+                    yerr=errors,
+                    fmt="none",
+                    ecolor=series_color,
+                    elinewidth=0.9,
+                    capsize=2.5,
+                    label=None,
+                )
+        elif twin_type == "bar":
+            orientation = twin_spec.get("orientation", "vertical")
+            categories = list(dict.fromkeys(subset[x_col].astype(str)))
+            positions = np.arange(len(categories))
+            bar_width = 0.8 / len(groups) if len(groups) > 1 else 0.8
+            offset = (idx - (len(groups) - 1) / 2) * bar_width
+            errors = None
+            if lower_col and upper_col:
+                errors = np.vstack([subset[y_col] - subset[lower_col], subset[upper_col] - subset[y_col]])
+            common = {
+                "capsize": 2.5,
+                "label": series_label,
+                "color": series_color,
+                "edgecolor": "white",
+                "linewidth": 0.5,
+            }
+            if orientation == "horizontal":
+                ax.barh(positions + offset, subset[y_col], bar_width, xerr=errors, **common)
+            else:
+                ax.bar(positions + offset, subset[y_col], bar_width, yerr=errors, **common)
+            if twin_spec.get("show_values", False):
+                pass  # bar_label not easily available here without container ref
+
 def _facet_subsets(frame: Any, column: str) -> list[tuple[str, Any]]:
     """Split a frame into ordered (facet value, subset) small multiples."""
     values = list(dict.fromkeys(frame[column].astype(str)))
@@ -569,6 +653,31 @@ def validate_figure_data(frame: Any, figure: dict[str, Any]) -> list[str]:
             | (frame[upper] < frame[estimate])
         ).any():
             errors.append("interval bounds must satisfy lower <= estimate <= upper")
+    # Twin axis validation
+    if "twin_y" in figure:
+        twin = figure["twin_y"]
+        if isinstance(twin, dict):
+            for key in ("y", "lower", "upper", "group"):
+                col = twin.get(key)
+                if col and col not in frame.columns:
+                    errors.append(
+                        f"Twin axis column '{col}' not found in data. Available: {list(frame.columns)}"
+                    )
+            twin_y = twin.get("y")
+            if twin_y and twin_y in frame.columns:
+                if frame[twin_y].isna().all():
+                    errors.append(f"Twin axis column '{twin_y}' has all missing values")
+                if len(frame[twin_y].dropna()) == 0:
+                    errors.append(f"Twin axis column '{twin_y}' has no valid data")
+            lower, upper = twin.get("lower"), twin.get("upper")
+            if lower and upper and twin_y in frame:
+                if (
+                    (frame[lower] > frame[upper])
+                    | (frame[lower] > frame[twin_y])
+                    | (frame[upper] < frame[twin_y])
+                ).any():
+                    errors.append("twin axis interval bounds must satisfy lower <= estimate <= upper")
+
     return errors
 
 
@@ -587,6 +696,32 @@ def draw(
         )
     handler = _DISPATCH[kind]
     handler(ax, frame, figure, palette)
+    # Twin/secondary y-axis support
+    if "twin_y" in figure:
+        twin_spec = figure["twin_y"]
+        twin_ax = ax.twinx()
+        _draw_twin_axis(twin_ax, frame, twin_spec, figure, palette)
+        twin_ax.set_ylabel(twin_spec["ylabel"])
+        # Merge legends from both axes
+        lines1, labels1 = ax.get_legend_handles_labels()
+        lines2, labels2 = twin_ax.get_legend_handles_labels()
+        if lines1 or lines2:
+            ax.legend(lines1 + lines2, labels1 + labels2, frameon=False, fontsize="small")
+    else:
+        grp = figure.get("group")
+        has_groups = bool(grp) and grp in frame.columns and frame[grp].nunique() > 1
+        reference_labels = [
+            figure.get(key)
+            for key in ("hline_label", "vline_label", "hband_label", "vband_label")
+        ]
+        if (
+            has_groups
+            or kind == "calibration"
+            or figure.get("stack")
+            or any(reference_labels)
+        ):
+            ax.legend(frameon=False, fontsize="small")
+
     if figure.get("hline") is not None:
         ax.axhline(
             float(figure["hline"]),

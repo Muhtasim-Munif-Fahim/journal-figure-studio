@@ -231,6 +231,49 @@ def _validate_figure_spec(
                 errors.append(
                     f"{prefix}.orientation is supported only for bar and ablation figures"
                 )
+        if "twin_y" in spec:
+            twin = spec["twin_y"]
+            if not isinstance(twin, dict):
+                errors.append(f"{prefix}.twin_y must be a mapping")
+            else:
+                if "y" not in twin:
+                    errors.append(f"{prefix}.twin_y missing required 'y' column")
+                elif twin["y"] not in columns:
+                    errors.append(
+                        f"{prefix}.twin_y.y ('{twin['y']}') is not a column in {spec['source']}"
+                    )
+                if "ylabel" not in twin:
+                    errors.append(f"{prefix}.twin_y missing required 'ylabel'")
+                elif not isinstance(twin["ylabel"], str):
+                    errors.append(f"{prefix}.twin_y.ylabel must be a string")
+                twin_type = twin.get("type", "line")
+                if twin_type not in {"line", "scatter", "bar"}:
+                    errors.append(
+                        f"{prefix}.twin_y.type must be one of: line, scatter, bar"
+                    )
+                elif spec.get("type") not in {"line", "time_series", "training_curve", "scatter", "bar", "ablation"}:
+                    errors.append(
+                        f"{prefix}.twin_y is supported only for line, scatter, and bar primary figures"
+                    )
+                if "group" in twin:
+                    if twin["group"] not in columns:
+                        errors.append(
+                            f"{prefix}.twin_y.group ('{twin['group']}') is not a column in {spec['source']}"
+                        )
+                if "lower" in twin or "upper" in twin:
+                    if bool(twin.get("lower")) != bool(twin.get("upper")):
+                        errors.append(f"{prefix}.twin_y must provide both lower and upper columns")
+                    elif twin.get("lower") and twin["lower"] not in columns:
+                        errors.append(
+                            f"{prefix}.twin_y.lower ('{twin['lower']}') is not a column in {spec['source']}"
+                        )
+                    elif twin.get("upper") and twin["upper"] not in columns:
+                        errors.append(
+                            f"{prefix}.twin_y.upper ('{twin['upper']}') is not a column in {spec['source']}"
+                        )
+                if "label" in twin and not isinstance(twin["label"], str):
+                    errors.append(f"{prefix}.twin_y.label must be a string when provided")
+
     except ValueError as exc:
         errors.append(f"{prefix}: {exc}")
     except Exception as exc:
