@@ -195,3 +195,53 @@ def test_stacked_bar_values_must_be_non_negative() -> None:
         {"type": "bar", "x": "category", "y": "value", "stack": "series"},
     )
     assert any("non-negative" in error for error in errors)
+
+
+def test_draw_overlays_reference_lines_and_shaded_bands() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    draw(
+        ax,
+        pd.DataFrame({"x": [1, 2], "y": [3, 4]}),
+        {
+            "type": "line",
+            "x": "x",
+            "y": "y",
+            "xlabel": "x",
+            "ylabel": "y",
+            "hline": 2.5,
+            "vline": 1.5,
+            "hband": [1.0, 2.0],
+        },
+        ["#000000"],
+    )
+    assert [float(line.get_ydata()[0]) for line in ax.lines if np.allclose(line.get_ydata(), 2.5)] == [2.5]
+    assert [float(line.get_xdata()[0]) for line in ax.lines if np.allclose(line.get_xdata(), 1.5)] == [1.5]
+    assert len(ax.patches) == 1
+    band = ax.patches[0]
+    assert band.get_y() == 1.0
+    assert band.get_height() == 1.0
+    plt.close(fig)
+
+
+def test_labeled_reference_line_appears_in_legend() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    draw(
+        ax,
+        pd.DataFrame({"x": [1, 2], "y": [3, 4]}),
+        {"type": "line", "x": "x", "y": "y", "xlabel": "x", "ylabel": "y", "hline": 3.5, "hline_label": "Target"},
+        ["#000000"],
+    )
+    legend_texts = {text.get_text() for text in ax.get_legend().get_texts()}
+    assert "Target" in legend_texts
+    plt.close(fig)

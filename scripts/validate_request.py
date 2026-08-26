@@ -151,6 +151,32 @@ def _validate_figure_spec(
                     errors.append(
                         f"{prefix}.{limit_key} must be an ascending two-number list"
                     )
+        for ref_key in ("hline", "vline"):
+            ref_value = spec.get(ref_key)
+            if ref_value is not None and (
+                isinstance(ref_value, bool) or not isinstance(ref_value, (int, float))
+            ):
+                errors.append(f"{prefix}.{ref_key} must be a number")
+        for band_key in ("hband", "vband"):
+            band = spec.get(band_key)
+            if band is not None and (
+                not isinstance(band, list)
+                or len(band) != 2
+                or not all(
+                    isinstance(value, (int, float)) and not isinstance(value, bool)
+                    for value in band
+                )
+                or band[0] >= band[1]
+            ):
+                errors.append(
+                    f"{prefix}.{band_key} must be an ascending two-number list"
+                )
+        for ref_label_key in ("hline_label", "vline_label", "hband_label", "vband_label"):
+            label_value = spec.get(ref_label_key)
+            if label_value is not None and not isinstance(label_value, str):
+                errors.append(
+                    f"{prefix}.{ref_label_key} must be a string when provided"
+                )
         if "facet_ncols" in spec:
             facet_ncols = spec["facet_ncols"]
             if (

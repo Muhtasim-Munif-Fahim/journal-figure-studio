@@ -142,6 +142,38 @@ class TestValidateRequest:
         errors = validate_request(path)
         assert any("cannot be combined" in error for error in errors)
 
+    def test_hline_must_be_numeric(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["hline"] = "middle"
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        assert any("hline must be a number" in error for error in validate_request(path))
+
+    def test_hband_must_be_an_ascending_pair(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["hband"] = [4, 1]
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("hband must be an ascending two-number list" in error for error in errors)
+
+    def test_vband_must_be_an_ascending_pair(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["vband"] = [0.5]
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("vband must be an ascending two-number list" in error for error in errors)
+
+    def test_reference_labels_must_be_strings(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["hline"] = 2.0
+        request["figure"]["hline_label"] = 7
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("hline_label must be a string" in error for error in errors)
+
     def test_waterfall_type_is_accepted(self, tmp_path: Path):
         path = _make_request_yaml(tmp_path)
         request = yaml.safe_load(path.read_text())

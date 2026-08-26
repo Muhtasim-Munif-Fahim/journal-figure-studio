@@ -580,6 +580,42 @@ def draw(
         )
     handler = _DISPATCH[kind]
     handler(ax, frame, figure, palette)
+    if figure.get("hline") is not None:
+        ax.axhline(
+            float(figure["hline"]),
+            color="#555555",
+            linewidth=0.8,
+            linestyle="--",
+            label=figure.get("hline_label"),
+        )
+    if figure.get("vline") is not None:
+        ax.axvline(
+            float(figure["vline"]),
+            color="#555555",
+            linewidth=0.8,
+            linestyle="--",
+            label=figure.get("vline_label"),
+        )
+    if figure.get("hband") is not None:
+        low, high = (float(value) for value in figure["hband"])
+        ax.axhspan(
+            low,
+            high,
+            color="#555555",
+            alpha=0.12,
+            linewidth=0,
+            label=figure.get("hband_label"),
+        )
+    if figure.get("vband") is not None:
+        low, high = (float(value) for value in figure["vband"])
+        ax.axvspan(
+            low,
+            high,
+            color="#555555",
+            alpha=0.12,
+            linewidth=0,
+            label=figure.get("vband_label"),
+        )
     ax.set_xlabel(figure["xlabel"])
     ax.set_ylabel(figure["ylabel"])
     if figure.get("x_scale"):
@@ -592,7 +628,16 @@ def draw(
         ax.set_ylim(figure["ylim"])
     grp = figure.get("group")
     has_groups = bool(grp) and grp in frame.columns and frame[grp].nunique() > 1
-    if has_groups or kind == "calibration" or figure.get("stack"):
+    reference_labels = [
+        figure.get(key)
+        for key in ("hline_label", "vline_label", "hband_label", "vband_label")
+    ]
+    if (
+        has_groups
+        or kind == "calibration"
+        or figure.get("stack")
+        or any(reference_labels)
+    ):
         ax.legend(frameon=False, fontsize="small")
     if figure.get("p_value") is not None:
         try:

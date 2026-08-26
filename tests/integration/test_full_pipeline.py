@@ -399,3 +399,43 @@ class TestFullPipeline:
         request_path = tmp_path / "request.yaml"
         request_path.write_text(yaml.safe_dump(request), encoding="utf-8")
         assert render_main(["--request", str(request_path)]) == RUNTIME_ERROR
+
+    def test_request_with_reference_lines_and_band_renders_package(self, tmp_path):
+        import matplotlib.pyplot as plt
+
+        from scripts.render_recipe import main as render_main
+
+        data_path = tmp_path / "series.csv"
+        data_path.write_text(
+            "week,score\n1,0.42\n2,0.51\n3,0.48\n4,0.55\n",
+            encoding="utf-8",
+        )
+        request = {
+            "figure_id": "reference-fig",
+            "research_field": "computer_science",
+            "profile": "universal",
+            "layout": "single",
+            "data_paths": [str(data_path)],
+            "analysis_script": None,
+            "claim": "Scores cross the chance threshold by week three.",
+            "caption_takeaway": "Shaded band marks the 95 percent interval.",
+            "figure": {
+                "type": "line",
+                "source": str(data_path),
+                "x": "week",
+                "y": "score",
+                "xlabel": "Week",
+                "ylabel": "Score",
+                "hline": 0.5,
+                "hline_label": "Chance level",
+                "hband": [0.45, 0.55],
+            },
+            "output_dir": str(tmp_path / "output"),
+        }
+        request_path = tmp_path / "request.yaml"
+        request_path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        assert render_main(["--request", str(request_path)]) == 0
+        output_dir = tmp_path / "output"
+        assert (output_dir / "reference-fig.pdf").exists()
+        assert (output_dir / "reference-fig.png").exists()
+        plt.close("all")
