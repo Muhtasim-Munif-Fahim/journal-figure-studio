@@ -722,6 +722,31 @@ def draw(
         ):
             ax.legend(frameon=False, fontsize="small")
 
+    # Annotation callouts
+    if "annotations" in figure:
+        for ann in figure["annotations"]:
+            x = ann["x"]
+            y = ann["y"]
+            text = ann["text"]
+            arrow = ann.get("arrow", True)
+            arrowstyle = ann.get("arrowstyle", "->")
+            xytext = ann.get("xytext", (10, 10))
+            ann_kwargs = {
+                "xy": (x, y),
+                "xytext": xytext,
+                "textcoords": "offset points",
+                "fontsize": 8,
+                "ha": "center",
+                "va": "bottom",
+            }
+            if arrow:
+                ann_kwargs["arrowprops"] = {
+                    "arrowstyle": arrowstyle,
+                    "color": "#555555",
+                    "linewidth": 0.8,
+                }
+            ax.annotate(text, **ann_kwargs)
+
     if figure.get("hline") is not None:
         ax.axhline(
             float(figure["hline"]),

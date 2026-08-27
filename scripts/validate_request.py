@@ -274,6 +274,37 @@ def _validate_figure_spec(
                 if "label" in twin and not isinstance(twin["label"], str):
                     errors.append(f"{prefix}.twin_y.label must be a string when provided")
 
+        if "annotations" in spec:
+            annotations = spec["annotations"]
+            if not isinstance(annotations, list):
+                errors.append(f"{prefix}.annotations must be a list")
+            else:
+                for ann_idx, ann in enumerate(annotations):
+                    ann_prefix = f"{prefix}.annotations[{ann_idx}]"
+                    if not isinstance(ann, dict):
+                        errors.append(f"{ann_prefix} must be a mapping")
+                        continue
+                    if "x" not in ann:
+                        errors.append(f"{ann_prefix} missing required 'x' coordinate")
+                    elif not isinstance(ann["x"], (int, float)) or isinstance(ann["x"], bool):
+                        errors.append(f"{ann_prefix}.x must be a number")
+                    if "y" not in ann:
+                        errors.append(f"{ann_prefix} missing required 'y' coordinate")
+                    elif not isinstance(ann["y"], (int, float)) or isinstance(ann["y"], bool):
+                        errors.append(f"{ann_prefix}.y must be a number")
+                    if "text" not in ann:
+                        errors.append(f"{ann_prefix} missing required 'text'")
+                    elif not isinstance(ann["text"], str):
+                        errors.append(f"{ann_prefix}.text must be a string")
+                    if "arrow" in ann and not isinstance(ann["arrow"], bool):
+                        errors.append(f"{ann_prefix}.arrow must be a boolean")
+                    if "arrowstyle" in ann and not isinstance(ann["arrowstyle"], str):
+                        errors.append(f"{ann_prefix}.arrowstyle must be a string")
+                    if "xytext" in ann:
+                        xytext = ann["xytext"]
+                        if not (isinstance(xytext, list) and len(xytext) == 2 and all(isinstance(v, (int, float)) for v in xytext)):
+                            errors.append(f"{ann_prefix}.xytext must be a two-number list")
+
     except ValueError as exc:
         errors.append(f"{prefix}: {exc}")
     except Exception as exc:
