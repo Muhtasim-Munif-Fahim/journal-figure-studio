@@ -176,7 +176,7 @@ def apply_style(
     # `font.{family}` is built at runtime, so mypy cannot match it against the
     # Literal of valid rcParams keys. Both values it can take,
     # "font.sans-serif" and "font.serif", are valid keys.
-    plt.rcParams.update(rc_updates)  # type: ignore[arg-type]
+    plt.rcParams.update(rc_updates)
     return width, height
 
 
@@ -388,19 +388,38 @@ def _draw_scatter(
 def _draw_distribution(
     ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
 ) -> None:
+    """Draw distribution figures (box, violin, or both)."""
     x, y = figure["x"], figure["y"]
+    kind = figure.get("kind", "box")
     categories = list(dict.fromkeys(frame[x].astype(str)))
     values = [
         frame.loc[frame[x].astype(str) == cat, y].dropna().to_numpy()
         for cat in categories
     ]
-    boxes = ax.boxplot(
-        values, tick_labels=categories, patch_artist=True, medianprops={"color": "black"}
-    )
-    for idx, patch in enumerate(boxes["boxes"]):
-        patch.set_facecolor(palette[idx % len(palette)])
-        patch.set_alpha(0.8)
-
+    if kind in {"box", "both"}:
+        boxes = ax.boxplot(
+            values, tick_labels=categories, patch_artist=True, medianprops={"color": "black"}
+        )
+        for idx, patch in enumerate(boxes["boxes"]):
+            patch.set_facecolor(palette[idx % len(palette)])
+            patch.set_alpha(0.8)
+    if kind in {"violin", "both"}:
+        positions = list(range(1, len(categories) + 1))
+        vp = ax.violinplot(
+            values, positions=positions, showmeans=True, showmedians=True,
+            widths=0.6
+        )
+        for idx, body in enumerate(vp["bodies"]):
+            body.set_facecolor(palette[idx % len(palette)])
+            body.set_alpha(0.6)
+            body.set_edgecolor("white")
+        if "cmeans" in vp:
+            vp["cmeans"].set_color("black")
+            vp["cmeans"].set_linewidth(1.0)
+        if "cmedians" in vp:
+            vp["cmedians"].set_color("black")
+            vp["cmedians"].set_linewidth(1.5)
+        ax.set_xticks(positions, categories)
 
 def _draw_forest(
     ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]

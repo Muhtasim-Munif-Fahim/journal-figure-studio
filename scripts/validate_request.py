@@ -230,7 +230,12 @@ def _validate_figure_spec(
             elif spec.get("type") not in {"bar", "ablation"}:
                 errors.append(
                     f"{prefix}.orientation is supported only for bar and ablation figures"
+
                 )
+            kind = spec.get("kind", "box")
+            if kind not in {"box", "violin", "both"}:
+                errors.append(f"{prefix}.kind must be one of box, violin, both")
+
         if "twin_y" in spec:
             twin = spec["twin_y"]
             if not isinstance(twin, dict):
