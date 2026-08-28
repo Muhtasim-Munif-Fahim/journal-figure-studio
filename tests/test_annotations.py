@@ -588,3 +588,81 @@ def test_radar_figures_draw_one_polygon_per_series() -> None:
     assert legend is not None
     assert {text.get_text() for text in legend.get_texts()} == {"m1", "m2"}
     plt.close(fig)
+
+
+def test_density_figures_plot_one_curve_per_category() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    frame = pd.DataFrame(
+        {
+            "category": ["A", "A", "A", "B", "B", "B"],
+            "value": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+        }
+    )
+    draw(
+        ax,
+        frame,
+        {
+            "type": "density",
+            "x": "category",
+            "y": "value",
+            "xlabel": "Value",
+            "ylabel": "Density",
+        },
+        ["#000000", "#FF0000"],
+    )
+    assert len(ax.lines) == 2
+    assert len(ax.collections) == 2
+    legend = ax.get_legend()
+    assert legend is not None
+    assert {text.get_text() for text in legend.get_texts()} == {"A", "B"}
+    plt.close(fig)
+
+
+def test_density_curves_share_the_combined_data_range() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    frame = pd.DataFrame(
+        {
+            "category": ["A", "A", "A", "B", "B", "B"],
+            "value": [1.0, 2.0, 3.0, 10.0, 20.0, 30.0],
+        }
+    )
+    draw(
+        ax,
+        frame,
+        {
+            "type": "density",
+            "x": "category",
+            "y": "value",
+            "xlabel": "Value",
+            "ylabel": "Density",
+        },
+        ["#000000"],
+    )
+    first, second = ax.lines
+    assert first.get_xdata().tolist() == second.get_xdata().tolist()
+    assert float(first.get_xdata().min()) == 1.0
+    assert float(first.get_xdata().max()) == 30.0
+    plt.close(fig)
+
+
+def test_kde_curves_integrate_to_unit_area() -> None:
+    import numpy as np
+
+    from scripts.render_recipe import _kde
+
+    values = np.array([1.0, 1.5, 2.0, 2.5, 3.0, 5.0, 7.0])
+    grid = np.linspace(-6.0, 14.0, 801)
+    density = _kde(values, grid)
+    area = float(np.sum(density) * (grid[1] - grid[0]))
+    assert area == pytest.approx(1.0, abs=1e-3)
+    assert np.all(density >= 0.0)

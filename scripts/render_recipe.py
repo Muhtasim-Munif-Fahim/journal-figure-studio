@@ -421,6 +421,48 @@ def _draw_distribution(
             vp["cmedians"].set_linewidth(1.5)
         ax.set_xticks(positions, categories)
 
+
+def _kde(
+    values: np.ndarray, grid: np.ndarray, bandwidth: float | None = None
+) -> np.ndarray:
+    """Gaussian kernel density estimate over a grid (Scott's rule bandwidth)."""
+    values = np.asarray(values, dtype=float)
+    values = values[np.isfinite(values)]
+    if values.size == 0:
+        empty: np.ndarray = np.zeros_like(grid)
+        return empty
+    if bandwidth is None:
+        std = values.std(ddof=1) if values.size > 1 else 0.0
+        bandwidth = std * values.size ** (-1 / 5) if std > 0 else 1.0
+    scaled = (grid[:, None] - values[None, :]) / bandwidth
+    density: np.ndarray = np.exp(-0.5 * scaled**2).sum(axis=1) / (
+        values.size * bandwidth * np.sqrt(2 * np.pi)
+    )
+    return density
+
+
+def _draw_density(
+    ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
+) -> None:
+    """Draw kernel density estimates, one curve per category."""
+    x, y = figure["x"], figure["y"]
+    categories = list(dict.fromkeys(frame[x].astype(str)))
+    all_values = frame[y].to_numpy(dtype=float)
+    all_values = all_values[np.isfinite(all_values)]
+    grid = np.linspace(all_values.min(), all_values.max(), 200)
+    for idx, cat in enumerate(categories):
+        values = frame.loc[frame[x].astype(str) == cat, y].to_numpy(dtype=float)
+        values = values[np.isfinite(values)]
+        if values.size == 0:
+            continue
+        color = palette[idx % len(palette)]
+        density = _kde(values, grid)
+        ax.plot(grid, density, color=color, linewidth=1.35, label=str(cat))
+        ax.fill_between(grid, density, color=color, alpha=0.15, linewidth=0)
+    if len(categories) > 1:
+        ax.legend(frameon=False, fontsize="small")
+
+
 def _draw_forest(
     ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
 ) -> None:
@@ -622,6 +664,7 @@ _DISPATCH: dict[str, Any] = {
     "ablation": _draw_bar,
     "scatter": _draw_scatter,
     "distribution": _draw_distribution,
+    "density": _draw_density,
     "forest": _draw_forest,
     "heatmap": _draw_heatmap,
     "waterfall": _draw_waterfall,

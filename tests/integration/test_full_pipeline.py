@@ -514,3 +514,40 @@ class TestFullPipeline:
         assert (output_dir / "radar-fig.pdf").exists()
         assert (output_dir / "radar-fig.png").exists()
         plt.close("all")
+
+    def test_density_request_renders_package(self, tmp_path):
+        import matplotlib.pyplot as plt
+
+        from scripts.render_recipe import main as render_main
+
+        data_path = tmp_path / "density.csv"
+        data_path.write_text(
+            "condition,response\nctl,1.2\nctl,1.5\nctl,1.9\ntrt,2.1\ntrt,2.6\ntrt,3.0\n",
+            encoding="utf-8",
+        )
+        request = {
+            "figure_id": "density-fig",
+            "research_field": "computer_science",
+            "profile": "universal",
+            "layout": "single",
+            "data_paths": [str(data_path)],
+            "analysis_script": None,
+            "claim": "Treated responses shift right of control.",
+            "caption_takeaway": "Treated distribution is denser at higher values.",
+            "figure": {
+                "type": "density",
+                "source": str(data_path),
+                "x": "condition",
+                "y": "response",
+                "xlabel": "Response",
+                "ylabel": "Density",
+            },
+            "output_dir": str(tmp_path / "output"),
+        }
+        request_path = tmp_path / "request.yaml"
+        request_path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        assert render_main(["--request", str(request_path)]) == 0
+        output_dir = tmp_path / "output"
+        assert (output_dir / "density-fig.pdf").exists()
+        assert (output_dir / "density-fig.png").exists()
+        plt.close("all")

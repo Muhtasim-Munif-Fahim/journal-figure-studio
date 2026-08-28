@@ -58,6 +58,7 @@ VALID_FIGURE_TYPES: set[str] = {
     "calibration",
     "waterfall",
     "radar",
+    "density",
 }
 NUMERIC_FIGURE_TYPES: set[str] = set(VALID_FIGURE_TYPES)
 
