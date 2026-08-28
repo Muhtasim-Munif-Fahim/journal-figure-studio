@@ -57,6 +57,7 @@ VALID_FIGURE_TYPES: set[str] = {
     "heatmap",
     "calibration",
     "waterfall",
+    "radar",
 }
 NUMERIC_FIGURE_TYPES: set[str] = set(VALID_FIGURE_TYPES)
 
@@ -134,6 +135,13 @@ def _validate_figure_spec(
             if column in frame.columns and not pd.api.types.is_numeric_dtype(frame[column]):
                 errors.append(
                     f"{prefix}.{col_key} ('{column}') must reference a numeric column"
+                )
+        if spec.get("type") == "radar":
+            x_col = spec.get("x")
+            if x_col and x_col in columns and frame[x_col].nunique() < 3:
+                errors.append(
+                    f"{prefix}.type 'radar' requires at least 3 distinct "
+                    f"categories in '{x_col}'"
                 )
         lower, upper = spec.get("lower"), spec.get("upper")
         if bool(lower) != bool(upper):

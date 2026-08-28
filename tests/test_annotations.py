@@ -523,3 +523,68 @@ def test_twin_axis_validation_rejects_for_unsupported_primary() -> None:
         request_path.write_text(yaml.safe_dump(request))
         errors = validate_request(request_path)
         assert any("twin_y is supported only for line, scatter, and bar primary figures" in error for error in errors)
+
+
+def test_radar_figures_close_the_polygon_loop() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, ax = plt.subplots(subplot_kw={"projection": "polar"})
+    draw(
+        ax,
+        pd.DataFrame(
+            {"category": ["A", "B", "C"], "value": [1.0, 2.0, 1.5]}
+        ),
+        {
+            "type": "radar",
+            "x": "category",
+            "y": "value",
+            "xlabel": "Metric",
+            "ylabel": "Score",
+        },
+        ["#000000"],
+    )
+    assert len(ax.lines) == 1
+    line = ax.lines[0]
+    assert line.get_ydata()[0] == line.get_ydata()[-1]
+    assert line.get_xdata()[0] == line.get_xdata()[-1]
+    assert [tick.get_text() for tick in ax.get_xticklabels()] == ["A", "B", "C"]
+    assert ax.yaxis.get_label().get_text() == "Score"
+    assert ax.get_ylim()[0] == 0.0
+    plt.close(fig)
+
+
+def test_radar_figures_draw_one_polygon_per_series() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, ax = plt.subplots(subplot_kw={"projection": "polar"})
+    frame = pd.DataFrame(
+        {
+            "category": ["A", "A", "B", "B", "C", "C"],
+            "value": [1.0, 2.0, 1.5, 3.0, 2.0, 1.0],
+            "series": ["m1", "m2", "m1", "m2", "m1", "m2"],
+        }
+    )
+    draw(
+        ax,
+        frame,
+        {
+            "type": "radar",
+            "x": "category",
+            "y": "value",
+            "group": "series",
+            "xlabel": "Metric",
+            "ylabel": "Score",
+        },
+        ["#000000", "#FF0000"],
+    )
+    assert len(ax.lines) == 2
+    legend = ax.get_legend()
+    assert legend is not None
+    assert {text.get_text() for text in legend.get_texts()} == {"m1", "m2"}
+    plt.close(fig)

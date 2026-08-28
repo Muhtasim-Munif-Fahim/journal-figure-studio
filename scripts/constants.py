@@ -35,6 +35,7 @@ SUPPORTED_FIGURE_TYPES: set[str] = {
     "heatmap",
     "calibration",
     "waterfall",
+    "radar",
 }
 """All figure types that the dispatch system can render."""
 

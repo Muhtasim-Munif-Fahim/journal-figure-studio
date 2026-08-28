@@ -198,6 +198,35 @@ class TestValidateRequest:
         path.write_text(yaml.safe_dump(request), encoding="utf-8")
         assert validate_request(path) == []
 
+    def test_radar_type_is_accepted(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        (tmp_path / "data.csv").write_text(
+            "category,value\nA,1\nB,2\nC,3\n", encoding="utf-8"
+        )
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["type"] = "radar"
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        assert validate_request(path) == []
+
+    def test_radar_requires_at_least_three_categories(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["type"] = "radar"
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("requires at least 3 distinct" in e for e in errors)
+
+    def test_radar_rejects_non_numeric_values(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        (tmp_path / "data.csv").write_text(
+            "category,value\nA,x\nB,y\nC,z\n", encoding="utf-8"
+        )
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["type"] = "radar"
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("must reference a numeric column" in e for e in errors)
+
     def test_scatter_error_columns_are_accepted(self, tmp_path: Path):
         path = _make_request_yaml(tmp_path)
         (tmp_path / "data.csv").write_text("category,value,sigma\nA,1,0.2\nB,2,0.3\n")

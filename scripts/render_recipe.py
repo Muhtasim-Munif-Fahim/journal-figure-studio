@@ -492,6 +492,35 @@ def _draw_waterfall(
     ax.set_xticks(positions, categories)
 
 
+def _draw_radar(
+    ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
+) -> None:
+    """Draw a radar/polar chart with one closed polygon per series."""
+    x, y = figure["x"], figure["y"]
+    group = figure.get("group")
+    categories = list(dict.fromkeys(frame[x].astype(str)))
+    angles = np.linspace(0.0, 2 * np.pi, len(categories), endpoint=False)
+    closed_angles = np.concatenate([angles, angles[:1]])
+    groups = [(None, frame)] if not group else list(frame.groupby(group, sort=False))
+    for idx, (name, subset) in enumerate(groups):
+        series_values = subset.groupby(subset[x].astype(str))[y].mean()
+        values = series_values.reindex(categories).fillna(0.0).to_numpy(dtype=float)
+        closed_values = np.concatenate([values, values[:1]])
+        color = palette[idx % len(palette)]
+        ax.plot(
+            closed_angles,
+            closed_values,
+            color=color,
+            linewidth=1.35,
+            label=None if name is None else str(name),
+        )
+        ax.fill(closed_angles, closed_values, color=color, alpha=0.12)
+    ax.set_xticks(angles, categories)
+    ax.yaxis.set_label_text(figure["ylabel"])
+    y_values = frame[y].to_numpy(dtype=float)
+    if y_values.min() >= 0:
+        ax.set_ylim(0, float(y_values.max()) * 1.15)
+
 
 def _draw_twin_axis(
     ax: Axes, frame: Any, twin_spec: dict[str, Any], primary_figure: dict[str, Any], palette: list[str]
@@ -596,6 +625,7 @@ _DISPATCH: dict[str, Any] = {
     "forest": _draw_forest,
     "heatmap": _draw_heatmap,
     "waterfall": _draw_waterfall,
+    "radar": _draw_radar,
 }
 
 
@@ -802,16 +832,17 @@ def draw(
             linewidth=0,
             label=figure.get("vband_label"),
         )
-    ax.set_xlabel(figure["xlabel"])
-    ax.set_ylabel(figure["ylabel"])
-    if figure.get("x_scale"):
-        ax.set_xscale(figure["x_scale"])
-    if figure.get("y_scale"):
-        ax.set_yscale(figure["y_scale"])
-    if figure.get("xlim"):
-        ax.set_xlim(figure["xlim"])
-    if figure.get("ylim"):
-        ax.set_ylim(figure["ylim"])
+    if kind != "radar":
+        ax.set_xlabel(figure["xlabel"])
+        ax.set_ylabel(figure["ylabel"])
+        if figure.get("x_scale"):
+            ax.set_xscale(figure["x_scale"])
+        if figure.get("y_scale"):
+            ax.set_yscale(figure["y_scale"])
+        if figure.get("xlim"):
+            ax.set_xlim(figure["xlim"])
+        if figure.get("ylim"):
+            ax.set_ylim(figure["ylim"])
     grp = figure.get("group")
     has_groups = bool(grp) and grp in frame.columns and frame[grp].nunique() > 1
     reference_labels = [
@@ -885,7 +916,12 @@ def _render_figures(
                 raise ValueError(
                     f"Panel {i} data validation failed: {'; '.join(validation_errors)}"
                 )
-            draw(axes_flat[i], frame, spec, palette)
+            axis = axes_flat[i]
+            if spec.get("type") == "radar":
+                fig.delaxes(axis)
+                axis = fig.add_subplot(panels, panels, i + 1, projection="polar")
+                axes_flat[i] = axis
+            draw(axis, frame, spec, palette)
         for j in range(len(figures), len(axes_flat)):
             axes_flat[j].set_visible(False)
         fig.tight_layout()
@@ -911,13 +947,25 @@ def _render_figures(
                 squeeze=False,
             )
             axes_flat = [axis for row in axes for axis in row]
-            for axis, (value, subset) in zip(axes_flat, facets):
+            for position, (value, subset) in enumerate(facets):
+                axis = axes_flat[position]
+                if spec.get("type") == "radar":
+                    fig.delaxes(axis)
+                    axis = fig.add_subplot(
+                        nrows, ncols, position + 1, projection="polar"
+                    )
+                    axes_flat[position] = axis
                 draw(axis, subset, spec, palette)
                 axis.set_title(value, fontsize="small")
             for axis in axes_flat[len(facets):]:
                 axis.set_visible(False)
         else:
-            fig, ax = plt.subplots(figsize=(width, height))
+            fig, ax = plt.subplots(
+                figsize=(width, height),
+                subplot_kw=(
+                    {"projection": "polar"} if spec.get("type") == "radar" else None
+                ),
+            )
             draw(ax, frame, spec, palette)
         fig.tight_layout()
         stem = output / request["figure_id"]

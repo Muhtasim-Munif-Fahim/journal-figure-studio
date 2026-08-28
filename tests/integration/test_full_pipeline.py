@@ -477,3 +477,40 @@ class TestFullPipeline:
         assert (output_dir / "steps-fig.pdf").exists()
         assert (output_dir / "steps-fig.png").exists()
         plt.close("all")
+
+    def test_radar_request_renders_package(self, tmp_path):
+        import matplotlib.pyplot as plt
+
+        from scripts.render_recipe import main as render_main
+
+        data_path = tmp_path / "radar.csv"
+        data_path.write_text(
+            "metric,score\nAccuracy,0.92\nPrecision,0.85\nRecall,0.88\n",
+            encoding="utf-8",
+        )
+        request = {
+            "figure_id": "radar-fig",
+            "research_field": "computer_science",
+            "profile": "universal",
+            "layout": "single",
+            "data_paths": [str(data_path)],
+            "analysis_script": None,
+            "claim": "All metrics exceed the target.",
+            "caption_takeaway": "Balanced performance across metrics.",
+            "figure": {
+                "type": "radar",
+                "source": str(data_path),
+                "x": "metric",
+                "y": "score",
+                "xlabel": "Metric",
+                "ylabel": "Score",
+            },
+            "output_dir": str(tmp_path / "output"),
+        }
+        request_path = tmp_path / "request.yaml"
+        request_path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        assert render_main(["--request", str(request_path)]) == 0
+        output_dir = tmp_path / "output"
+        assert (output_dir / "radar-fig.pdf").exists()
+        assert (output_dir / "radar-fig.png").exists()
+        plt.close("all")
