@@ -14,9 +14,11 @@ from scripts.common import load_yaml, profile_path, read_table, resolve_request_
 from scripts.constants import (
     LINE_FIGURE_TYPES,
     MIN_RASTER_DPI,
+    SERIES_STYLE_TYPES,
     SUPPORTED_FORMATS,
     VALID_DRAW_STYLES,
     VALID_LEGEND_POSITIONS,
+    VALID_LINESTYLES,
 )
 from scripts.exit_codes import SUCCESS, VALIDATION_ERROR
 from scripts.logging_config import setup_logger
@@ -434,6 +436,61 @@ def _validate_figure_spec(
                     errors.append(
                         f"{prefix}.colorbar.vmin must be less than colorbar.vmax"
                     )
+
+        if "series" in spec:
+            series = spec["series"]
+            if not isinstance(series, dict):
+                errors.append(f"{prefix}.series must be a mapping")
+            else:
+                if spec.get("type") not in SERIES_STYLE_TYPES:
+                    errors.append(
+                        f"{prefix}.series is supported only for line and scatter figures"
+                    )
+                if "marker" in series and (
+                    not isinstance(series["marker"], str)
+                    or not series["marker"].strip()
+                ):
+                    errors.append(f"{prefix}.series.marker must be a non-empty string")
+                if "markersize" in series:
+                    markersize = series["markersize"]
+                    if (
+                        not isinstance(markersize, (int, float))
+                        or isinstance(markersize, bool)
+                        or markersize <= 0
+                    ):
+                        errors.append(
+                            f"{prefix}.series.markersize must be a positive number"
+                        )
+                    elif spec.get("size"):
+                        errors.append(
+                            f"{prefix}.series.markersize cannot be combined with a "
+                            f"size column"
+                        )
+                if "linewidth" in series:
+                    linewidth = series["linewidth"]
+                    if (
+                        not isinstance(linewidth, (int, float))
+                        or isinstance(linewidth, bool)
+                        or linewidth <= 0
+                    ):
+                        errors.append(
+                            f"{prefix}.series.linewidth must be a positive number"
+                        )
+                    elif spec.get("type") not in LINE_FIGURE_TYPES:
+                        errors.append(
+                            f"{prefix}.series.linewidth is supported only for line figures"
+                        )
+                if "linestyle" in series:
+                    linestyle = series["linestyle"]
+                    if linestyle not in VALID_LINESTYLES:
+                        errors.append(
+                            f"{prefix}.series.linestyle must be one of: "
+                            f"{', '.join(sorted(VALID_LINESTYLES))}"
+                        )
+                    elif spec.get("type") not in LINE_FIGURE_TYPES:
+                        errors.append(
+                            f"{prefix}.series.linestyle is supported only for line figures"
+                        )
 
     except ValueError as exc:
         errors.append(f"{prefix}: {exc}")

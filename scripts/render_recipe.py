@@ -240,6 +240,7 @@ def _draw_line(
     lower, upper = figure.get("lower"), figure.get("upper")
     kind = figure.get("type", "line")
     drawstyle = figure.get("drawstyle")
+    series_options = figure.get("series") or {}
     groups = [(None, frame)] if not group else list(frame.groupby(group, sort=False))
     for idx, (name, subset) in enumerate(groups):
         subset = subset.sort_values(x)
@@ -248,6 +249,14 @@ def _draw_line(
         plot_kwargs: dict[str, Any] = {"label": label, "color": color}
         if drawstyle:
             plot_kwargs["drawstyle"] = drawstyle
+        if "marker" in series_options:
+            plot_kwargs["marker"] = series_options["marker"]
+        if "markersize" in series_options:
+            plot_kwargs["markersize"] = series_options["markersize"]
+        if "linewidth" in series_options:
+            plot_kwargs["linewidth"] = series_options["linewidth"]
+        if "linestyle" in series_options:
+            plot_kwargs["linestyle"] = series_options["linestyle"]
         ax.plot(subset[x], subset[y], **plot_kwargs)
         if lower and upper:
             ax.fill_between(
@@ -362,19 +371,24 @@ def _draw_scatter(
     x, y, group = figure["x"], figure["y"], figure.get("group")
     size = figure.get("size")
     x_error, y_error = figure.get("x_error"), figure.get("y_error")
+    series_options = figure.get("series") or {}
     groups = [(None, frame)] if not group else list(frame.groupby(group, sort=False))
     for idx, (name, subset) in enumerate(groups):
         color = palette[idx % len(palette)]
-        ax.scatter(
-            subset[x],
-            subset[y],
-            label=None if name is None else str(name),
-            color=color,
-            alpha=0.8,
-            edgecolor="white",
-            linewidth=0.35,
-            s=subset[size] if size else None,
-        )
+        scatter_kwargs: dict[str, Any] = {
+            "label": None if name is None else str(name),
+            "color": color,
+            "alpha": 0.8,
+            "edgecolor": "white",
+            "linewidth": 0.35,
+        }
+        if "marker" in series_options:
+            scatter_kwargs["marker"] = series_options["marker"]
+        if "markersize" in series_options:
+            scatter_kwargs["s"] = series_options["markersize"] ** 2
+        else:
+            scatter_kwargs["s"] = subset[size] if size else None
+        ax.scatter(subset[x], subset[y], **scatter_kwargs)
         if x_error or y_error:
             ax.errorbar(
                 subset[x],
@@ -798,6 +812,9 @@ def validate_figure_data(frame: Any, figure: dict[str, Any]) -> list[str]:
             errors.append(f"Column '{size}' must be numeric for scatter marker sizes")
         elif (frame[size].dropna() <= 0).any():
             errors.append(f"Column '{size}' must contain only positive marker sizes")
+    series_block = figure.get("series")
+    if isinstance(series_block, dict) and "markersize" in series_block and size:
+        errors.append("series.markersize cannot be combined with a size column")
     if figure.get("trendline"):
         if figure.get("type") != "scatter":
             errors.append("trendline is supported only for scatter figures")

@@ -657,3 +657,119 @@ class TestValidateRequest:
         path.write_text(yaml.safe_dump(request), encoding="utf-8")
         errors = validate_request(path)
         assert errors == []
+
+    def test_series_block_is_rejected_for_bar_figures(self, tmp_path: Path):
+        path = _make_request_yaml(
+            tmp_path,
+            overrides={
+                "figure": {
+                    "type": "bar",
+                    "source": str(tmp_path / "data.csv"),
+                    "x": "category",
+                    "y": "value",
+                    "xlabel": "Category",
+                    "ylabel": "Value",
+                    "series": {"marker": "o"},
+                }
+            },
+        )
+        errors = validate_request(path)
+        assert any(
+            "series is supported only for line and scatter figures" in e
+            for e in errors
+        )
+
+    def test_series_block_must_be_a_mapping(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"].update({"series": "o"})
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("series must be a mapping" in e for e in errors)
+
+    def test_series_markersize_must_be_a_positive_number(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"].update({"series": {"markersize": -1}})
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("series.markersize must be a positive number" in e for e in errors)
+
+    def test_series_markersize_rejects_a_size_column(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"].update(
+            {
+                "type": "scatter",
+                "size": "value",
+                "series": {"markersize": 6},
+            }
+        )
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any(
+            "series.markersize cannot be combined with a size column" in e
+            for e in errors
+        )
+
+    def test_series_linestyle_must_be_valid(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"].update({"series": {"linestyle": "wavy"}})
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("series.linestyle must be one of" in e for e in errors)
+
+    def test_series_linestyle_is_rejected_for_scatter(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"].update(
+            {"type": "scatter", "series": {"linestyle": "solid"}}
+        )
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any(
+            "series.linestyle is supported only for line figures" in e
+            for e in errors
+        )
+
+    def test_series_linewidth_is_rejected_for_scatter(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"].update(
+            {"type": "scatter", "series": {"linewidth": 2}}
+        )
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any(
+            "series.linewidth is supported only for line figures" in e
+            for e in errors
+        )
+
+    def test_line_series_block_is_accepted(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["type"] = "line"
+        request["figure"].update(
+            {
+                "series": {
+                    "marker": "o",
+                    "markersize": 5,
+                    "linewidth": 1.5,
+                    "linestyle": "dashed",
+                }
+            }
+        )
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert errors == []
+
+    def test_scatter_series_block_is_accepted(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"].update(
+            {"type": "scatter", "series": {"marker": "s", "markersize": 6}}
+        )
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert errors == []

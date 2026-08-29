@@ -971,3 +971,82 @@ def test_heatmap_colorbar_label_falls_back_to_flat_key() -> None:
     )
     assert ax.images[0].colorbar.ax.get_ylabel() == "Effect size"
     plt.close(fig)
+
+
+def test_line_series_can_set_marker_linewidth_and_linestyle() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    draw(
+        ax,
+        pd.DataFrame({"x": [1, 2, 3], "y": [2, 5, 9]}),
+        {
+            "type": "line",
+            "x": "x",
+            "y": "y",
+            "xlabel": "x",
+            "ylabel": "y",
+            "series": {"marker": "o", "markersize": 5, "linewidth": 2.5, "linestyle": "dashed"},
+        },
+        ["#000000"],
+    )
+    line = ax.lines[0]
+    assert line.get_marker() == "o"
+    assert line.get_markersize() == 5
+    assert line.get_linewidth() == 2.5
+    assert line.get_linestyle() == "--"
+    plt.close(fig)
+
+
+def test_scatter_series_can_set_marker_shape_and_size() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import pandas as pd
+    from matplotlib.markers import MarkerStyle
+
+    fig, ax = plt.subplots()
+    draw(
+        ax,
+        pd.DataFrame({"x": [1, 2], "y": [3, 4]}),
+        {
+            "type": "scatter",
+            "x": "x",
+            "y": "y",
+            "xlabel": "x",
+            "ylabel": "y",
+            "series": {"marker": "s", "markersize": 6},
+        },
+        ["#000000"],
+    )
+    collection = ax.collections[0]
+    assert collection.get_sizes().tolist() == [36]
+    requested = MarkerStyle("s").get_path().vertices
+    drawn = collection.get_paths()[0].vertices
+    drawn = drawn - drawn.min(axis=0)
+    drawn = drawn / drawn.max(axis=0)
+    assert np.allclose(drawn, requested)
+    plt.close(fig)
+
+
+def test_series_markersize_cannot_be_combined_with_a_size_column() -> None:
+    import pandas as pd
+
+    from scripts.render_recipe import validate_figure_data
+
+    frame = pd.DataFrame({"x": [1, 2], "y": [3, 4], "weight": [40, 100]})
+    errors = validate_figure_data(
+        frame,
+        {
+            "type": "scatter",
+            "x": "x",
+            "y": "y",
+            "size": "weight",
+            "series": {"markersize": 6},
+        },
+    )
+    assert any("cannot be combined with a size column" in error for error in errors)

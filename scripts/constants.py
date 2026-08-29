@@ -62,6 +62,12 @@ VALID_LEGEND_POSITIONS: set[str] = {
 }
 """Legend placement strings accepted by the rendering engine."""
 
+VALID_LINESTYLES: set[str] = {"solid", "dashed", "dotted", "dashdot"}
+"""Line style names accepted by the series styling block."""
+
+SERIES_STYLE_TYPES: set[str] = LINE_FIGURE_TYPES | {"scatter"}
+"""Figure types that accept a series styling block."""
+
 PALETTES: dict[str, list[str]] = {
     "okabe_ito": [
         "#0072B2",
