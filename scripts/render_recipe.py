@@ -463,6 +463,50 @@ def _draw_density(
         ax.legend(frameon=False, fontsize="small")
 
 
+def _draw_area(
+    ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
+) -> None:
+    """Draw filled area series, overlaid by group or stacked by a column."""
+    x, y = figure["x"], figure["y"]
+    stack = figure.get("stack")
+    if stack:
+        prepared = frame.assign(
+            _x=frame[x].to_numpy(dtype=float), _series=frame[stack].astype(str)
+        )
+        pivoted = (
+            prepared.groupby(["_x", "_series"], sort=False)[y]
+            .mean()
+            .unstack("_series")
+            .sort_index()
+            .fillna(0.0)
+        )
+        ax.stackplot(
+            pivoted.index.to_numpy(dtype=float),
+            pivoted.to_numpy(dtype=float).T,
+            labels=pivoted.columns.astype(str).tolist(),
+            colors=palette,
+            alpha=0.85,
+            edgecolor="white",
+            linewidth=0.5,
+        )
+        return
+    group = figure.get("group")
+    if not group:
+        subset = frame.sort_values(x)
+        ax.plot(subset[x], subset[y], color=palette[0], linewidth=1.35)
+        ax.fill_between(
+            subset[x], subset[y], color=palette[0], alpha=0.25, linewidth=0
+        )
+        return
+    for idx, (name, subset) in enumerate(frame.groupby(group, sort=False)):
+        subset = subset.sort_values(x)
+        color = palette[idx % len(palette)]
+        ax.plot(subset[x], subset[y], color=color, linewidth=1.35, label=str(name))
+        ax.fill_between(
+            subset[x], subset[y], color=color, alpha=0.25, linewidth=0
+        )
+
+
 def _draw_forest(
     ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
 ) -> None:
@@ -665,6 +709,7 @@ _DISPATCH: dict[str, Any] = {
     "scatter": _draw_scatter,
     "distribution": _draw_distribution,
     "density": _draw_density,
+    "area": _draw_area,
     "forest": _draw_forest,
     "heatmap": _draw_heatmap,
     "waterfall": _draw_waterfall,
@@ -714,6 +759,11 @@ def validate_figure_data(frame: Any, figure: dict[str, Any]) -> list[str]:
             and np.issubdtype(frame[figure["y"]].dtype, np.number)
         ):
             errors.append("scatter trendlines require numeric x and y columns")
+    if figure.get("type") == "area":
+        x_col = figure.get("x")
+        if x_col and x_col in frame.columns:
+            if not np.issubdtype(frame[x_col].dtype, np.number):
+                errors.append("area figures require a numeric x column")
     if figure.get("orientation") and figure.get("type") not in {"bar", "ablation"}:
         errors.append("orientation is supported only for bar and ablation figures")
     if figure.get("drawstyle") and figure.get("type") not in LINE_FIGURE_TYPES:
@@ -721,18 +771,18 @@ def validate_figure_data(frame: Any, figure: dict[str, Any]) -> list[str]:
     if (figure.get("x_error") or figure.get("y_error")) and figure.get("type") != "scatter":
         errors.append("x_error and y_error are supported only for scatter figures")
     if figure.get("stack"):
-        if figure.get("type") not in {"bar", "ablation"}:
-            errors.append("stack is supported only for bar and ablation figures")
+        if figure.get("type") not in {"bar", "ablation", "area"}:
+            errors.append("stack is supported only for bar, ablation, and area figures")
         elif figure.get("group"):
             errors.append("stack and group cannot be combined; pick one grouping mode")
         elif figure.get("lower") or figure.get("upper"):
-            errors.append("interval bounds are not supported for stacked bars")
+            errors.append("interval bounds are not supported for stacked figures")
         elif (
             figure["y"] in frame.columns
             and (frame[figure["y"]].dropna() < 0).any()
         ):
             errors.append(
-                "stacked bar values must be non-negative; "
+                "stacked values must be non-negative; "
                 f"column '{figure['y']}' contains negative values"
             )
     if bool(figure.get("lower")) != bool(figure.get("upper")):

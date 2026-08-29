@@ -59,6 +59,7 @@ VALID_FIGURE_TYPES: set[str] = {
     "waterfall",
     "radar",
     "density",
+    "area",
 }
 NUMERIC_FIGURE_TYPES: set[str] = set(VALID_FIGURE_TYPES)
 
@@ -122,6 +123,8 @@ def _validate_figure_spec(
         if spec.get("type") in NUMERIC_FIGURE_TYPES:
             numeric_keys.update({"y", "values"})
         if spec.get("trendline"):
+            numeric_keys.add("x")
+        if spec.get("type") == "area":
             numeric_keys.add("x")
         if spec.get("size"):
             numeric_keys.add("size")
@@ -225,9 +228,9 @@ def _validate_figure_spec(
                     f"{prefix}.{error_key} is supported only for scatter figures"
                 )
         if spec.get("stack"):
-            if spec.get("type") not in {"bar", "ablation"}:
+            if spec.get("type") not in {"bar", "ablation", "area"}:
                 errors.append(
-                    f"{prefix}.stack is supported only for bar and ablation figures"
+                    f"{prefix}.stack is supported only for bar, ablation, and area figures"
                 )
             elif spec.get("group"):
                 errors.append(

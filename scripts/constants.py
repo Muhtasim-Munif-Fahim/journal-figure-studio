@@ -37,6 +37,7 @@ SUPPORTED_FIGURE_TYPES: set[str] = {
     "waterfall",
     "radar",
     "density",
+    "area",
 }
 """All figure types that the dispatch system can render."""
 

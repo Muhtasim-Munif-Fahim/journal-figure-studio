@@ -666,3 +666,95 @@ def test_kde_curves_integrate_to_unit_area() -> None:
     area = float(np.sum(density) * (grid[1] - grid[0]))
     assert area == pytest.approx(1.0, abs=1e-3)
     assert np.all(density >= 0.0)
+
+
+def test_area_figures_fill_between_line_and_axis() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    draw(
+        ax,
+        pd.DataFrame({"time": [0, 1, 2, 3], "value": [1.0, 3.0, 2.0, 4.0]}),
+        {"type": "area", "x": "time", "y": "value", "xlabel": "Time", "ylabel": "Value"},
+        ["#000000"],
+    )
+    assert len(ax.lines) == 1
+    assert len(ax.collections) == 1
+    plt.close(fig)
+
+
+def test_area_figures_draw_one_series_per_group() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    frame = pd.DataFrame(
+        {
+            "time": [0, 1, 2, 0, 1, 2],
+            "value": [1.0, 2.0, 3.0, 2.0, 3.0, 4.0],
+            "series": ["a", "a", "a", "b", "b", "b"],
+        }
+    )
+    draw(
+        ax,
+        frame,
+        {
+            "type": "area",
+            "x": "time",
+            "y": "value",
+            "group": "series",
+            "xlabel": "Time",
+            "ylabel": "Value",
+        },
+        ["#000000", "#FF0000"],
+    )
+    assert len(ax.lines) == 2
+    assert len(ax.collections) == 2
+    legend = ax.get_legend()
+    assert legend is not None
+    assert {text.get_text() for text in legend.get_texts()} == {"a", "b"}
+    plt.close(fig)
+
+
+def test_stacked_area_figures_accumulate_series_values() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    frame = pd.DataFrame(
+        {
+            "time": [0, 1, 2, 0, 1, 2],
+            "value": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+            "series": ["a", "a", "a", "b", "b", "b"],
+        }
+    )
+    draw(
+        ax,
+        frame,
+        {
+            "type": "area",
+            "x": "time",
+            "y": "value",
+            "stack": "series",
+            "xlabel": "Time",
+            "ylabel": "Value",
+        },
+        ["#000000", "#FF0000"],
+    )
+    assert len(ax.collections) == 2
+    second_series_top = max(
+        vertex[1] for path in ax.collections[1].get_paths() for vertex in path.vertices
+    )
+    assert float(second_series_top) == pytest.approx(2.0)
+    legend = ax.get_legend()
+    assert legend is not None
+    assert {text.get_text() for text in legend.get_texts()} == {"a", "b"}
+    plt.close(fig)

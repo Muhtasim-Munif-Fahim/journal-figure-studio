@@ -248,6 +248,63 @@ class TestValidateRequest:
         errors = validate_request(path)
         assert any("must reference a numeric column" in e for e in errors)
 
+    def test_area_type_is_accepted(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        (tmp_path / "data.csv").write_text(
+            "time,value\n1,2\n2,4\n3,6\n", encoding="utf-8"
+        )
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["type"] = "area"
+        request["figure"]["x"] = "time"
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        assert validate_request(path) == []
+
+    def test_area_requires_numeric_x(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["type"] = "area"
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("must reference a numeric column" in e for e in errors)
+
+    def test_area_rejects_non_numeric_values(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        (tmp_path / "data.csv").write_text(
+            "time,value\n1,x\n2,y\n", encoding="utf-8"
+        )
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["type"] = "area"
+        request["figure"]["x"] = "time"
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("must reference a numeric column" in e for e in errors)
+
+    def test_stacked_area_with_stack_column_is_accepted(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        (tmp_path / "data.csv").write_text(
+            "time,value,series\n1,2,a\n1,3,b\n2,4,a\n2,5,b\n", encoding="utf-8"
+        )
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["type"] = "area"
+        request["figure"]["x"] = "time"
+        request["figure"]["stack"] = "series"
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        assert validate_request(path) == []
+
+    def test_area_stack_conflicts_with_group(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        (tmp_path / "data.csv").write_text(
+            "time,value,series\n1,2,a\n1,3,b\n2,4,a\n2,5,b\n", encoding="utf-8"
+        )
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["type"] = "area"
+        request["figure"]["x"] = "time"
+        request["figure"]["group"] = "series"
+        request["figure"]["stack"] = "series"
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("cannot be combined" in e for e in errors)
+
     def test_scatter_error_columns_are_accepted(self, tmp_path: Path):
         path = _make_request_yaml(tmp_path)
         (tmp_path / "data.csv").write_text("category,value,sigma\nA,1,0.2\nB,2,0.3\n")

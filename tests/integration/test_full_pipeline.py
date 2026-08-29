@@ -551,3 +551,41 @@ class TestFullPipeline:
         assert (output_dir / "density-fig.pdf").exists()
         assert (output_dir / "density-fig.png").exists()
         plt.close("all")
+
+    def test_area_request_renders_package(self, tmp_path):
+        import matplotlib.pyplot as plt
+
+        from scripts.render_recipe import main as render_main
+
+        data_path = tmp_path / "area.csv"
+        data_path.write_text(
+            "time,revenue,channel\n1,10,a\n2,12,a\n3,14,a\n1,5,b\n2,6,b\n3,8,b\n",
+            encoding="utf-8",
+        )
+        request = {
+            "figure_id": "area-fig",
+            "research_field": "computer_science",
+            "profile": "universal",
+            "layout": "single",
+            "data_paths": [str(data_path)],
+            "analysis_script": None,
+            "claim": "Revenue grows across quarters.",
+            "caption_takeaway": "Combined revenue rises steadily.",
+            "figure": {
+                "type": "area",
+                "source": str(data_path),
+                "x": "time",
+                "y": "revenue",
+                "stack": "channel",
+                "xlabel": "Quarter",
+                "ylabel": "Revenue",
+            },
+            "output_dir": str(tmp_path / "output"),
+        }
+        request_path = tmp_path / "request.yaml"
+        request_path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        assert render_main(["--request", str(request_path)]) == 0
+        output_dir = tmp_path / "output"
+        assert (output_dir / "area-fig.pdf").exists()
+        assert (output_dir / "area-fig.png").exists()
+        plt.close("all")
