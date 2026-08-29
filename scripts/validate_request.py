@@ -16,6 +16,7 @@ from scripts.constants import (
     MIN_RASTER_DPI,
     SUPPORTED_FORMATS,
     VALID_DRAW_STYLES,
+    VALID_LEGEND_POSITIONS,
 )
 from scripts.exit_codes import SUCCESS, VALIDATION_ERROR
 from scripts.logging_config import setup_logger
@@ -321,6 +322,34 @@ def _validate_figure_spec(
                         xytext = ann["xytext"]
                         if not (isinstance(xytext, list) and len(xytext) == 2 and all(isinstance(v, (int, float)) for v in xytext)):
                             errors.append(f"{ann_prefix}.xytext must be a two-number list")
+
+        if spec.get("legend") is not None:
+            legend = spec["legend"]
+            if not isinstance(legend, dict):
+                errors.append(f"{prefix}.legend must be a mapping")
+            else:
+                if "position" in legend and (
+                    not isinstance(legend["position"], str)
+                    or legend["position"] not in VALID_LEGEND_POSITIONS
+                ):
+                    errors.append(
+                        f"{prefix}.legend.position must be one of: "
+                        f"{', '.join(sorted(VALID_LEGEND_POSITIONS))}"
+                    )
+                if "ncols" in legend and (
+                    not isinstance(legend["ncols"], int)
+                    or isinstance(legend["ncols"], bool)
+                    or legend["ncols"] < 1
+                ):
+                    errors.append(f"{prefix}.legend.ncols must be a positive integer")
+                if "framealpha" in legend and (
+                    not isinstance(legend["framealpha"], (int, float))
+                    or isinstance(legend["framealpha"], bool)
+                    or not 0 <= legend["framealpha"] <= 1
+                ):
+                    errors.append(
+                        f"{prefix}.legend.framealpha must be a number between 0 and 1"
+                    )
 
     except ValueError as exc:
         errors.append(f"{prefix}: {exc}")

@@ -305,6 +305,45 @@ class TestValidateRequest:
         errors = validate_request(path)
         assert any("cannot be combined" in e for e in errors)
 
+    def test_legend_block_is_accepted(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["legend"] = {"position": "upper left", "ncols": 2}
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        assert validate_request(path) == []
+
+    def test_legend_must_be_a_mapping(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["legend"] = "upper left"
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("legend must be a mapping" in e for e in errors)
+
+    def test_legend_position_must_be_supported(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["legend"] = {"position": "somewhere"}
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("legend.position must be one of" in e for e in errors)
+
+    def test_legend_ncols_must_be_a_positive_integer(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["legend"] = {"ncols": 0}
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("legend.ncols must be a positive integer" in e for e in errors)
+
+    def test_legend_framealpha_must_be_between_zero_and_one(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["legend"] = {"framealpha": 1.5}
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("legend.framealpha must be a number between 0 and 1" in e for e in errors)
+
     def test_scatter_error_columns_are_accepted(self, tmp_path: Path):
         path = _make_request_yaml(tmp_path)
         (tmp_path / "data.csv").write_text("category,value,sigma\nA,1,0.2\nB,2,0.3\n")

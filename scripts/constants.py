@@ -47,6 +47,21 @@ LINE_FIGURE_TYPES: set[str] = {"line", "time_series", "training_curve", "calibra
 VALID_DRAW_STYLES: set[str] = {"default", "steps-pre", "steps-mid", "steps-post"}
 """Line drawstyle options accepted by the rendering engine."""
 
+VALID_LEGEND_POSITIONS: set[str] = {
+    "best",
+    "upper right",
+    "upper left",
+    "lower left",
+    "lower right",
+    "right",
+    "center left",
+    "center right",
+    "lower center",
+    "upper center",
+    "center",
+}
+"""Legend placement strings accepted by the rendering engine."""
+
 PALETTES: dict[str, list[str]] = {
     "okabe_ito": [
         "#0072B2",

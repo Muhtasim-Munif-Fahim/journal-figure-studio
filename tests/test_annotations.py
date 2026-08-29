@@ -758,3 +758,55 @@ def test_stacked_area_figures_accumulate_series_values() -> None:
     assert legend is not None
     assert {text.get_text() for text in legend.get_texts()} == {"a", "b"}
     plt.close(fig)
+
+
+def test_legend_options_apply_to_figure_legend() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    frame = pd.DataFrame(
+        {
+            "category": ["A", "A", "B", "B"],
+            "value": [1.0, 2.0, 3.0, 4.0],
+            "series": ["x", "y", "x", "y"],
+        }
+    )
+    draw(
+        ax,
+        frame,
+        {
+            "type": "bar",
+            "x": "category",
+            "y": "value",
+            "group": "series",
+            "xlabel": "Category",
+            "ylabel": "Value",
+            "legend": {"position": "upper left", "ncols": 2, "framealpha": 0.5},
+        },
+        ["#000000", "#FF0000"],
+    )
+    fig.canvas.draw()
+    legend = ax.get_legend()
+    assert legend is not None
+    assert legend._loc == 2
+    assert legend._ncols == 2
+    assert legend.get_frame().get_alpha() == pytest.approx(0.5)
+    assert legend.get_frame_on() is True
+    plt.close(fig)
+
+
+def test_legend_framealpha_enables_a_legend_frame() -> None:
+    from scripts.render_recipe import _legend_options
+
+    defaults = _legend_options({"type": "bar"})
+    assert defaults == {"frameon": False, "fontsize": "small"}
+    options = _legend_options(
+        {"legend": {"position": "upper left", "ncols": 2, "framealpha": 0.5}}
+    )
+    assert options["loc"] == "upper left"
+    assert options["ncols"] == 2
+    assert options["framealpha"] == 0.5
+    assert options["frameon"] is True

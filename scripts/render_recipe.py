@@ -86,6 +86,26 @@ def _get_palette(profile: dict[str, Any]) -> list[str]:
     return PALETTES[palette_key]
 
 
+def _legend_options(figure: dict[str, Any]) -> dict[str, Any]:
+    """Legend keyword arguments from a figure-level ``legend`` block.
+
+    Defaults to a frameless small legend; a ``framealpha`` value implies a
+    visible legend frame.
+    """
+    options: dict[str, Any] = {"frameon": False, "fontsize": "small"}
+    legend = figure.get("legend")
+    if not isinstance(legend, dict):
+        return options
+    if "position" in legend:
+        options["loc"] = legend["position"]
+    if "ncols" in legend:
+        options["ncols"] = legend["ncols"]
+    if "framealpha" in legend:
+        options["framealpha"] = legend["framealpha"]
+        options["frameon"] = True
+    return options
+
+
 def copy_if_distinct(source: Path | None, destination: Path) -> None:
     """Copy a reproducibility artifact unless it already matches the destination."""
     if source is None or not source.exists():
@@ -460,7 +480,7 @@ def _draw_density(
         ax.plot(grid, density, color=color, linewidth=1.35, label=str(cat))
         ax.fill_between(grid, density, color=color, alpha=0.15, linewidth=0)
     if len(categories) > 1:
-        ax.legend(frameon=False, fontsize="small")
+        ax.legend(**_legend_options(figure))
 
 
 def _draw_area(
@@ -848,7 +868,9 @@ def draw(
         lines1, labels1 = ax.get_legend_handles_labels()
         lines2, labels2 = twin_ax.get_legend_handles_labels()
         if lines1 or lines2:
-            ax.legend(lines1 + lines2, labels1 + labels2, frameon=False, fontsize="small")
+            ax.legend(
+                lines1 + lines2, labels1 + labels2, **_legend_options(figure)
+            )
     else:
         grp = figure.get("group")
         has_groups = bool(grp) and grp in frame.columns and frame[grp].nunique() > 1
@@ -862,7 +884,7 @@ def draw(
             or figure.get("stack")
             or any(reference_labels)
         ):
-            ax.legend(frameon=False, fontsize="small")
+            ax.legend(**_legend_options(figure))
 
     # Annotation callouts
     if "annotations" in figure:
@@ -948,7 +970,7 @@ def draw(
         or figure.get("stack")
         or any(reference_labels)
     ):
-        ax.legend(frameon=False, fontsize="small")
+        ax.legend(**_legend_options(figure))
     if figure.get("p_value") is not None:
         try:
             unique_x = frame[figure["x"]].unique()
