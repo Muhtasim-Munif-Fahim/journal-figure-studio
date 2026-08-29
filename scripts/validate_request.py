@@ -351,6 +351,48 @@ def _validate_figure_spec(
                         f"{prefix}.legend.framealpha must be a number between 0 and 1"
                     )
 
+        if "box" in spec:
+            box = spec["box"]
+            if not isinstance(box, dict):
+                errors.append(f"{prefix}.box must be a mapping")
+            else:
+                if spec.get("type") != "distribution":
+                    errors.append(
+                        f"{prefix}.box is supported only for distribution figures"
+                    )
+                elif spec.get("kind", "box") == "violin":
+                    errors.append(
+                        f"{prefix}.box is supported only for the box and both "
+                        f"distribution kinds"
+                    )
+                if "showfliers" in box and not isinstance(box["showfliers"], bool):
+                    errors.append(f"{prefix}.box.showfliers must be a boolean")
+                if "whis" in box:
+                    whis = box["whis"]
+                    if (
+                        not isinstance(whis, (int, float))
+                        or isinstance(whis, bool)
+                        or whis <= 0
+                    ):
+                        errors.append(f"{prefix}.box.whis must be a positive number")
+                if "flier_marker" in box and (
+                    not isinstance(box["flier_marker"], str)
+                    or not box["flier_marker"].strip()
+                ):
+                    errors.append(
+                        f"{prefix}.box.flier_marker must be a non-empty string"
+                    )
+                if "flier_size" in box:
+                    flier_size = box["flier_size"]
+                    if (
+                        not isinstance(flier_size, (int, float))
+                        or isinstance(flier_size, bool)
+                        or flier_size <= 0
+                    ):
+                        errors.append(
+                            f"{prefix}.box.flier_size must be a positive number"
+                        )
+
     except ValueError as exc:
         errors.append(f"{prefix}: {exc}")
     except Exception as exc:

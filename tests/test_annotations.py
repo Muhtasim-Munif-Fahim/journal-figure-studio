@@ -810,3 +810,97 @@ def test_legend_framealpha_enables_a_legend_frame() -> None:
     assert options["ncols"] == 2
     assert options["framealpha"] == 0.5
     assert options["frameon"] is True
+
+
+def test_distribution_box_fliers_can_be_hidden() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    frame = pd.DataFrame(
+        {"category": ["A"] * 9 + ["B"] * 9, "value": list(range(9)) + list(range(10, 18)) + [100.0]}
+    )
+    draw(
+        ax,
+        frame,
+        {
+            "type": "distribution",
+            "x": "category",
+            "y": "value",
+            "xlabel": "Category",
+            "ylabel": "Value",
+            "box": {"showfliers": False, "flier_marker": "x"},
+        },
+        ["#000000"],
+    )
+    assert not any(line.get_marker() == "x" for line in ax.lines)
+    plt.close(fig)
+
+
+def test_distribution_box_outliers_use_requested_marker_style() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    frame = pd.DataFrame(
+        {"category": ["A"] * 9 + ["B"] * 9, "value": list(range(9)) + list(range(10, 18)) + [100.0]}
+    )
+    draw(
+        ax,
+        frame,
+        {
+            "type": "distribution",
+            "x": "category",
+            "y": "value",
+            "xlabel": "Category",
+            "ylabel": "Value",
+            "box": {"showfliers": True, "flier_marker": "x", "flier_size": 5},
+        },
+        ["#000000"],
+    )
+    fliers = [
+        line
+        for line in ax.lines
+        if line.get_marker() == "x" and line.get_ydata().size > 0
+    ]
+    assert len(fliers) == 1
+    assert fliers[0].get_markersize() == 5
+    assert np.isclose(float(np.max(fliers[0].get_ydata())), 100.0)
+    plt.close(fig)
+
+
+def test_distribution_box_whisker_range_can_include_outliers() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    frame = pd.DataFrame(
+        {"category": ["A"] * 9 + ["B"] * 9, "value": list(range(9)) + list(range(10, 18)) + [100.0]}
+    )
+    draw(
+        ax,
+        frame,
+        {
+            "type": "distribution",
+            "x": "category",
+            "y": "value",
+            "xlabel": "Category",
+            "ylabel": "Value",
+            "box": {"whis": 100},
+        },
+        ["#000000"],
+    )
+    assert any(
+        line.get_ydata().size > 0
+        and np.isclose(float(line.get_ydata().max()), 100.0)
+        for line in ax.lines
+    )
+    plt.close(fig)

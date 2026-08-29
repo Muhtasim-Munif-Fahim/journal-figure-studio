@@ -496,3 +496,95 @@ class TestValidateRequest:
         path = _make_request_yaml(tmp_path, overrides={"output_dir": ""})
         errors = validate_request(path)
         assert any("output_dir" in e for e in errors)
+
+    def test_box_block_is_rejected_for_non_distribution_figures(self, tmp_path: Path):
+        path = _make_request_yaml(
+            tmp_path,
+            overrides={
+                "figure": {
+                    "type": "bar",
+                    "source": str(tmp_path / "data.csv"),
+                    "x": "category",
+                    "y": "value",
+                    "xlabel": "Category",
+                    "ylabel": "Value",
+                    "box": {"showfliers": False},
+                }
+            },
+        )
+        errors = validate_request(path)
+        assert any(
+            "box is supported only for distribution figures" in e for e in errors
+        )
+
+    def test_box_block_is_rejected_for_violin_only_kind(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"].update(
+            {
+                "type": "distribution",
+                "kind": "violin",
+                "box": {"whis": 1.0},
+            }
+        )
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any(
+            "box is supported only for the box and both distribution kinds"
+            in e
+            for e in errors
+        )
+
+    def test_box_block_must_be_a_mapping(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"].update({"type": "distribution", "box": "no"})
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("box must be a mapping" in e for e in errors)
+
+    def test_box_showfliers_must_be_a_boolean(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"].update(
+            {"type": "distribution", "box": {"showfliers": "yes"}}
+        )
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("box.showfliers must be a boolean" in e for e in errors)
+
+    def test_box_whis_must_be_a_positive_number(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"].update({"type": "distribution", "box": {"whis": 0}})
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("box.whis must be a positive number" in e for e in errors)
+
+    def test_box_flier_size_must_be_a_positive_number(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"].update(
+            {"type": "distribution", "box": {"flier_size": -2}}
+        )
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("box.flier_size must be a positive number" in e for e in errors)
+
+    def test_distribution_box_block_is_accepted(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"].update(
+            {
+                "type": "distribution",
+                "box": {
+                    "showfliers": False,
+                    "whis": 1.5,
+                    "flier_marker": "x",
+                    "flier_size": 4,
+                },
+            }
+        )
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert errors == []

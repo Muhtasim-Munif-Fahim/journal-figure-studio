@@ -416,10 +416,25 @@ def _draw_distribution(
         frame.loc[frame[x].astype(str) == cat, y].dropna().to_numpy()
         for cat in categories
     ]
+    box_options = figure.get("box") or {}
     if kind in {"box", "both"}:
-        boxes = ax.boxplot(
-            values, tick_labels=categories, patch_artist=True, medianprops={"color": "black"}
-        )
+        box_kwargs: dict[str, Any] = {
+            "tick_labels": categories,
+            "patch_artist": True,
+            "medianprops": {"color": "black"},
+        }
+        if "showfliers" in box_options:
+            box_kwargs["showfliers"] = box_options["showfliers"]
+        if "whis" in box_options:
+            box_kwargs["whis"] = box_options["whis"]
+        flierprops: dict[str, Any] = {}
+        if "flier_marker" in box_options:
+            flierprops["marker"] = box_options["flier_marker"]
+        if "flier_size" in box_options:
+            flierprops["markersize"] = box_options["flier_size"]
+        if flierprops:
+            box_kwargs["flierprops"] = flierprops
+        boxes = ax.boxplot(values, **box_kwargs)
         for idx, patch in enumerate(boxes["boxes"]):
             patch.set_facecolor(palette[idx % len(palette)])
             patch.set_alpha(0.8)
