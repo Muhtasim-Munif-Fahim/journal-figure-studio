@@ -393,6 +393,48 @@ def _validate_figure_spec(
                             f"{prefix}.box.flier_size must be a positive number"
                         )
 
+        if "colorbar" in spec:
+            colorbar = spec["colorbar"]
+            if not isinstance(colorbar, dict):
+                errors.append(f"{prefix}.colorbar must be a mapping")
+            else:
+                if spec.get("type") != "heatmap":
+                    errors.append(
+                        f"{prefix}.colorbar is supported only for heatmap figures"
+                    )
+                if "label" in colorbar and (
+                    not isinstance(colorbar["label"], str)
+                    or not colorbar["label"].strip()
+                ):
+                    errors.append(f"{prefix}.colorbar.label must be a non-empty string")
+                if "cmap" in colorbar and (
+                    not isinstance(colorbar["cmap"], str)
+                    or not colorbar["cmap"].strip()
+                ):
+                    errors.append(f"{prefix}.colorbar.cmap must be a non-empty string")
+                for value_key in ("vmin", "vmax"):
+                    value = colorbar.get(value_key)
+                    if value is not None and (
+                        not isinstance(value, (int, float))
+                        or isinstance(value, bool)
+                    ):
+                        errors.append(
+                            f"{prefix}.colorbar.{value_key} must be a number"
+                        )
+                vmin, vmax = colorbar.get("vmin"), colorbar.get("vmax")
+                if (
+                    vmin is not None
+                    and vmax is not None
+                    and isinstance(vmin, (int, float))
+                    and not isinstance(vmin, bool)
+                    and isinstance(vmax, (int, float))
+                    and not isinstance(vmax, bool)
+                    and vmin >= vmax
+                ):
+                    errors.append(
+                        f"{prefix}.colorbar.vmin must be less than colorbar.vmax"
+                    )
+
     except ValueError as exc:
         errors.append(f"{prefix}: {exc}")
     except Exception as exc:

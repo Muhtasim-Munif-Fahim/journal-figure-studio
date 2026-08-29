@@ -588,3 +588,72 @@ class TestValidateRequest:
         path.write_text(yaml.safe_dump(request), encoding="utf-8")
         errors = validate_request(path)
         assert errors == []
+
+    def test_colorbar_block_is_rejected_for_non_heatmap_figures(self, tmp_path: Path):
+        path = _make_request_yaml(
+            tmp_path,
+            overrides={
+                "figure": {
+                    "type": "bar",
+                    "source": str(tmp_path / "data.csv"),
+                    "x": "category",
+                    "y": "value",
+                    "xlabel": "Category",
+                    "ylabel": "Value",
+                    "colorbar": {"cmap": "viridis"},
+                }
+            },
+        )
+        errors = validate_request(path)
+        assert any(
+            "colorbar is supported only for heatmap figures" in e for e in errors
+        )
+
+    def test_colorbar_block_must_be_a_mapping(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"].update({"type": "heatmap", "colorbar": "viridis"})
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("colorbar must be a mapping" in e for e in errors)
+
+    def test_colorbar_vmin_must_be_less_than_vmax(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"].update(
+            {
+                "type": "heatmap",
+                "colorbar": {"vmin": 5, "vmax": 2},
+            }
+        )
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any(
+            "colorbar.vmin must be less than colorbar.vmax" in e for e in errors
+        )
+
+    def test_colorbar_vmax_must_be_numeric(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"].update(
+            {
+                "type": "heatmap",
+                "colorbar": {"vmax": "high"},
+            }
+        )
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("colorbar.vmax must be a number" in e for e in errors)
+
+    def test_heatmap_colorbar_block_is_accepted(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"].update(
+            {
+                "type": "heatmap",
+                "colorbar": {"cmap": "viridis", "vmin": 0, "vmax": 10, "label": "Effect"},
+            }
+        )
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert errors == []

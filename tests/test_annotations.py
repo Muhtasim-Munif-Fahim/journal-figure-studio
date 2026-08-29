@@ -904,3 +904,70 @@ def test_distribution_box_whisker_range_can_include_outliers() -> None:
         for line in ax.lines
     )
     plt.close(fig)
+
+
+def test_heatmap_colorbar_block_applies_cmap_and_range() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    frame = pd.DataFrame(
+        {
+            "row": ["R0", "R0", "R0", "R1", "R1", "R1", "R2", "R2", "R2"],
+            "col": ["C0", "C1", "C2", "C0", "C1", "C2", "C0", "C1", "C2"],
+            "value": [0.0, 1.0, 2.0, 1.0, 2.0, 3.0, 2.0, 3.0, 4.0],
+        }
+    )
+    draw(
+        ax,
+        frame,
+        {
+            "type": "heatmap",
+            "x": "row",
+            "y": "value",
+            "column": "col",
+            "xlabel": "Row",
+            "ylabel": "Value",
+            "colorbar": {"cmap": "viridis", "vmin": 0, "vmax": 10, "label": "Effect"},
+        },
+        ["#000000"],
+    )
+    image = ax.images[0]
+    assert image.get_cmap().name == "viridis"
+    assert image.get_clim() == (0.0, 10.0)
+    assert image.colorbar.ax.get_ylabel() == "Effect"
+    plt.close(fig)
+
+
+def test_heatmap_colorbar_label_falls_back_to_flat_key() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    frame = pd.DataFrame(
+        {
+            "row": ["R0", "R0", "R1", "R1"],
+            "col": ["C0", "C1", "C0", "C1"],
+            "value": [0.0, 1.0, 2.0, 3.0],
+        }
+    )
+    draw(
+        ax,
+        frame,
+        {
+            "type": "heatmap",
+            "x": "row",
+            "y": "value",
+            "column": "col",
+            "xlabel": "Row",
+            "ylabel": "Value",
+            "colorbar_label": "Effect size",
+        },
+        ["#000000"],
+    )
+    assert ax.images[0].colorbar.ax.get_ylabel() == "Effect size"
+    plt.close(fig)

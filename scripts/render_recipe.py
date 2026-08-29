@@ -570,7 +570,16 @@ def _draw_heatmap(
     matrix = frame.pivot(
         index=figure.get("row", x), columns=figure.get("column", group or x), values=y
     )
-    image = ax.imshow(matrix.to_numpy(), cmap="cividis", aspect="auto")
+    colorbar_options = figure.get("colorbar") or {}
+    imshow_kwargs: dict[str, Any] = {
+        "cmap": colorbar_options.get("cmap", "cividis"),
+        "aspect": "auto",
+    }
+    if "vmin" in colorbar_options:
+        imshow_kwargs["vmin"] = colorbar_options["vmin"]
+    if "vmax" in colorbar_options:
+        imshow_kwargs["vmax"] = colorbar_options["vmax"]
+    image = ax.imshow(matrix.to_numpy(), **imshow_kwargs)
     ax.set_xticks(
         np.arange(len(matrix.columns)),
         matrix.columns.astype(str),
@@ -578,7 +587,10 @@ def _draw_heatmap(
         ha="right",
     )
     ax.set_yticks(np.arange(len(matrix.index)), matrix.index.astype(str))
-    plt.colorbar(image, ax=ax, label=figure.get("colorbar_label", y))
+    colorbar_label = colorbar_options.get(
+        "label", figure.get("colorbar_label", y)
+    )
+    plt.colorbar(image, ax=ax, label=colorbar_label)
 
 
 def _draw_waterfall(
