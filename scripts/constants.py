@@ -39,6 +39,7 @@ SUPPORTED_FIGURE_TYPES: set[str] = {
     "density",
     "area",
     "histogram",
+    "strip",
 }
 """All figure types that the dispatch system can render."""
 

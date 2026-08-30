@@ -64,6 +64,7 @@ VALID_FIGURE_TYPES: set[str] = {
     "density",
     "area",
     "histogram",
+    "strip",
 }
 NUMERIC_FIGURE_TYPES: set[str] = set(VALID_FIGURE_TYPES)
 
@@ -529,6 +530,38 @@ def _validate_figure_spec(
                     elif spec.get("type") not in LINE_FIGURE_TYPES:
                         errors.append(
                             f"{prefix}.series.linestyle is supported only for line figures"
+                        )
+
+        if "strip" in spec:
+            strip = spec["strip"]
+            if not isinstance(strip, dict):
+                errors.append(f"{prefix}.strip must be a mapping")
+            else:
+                if spec.get("type") != "strip":
+                    errors.append(
+                        f"{prefix}.strip is supported only for strip figures"
+                    )
+                if "size" in strip:
+                    size = strip["size"]
+                    if (
+                        not isinstance(size, (int, float))
+                        or isinstance(size, bool)
+                        or size <= 0
+                    ):
+                        errors.append(
+                            f"{prefix}.strip.size must be a positive number"
+                        )
+                if "jitter" in strip and not isinstance(strip["jitter"], bool):
+                    errors.append(f"{prefix}.strip.jitter must be a boolean")
+                if "alpha" in strip:
+                    alpha = strip["alpha"]
+                    if (
+                        not isinstance(alpha, (int, float))
+                        or isinstance(alpha, bool)
+                        or not 0 <= alpha <= 1
+                    ):
+                        errors.append(
+                            f"{prefix}.strip.alpha must be a number between 0 and 1"
                         )
 
     except ValueError as exc:

@@ -1182,3 +1182,114 @@ def test_histogram_figures_reject_non_numeric_x() -> None:
         {"type": "histogram", "x": "value"},
     )
     assert any("numeric x column" in error for error in errors)
+
+
+def test_strip_figures_plot_one_point_per_row() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    frame = pd.DataFrame(
+        {"category": ["A", "A", "B", "B"], "value": [1.0, 2.0, 3.0, 4.0]}
+    )
+    draw(
+        ax,
+        frame,
+        {"type": "strip", "x": "category", "y": "value", "xlabel": "Category", "ylabel": "Value"},
+        ["#000000"],
+    )
+    assert len(ax.collections) == 1
+    assert ax.collections[0].get_offsets().shape == (4, 2)
+    assert [tick.get_text() for tick in ax.get_xticklabels()] == ["A", "B"]
+    plt.close(fig)
+
+
+def test_strip_figures_can_disable_jitter() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    frame = pd.DataFrame(
+        {"category": ["A", "A", "B", "B"], "value": [1.0, 2.0, 3.0, 4.0]}
+    )
+    draw(
+        ax,
+        frame,
+        {
+            "type": "strip",
+            "x": "category",
+            "y": "value",
+            "xlabel": "Category",
+            "ylabel": "Value",
+            "strip": {"jitter": False},
+        },
+        ["#000000"],
+    )
+    xs = {float(x) for x in ax.collections[0].get_offsets()[:, 0]}
+    assert xs == {0.0, 1.0}
+    plt.close(fig)
+
+
+def test_strip_figures_apply_requested_marker_size() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    frame = pd.DataFrame(
+        {"category": ["A", "B"], "value": [1.0, 2.0]}
+    )
+    draw(
+        ax,
+        frame,
+        {
+            "type": "strip",
+            "x": "category",
+            "y": "value",
+            "xlabel": "Category",
+            "ylabel": "Value",
+            "strip": {"size": 9},
+        },
+        ["#000000"],
+    )
+    assert ax.collections[0].get_sizes().tolist() == [81.0, 81.0]
+    plt.close(fig)
+
+
+def test_strip_figures_can_group_points_by_a_column() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    frame = pd.DataFrame(
+        {
+            "category": ["A", "A", "B", "B"],
+            "value": [1.0, 2.0, 3.0, 4.0],
+            "series": ["x", "y", "x", "y"],
+        }
+    )
+    draw(
+        ax,
+        frame,
+        {
+            "type": "strip",
+            "x": "category",
+            "y": "value",
+            "group": "series",
+            "xlabel": "Category",
+            "ylabel": "Value",
+        },
+        ["#000000", "#FF0000"],
+    )
+    assert len(ax.collections) == 2
+    legend = ax.get_legend()
+    assert legend is not None
+    assert {text.get_text() for text in legend.get_texts()} == {"x", "y"}
+    plt.close(fig)

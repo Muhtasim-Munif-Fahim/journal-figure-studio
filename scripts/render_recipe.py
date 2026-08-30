@@ -544,6 +544,44 @@ def _draw_histogram(
     )
 
 
+def _draw_strip(
+    ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
+) -> None:
+    """Draw jittered point distributions along a categorical axis."""
+    x, y = figure["x"], figure["y"]
+    group = figure.get("group")
+    strip_options = figure.get("strip") or {}
+    size = strip_options.get("size", 4)
+    jitter = strip_options.get("jitter", True)
+    alpha = strip_options.get("alpha", 0.7)
+    categories = list(dict.fromkeys(frame[x].astype(str)))
+    rng = np.random.default_rng(0)
+    groups = [(None, frame)] if not group else list(frame.groupby(group, sort=False))
+    for idx, (name, subset) in enumerate(groups):
+        xs: list[float] = []
+        ys: list[float] = []
+        for cat_idx, cat in enumerate(categories):
+            values = subset.loc[
+                subset[x].astype(str) == cat, y
+            ].dropna().to_numpy(dtype=float)
+            positions = np.full(len(values), float(cat_idx))
+            if jitter:
+                positions = positions + rng.uniform(-0.2, 0.2, size=len(values))
+            xs.extend(positions.tolist())
+            ys.extend(values.tolist())
+        ax.scatter(
+            xs,
+            ys,
+            s=np.full(len(xs), size**2),
+            color=palette[idx % len(palette)],
+            alpha=alpha,
+            edgecolor="white",
+            linewidth=0.35,
+            label=None if name is None else str(name),
+        )
+    ax.set_xticks(range(len(categories)), categories)
+
+
 def _draw_area(
     ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
 ) -> None:
@@ -803,6 +841,7 @@ _DISPATCH: dict[str, Any] = {
     "distribution": _draw_distribution,
     "density": _draw_density,
     "histogram": _draw_histogram,
+    "strip": _draw_strip,
     "area": _draw_area,
     "forest": _draw_forest,
     "heatmap": _draw_heatmap,

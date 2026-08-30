@@ -890,3 +890,128 @@ class TestValidateRequest:
         path.write_text(yaml.safe_dump(request), encoding="utf-8")
         errors = validate_request(path)
         assert errors == []
+
+    def test_strip_type_is_accepted(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        (tmp_path / "data.csv").write_text(
+            "category,value\nA,1\nA,2\nB,3\nB,4\n", encoding="utf-8"
+        )
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["type"] = "strip"
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert errors == []
+
+    def test_strip_rejects_non_numeric_y(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        (tmp_path / "data.csv").write_text(
+            "category,value\nA,x\nB,y\n", encoding="utf-8"
+        )
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["type"] = "strip"
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("must reference a numeric column" in e for e in errors)
+
+    def test_strip_block_requires_a_strip_type(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"].update({"strip": {"jitter": False}})
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("strip is supported only for strip" in e for e in errors)
+
+    def test_strip_block_must_be_a_mapping(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        (tmp_path / "data.csv").write_text(
+            "category,value\nA,1\nA,2\nB,3\nB,4\n", encoding="utf-8"
+        )
+        request = yaml.safe_load(path.read_text())
+        request["figure"] = {
+            "type": "strip",
+            "source": str(tmp_path / "data.csv"),
+            "x": "category",
+            "y": "value",
+            "xlabel": "Category",
+            "ylabel": "Value",
+            "strip": "jittered",
+        }
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("strip must be a mapping" in e for e in errors)
+
+    def test_strip_size_must_be_a_positive_number(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        (tmp_path / "data.csv").write_text(
+            "category,value\nA,1\nA,2\nB,3\nB,4\n", encoding="utf-8"
+        )
+        request = yaml.safe_load(path.read_text())
+        request["figure"] = {
+            "type": "strip",
+            "source": str(tmp_path / "data.csv"),
+            "x": "category",
+            "y": "value",
+            "xlabel": "Category",
+            "ylabel": "Value",
+            "strip": {"size": 0},
+        }
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("strip.size must be a positive number" in e for e in errors)
+
+    def test_strip_alpha_must_be_between_zero_and_one(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        (tmp_path / "data.csv").write_text(
+            "category,value\nA,1\nA,2\nB,3\nB,4\n", encoding="utf-8"
+        )
+        request = yaml.safe_load(path.read_text())
+        request["figure"] = {
+            "type": "strip",
+            "source": str(tmp_path / "data.csv"),
+            "x": "category",
+            "y": "value",
+            "xlabel": "Category",
+            "ylabel": "Value",
+            "strip": {"alpha": 1.5},
+        }
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("strip.alpha must be a number between 0 and 1" in e for e in errors)
+
+    def test_strip_jitter_must_be_a_boolean(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        (tmp_path / "data.csv").write_text(
+            "category,value\nA,1\nA,2\nB,3\nB,4\n", encoding="utf-8"
+        )
+        request = yaml.safe_load(path.read_text())
+        request["figure"] = {
+            "type": "strip",
+            "source": str(tmp_path / "data.csv"),
+            "x": "category",
+            "y": "value",
+            "xlabel": "Category",
+            "ylabel": "Value",
+            "strip": {"jitter": "yes"},
+        }
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("strip.jitter must be a boolean" in e for e in errors)
+
+    def test_strip_block_is_accepted(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        (tmp_path / "data.csv").write_text(
+            "category,value\nA,1\nA,2\nB,3\nB,4\n", encoding="utf-8"
+        )
+        request = yaml.safe_load(path.read_text())
+        request["figure"] = {
+            "type": "strip",
+            "source": str(tmp_path / "data.csv"),
+            "x": "category",
+            "y": "value",
+            "xlabel": "Category",
+            "ylabel": "Value",
+            "strip": {"size": 5, "jitter": True, "alpha": 0.6},
+        }
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert errors == []
