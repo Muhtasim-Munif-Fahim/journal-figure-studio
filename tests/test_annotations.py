@@ -1050,3 +1050,135 @@ def test_series_markersize_cannot_be_combined_with_a_size_column() -> None:
         },
     )
     assert any("cannot be combined with a size column" in error for error in errors)
+
+
+def test_histogram_figures_bin_a_numeric_column() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    draw(
+        ax,
+        pd.DataFrame({"value": [1.0, 1.0, 2.0, 2.0, 2.0, 3.0, 3.0, 4.0, 5.0]}),
+        {"type": "histogram", "x": "value", "xlabel": "Value"},
+        ["#000000"],
+    )
+    assert len(ax.patches) > 0
+    assert np.isclose(sum(patch.get_height() for patch in ax.patches), 9.0)
+    assert ax.get_ylabel() == "Frequency"
+    plt.close(fig)
+
+
+def test_histogram_figures_can_request_a_bin_count() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    draw(
+        ax,
+        pd.DataFrame({"value": [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]}),
+        {
+            "type": "histogram",
+            "x": "value",
+            "xlabel": "Value",
+            "hist": {"bins": 3},
+        },
+        ["#000000"],
+    )
+    assert len(ax.patches) == 3
+    plt.close(fig)
+
+
+def test_histogram_figures_can_use_density_scaling() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    draw(
+        ax,
+        pd.DataFrame({"value": [1.0, 1.0, 2.0, 2.0, 2.0, 3.0, 3.0, 4.0, 5.0]}),
+        {
+            "type": "histogram",
+            "x": "value",
+            "xlabel": "Value",
+            "hist": {"density": True, "range": [0.0, 6.0]},
+        },
+        ["#000000"],
+    )
+    bin_width = float(ax.patches[0].get_width())
+    assert np.isclose(sum(p.get_height() * bin_width for p in ax.patches), 1.0)
+    assert ax.get_ylabel() == "Density"
+    plt.close(fig)
+
+
+def test_histogram_figures_can_split_by_a_group_column() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    frame = pd.DataFrame(
+        {
+            "value": [1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0, 4.0],
+            "series": ["a", "a", "a", "a", "b", "b", "b", "b"],
+        }
+    )
+    draw(
+        ax,
+        frame,
+        {
+            "type": "histogram",
+            "x": "value",
+            "group": "series",
+            "xlabel": "Value",
+        },
+        ["#000000", "#FF0000"],
+    )
+    legend = ax.get_legend()
+    assert legend is not None
+    assert {text.get_text() for text in legend.get_texts()} == {"a", "b"}
+    plt.close(fig)
+
+
+def test_histogram_figures_respect_custom_ylabel() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    draw(
+        ax,
+        pd.DataFrame({"value": [1.0, 2.0, 3.0]}),
+        {
+            "type": "histogram",
+            "x": "value",
+            "xlabel": "Value",
+            "ylabel": "Observations",
+        },
+        ["#000000"],
+    )
+    assert ax.get_ylabel() == "Observations"
+    plt.close(fig)
+
+
+def test_histogram_figures_reject_non_numeric_x() -> None:
+    import pandas as pd
+
+    from scripts.render_recipe import validate_figure_data
+
+    frame = pd.DataFrame({"value": ["a", "b", "c"]})
+    errors = validate_figure_data(
+        frame,
+        {"type": "histogram", "x": "value"},
+    )
+    assert any("numeric x column" in error for error in errors)

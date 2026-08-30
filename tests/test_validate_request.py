@@ -773,3 +773,120 @@ class TestValidateRequest:
         path.write_text(yaml.safe_dump(request), encoding="utf-8")
         errors = validate_request(path)
         assert errors == []
+
+    def test_histogram_type_is_accepted_without_y(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        (tmp_path / "data.csv").write_text(
+            "value\n1\n2\n3\n4\n", encoding="utf-8"
+        )
+        request = yaml.safe_load(path.read_text())
+        request["figure"] = {
+            "type": "histogram",
+            "source": str(tmp_path / "data.csv"),
+            "x": "value",
+            "xlabel": "Value",
+        }
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert errors == []
+
+    def test_histogram_requires_a_numeric_x_column(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"]["type"] = "histogram"
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("must reference a numeric column" in e for e in errors)
+
+    def test_hist_block_requires_a_histogram_type(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        request = yaml.safe_load(path.read_text())
+        request["figure"].update({"hist": {"bins": 5}})
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("hist is supported only for histogram" in e for e in errors)
+
+    def test_hist_block_must_be_a_mapping(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        (tmp_path / "data.csv").write_text(
+            "value\n1\n2\n3\n4\n", encoding="utf-8"
+        )
+        request = yaml.safe_load(path.read_text())
+        request["figure"] = {
+            "type": "histogram",
+            "source": str(tmp_path / "data.csv"),
+            "x": "value",
+            "xlabel": "Value",
+            "hist": "auto",
+        }
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("hist must be a mapping" in e for e in errors)
+
+    def test_hist_bins_must_be_a_positive_integer(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        (tmp_path / "data.csv").write_text(
+            "value\n1\n2\n3\n4\n", encoding="utf-8"
+        )
+        request = yaml.safe_load(path.read_text())
+        request["figure"] = {
+            "type": "histogram",
+            "source": str(tmp_path / "data.csv"),
+            "x": "value",
+            "xlabel": "Value",
+            "hist": {"bins": 0},
+        }
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("hist.bins must be a positive integer" in e for e in errors)
+
+    def test_hist_range_must_be_an_ascending_pair(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        (tmp_path / "data.csv").write_text(
+            "value\n1\n2\n3\n4\n", encoding="utf-8"
+        )
+        request = yaml.safe_load(path.read_text())
+        request["figure"] = {
+            "type": "histogram",
+            "source": str(tmp_path / "data.csv"),
+            "x": "value",
+            "xlabel": "Value",
+            "hist": {"range": [4, 1]},
+        }
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("hist.range must be an ascending" in e for e in errors)
+
+    def test_hist_density_must_be_a_boolean(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        (tmp_path / "data.csv").write_text(
+            "value\n1\n2\n3\n4\n", encoding="utf-8"
+        )
+        request = yaml.safe_load(path.read_text())
+        request["figure"] = {
+            "type": "histogram",
+            "source": str(tmp_path / "data.csv"),
+            "x": "value",
+            "xlabel": "Value",
+            "hist": {"density": "yes"},
+        }
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("hist.density must be a boolean" in e for e in errors)
+
+    def test_histogram_hist_block_is_accepted(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        (tmp_path / "data.csv").write_text(
+            "value\n1\n2\n3\n4\n", encoding="utf-8"
+        )
+        request = yaml.safe_load(path.read_text())
+        request["figure"] = {
+            "type": "histogram",
+            "source": str(tmp_path / "data.csv"),
+            "x": "value",
+            "xlabel": "Value",
+            "hist": {"bins": 4, "range": [0.5, 4.5], "density": True},
+        }
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert errors == []

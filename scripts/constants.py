@@ -38,6 +38,7 @@ SUPPORTED_FIGURE_TYPES: set[str] = {
     "radar",
     "density",
     "area",
+    "histogram",
 }
 """All figure types that the dispatch system can render."""
 

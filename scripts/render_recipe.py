@@ -19,6 +19,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import yaml
 from matplotlib.axes import Axes
 
@@ -512,6 +513,37 @@ def _draw_density(
         ax.legend(**_legend_options(figure))
 
 
+def _draw_histogram(
+    ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
+) -> None:
+    """Draw a binned numeric distribution, optionally split by a group column."""
+    x = figure["x"]
+    group = figure.get("group")
+    hist_options = figure.get("hist") or {}
+    kwargs: dict[str, Any] = {"edgecolor": "white", "linewidth": 0.5, "alpha": 0.8}
+    if "bins" in hist_options:
+        kwargs["bins"] = hist_options["bins"]
+    if "range" in hist_options:
+        kwargs["range"] = hist_options["range"]
+    density = bool(hist_options.get("density", False))
+    if density:
+        kwargs["density"] = True
+    if not group:
+        ax.hist(frame[x].to_numpy(dtype=float), color=palette[0], **kwargs)
+    else:
+        for idx, (name, subset) in enumerate(frame.groupby(group, sort=False)):
+            values = subset[x].dropna().to_numpy(dtype=float)
+            ax.hist(
+                values,
+                label=str(name),
+                color=palette[idx % len(palette)],
+                **kwargs,
+            )
+    ax.set_ylabel(
+        figure.get("ylabel") or ("Density" if density else "Frequency")
+    )
+
+
 def _draw_area(
     ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
 ) -> None:
@@ -770,6 +802,7 @@ _DISPATCH: dict[str, Any] = {
     "scatter": _draw_scatter,
     "distribution": _draw_distribution,
     "density": _draw_density,
+    "histogram": _draw_histogram,
     "area": _draw_area,
     "forest": _draw_forest,
     "heatmap": _draw_heatmap,
@@ -828,6 +861,11 @@ def validate_figure_data(frame: Any, figure: dict[str, Any]) -> list[str]:
         if x_col and x_col in frame.columns:
             if not np.issubdtype(frame[x_col].dtype, np.number):
                 errors.append("area figures require a numeric x column")
+    if figure.get("type") == "histogram":
+        x_col = figure.get("x")
+        if x_col and x_col in frame.columns:
+            if not pd.api.types.is_numeric_dtype(frame[x_col]):
+                errors.append("histogram figures require a numeric x column")
     if figure.get("orientation") and figure.get("type") not in {"bar", "ablation"}:
         errors.append("orientation is supported only for bar and ablation figures")
     if figure.get("drawstyle") and figure.get("type") not in LINE_FIGURE_TYPES:
@@ -993,7 +1031,8 @@ def draw(
         )
     if kind != "radar":
         ax.set_xlabel(figure["xlabel"])
-        ax.set_ylabel(figure["ylabel"])
+        if figure.get("ylabel") is not None:
+            ax.set_ylabel(figure["ylabel"])
         if figure.get("x_scale"):
             ax.set_xscale(figure["x_scale"])
         if figure.get("y_scale"):

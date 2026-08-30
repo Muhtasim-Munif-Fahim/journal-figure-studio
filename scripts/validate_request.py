@@ -63,6 +63,7 @@ VALID_FIGURE_TYPES: set[str] = {
     "radar",
     "density",
     "area",
+    "histogram",
 }
 NUMERIC_FIGURE_TYPES: set[str] = set(VALID_FIGURE_TYPES)
 
@@ -102,7 +103,10 @@ def _validate_figure_spec(
     if not isinstance(spec, dict):
         errors.append(f"{prefix} must be a dict")
         return
-    for key in sorted(FIGURE_REQUIRED - set(spec)):
+    required_keys = FIGURE_REQUIRED
+    if spec.get("type") == "histogram":
+        required_keys = FIGURE_REQUIRED - {"y", "ylabel"}
+    for key in sorted(required_keys - set(spec)):
         errors.append(f"{prefix} missing '{key}'")
     source = resolve_request_path(request_path, spec.get("source", ""))
     if not source.exists():
@@ -125,6 +129,8 @@ def _validate_figure_spec(
         numeric_keys: set[str] = set()
         if spec.get("type") in NUMERIC_FIGURE_TYPES:
             numeric_keys.update({"y", "values"})
+        if spec.get("type") == "histogram":
+            numeric_keys.add("x")
         if spec.get("trendline"):
             numeric_keys.add("x")
         if spec.get("type") == "area":
@@ -394,6 +400,39 @@ def _validate_figure_spec(
                         errors.append(
                             f"{prefix}.box.flier_size must be a positive number"
                         )
+
+        if "hist" in spec:
+            hist = spec["hist"]
+            if not isinstance(hist, dict):
+                errors.append(f"{prefix}.hist must be a mapping")
+            else:
+                if spec.get("type") != "histogram":
+                    errors.append(
+                        f"{prefix}.hist is supported only for histogram figures"
+                    )
+                if "bins" in hist:
+                    bins = hist["bins"]
+                    if not isinstance(bins, int) or isinstance(bins, bool) or bins < 1:
+                        errors.append(
+                            f"{prefix}.hist.bins must be a positive integer"
+                        )
+                if "range" in hist:
+                    rng = hist["range"]
+                    if (
+                        not isinstance(rng, list)
+                        or len(rng) != 2
+                        or not all(
+                            isinstance(value, (int, float))
+                            and not isinstance(value, bool)
+                            for value in rng
+                        )
+                        or rng[0] >= rng[1]
+                    ):
+                        errors.append(
+                            f"{prefix}.hist.range must be an ascending two-number list"
+                        )
+                if "density" in hist and not isinstance(hist["density"], bool):
+                    errors.append(f"{prefix}.hist.density must be a boolean")
 
         if "colorbar" in spec:
             colorbar = spec["colorbar"]
