@@ -1015,3 +1015,96 @@ class TestValidateRequest:
         path.write_text(yaml.safe_dump(request), encoding="utf-8")
         errors = validate_request(path)
         assert errors == []
+
+    def test_hexbin_type_is_accepted(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        (tmp_path / "data.csv").write_text(
+            "x,y\n1,2\n3,4\n5,6\n7,8\n", encoding="utf-8"
+        )
+        request = yaml.safe_load(path.read_text())
+        request["figure"] = {
+            "type": "hexbin",
+            "source": str(tmp_path / "data.csv"),
+            "x": "x",
+            "y": "y",
+            "xlabel": "X",
+            "ylabel": "Y",
+        }
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert errors == []
+
+    def test_hexbin_requires_numeric_x(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        (tmp_path / "data.csv").write_text(
+            "x,y\na,1\nb,2\nc,3\n", encoding="utf-8"
+        )
+        request = yaml.safe_load(path.read_text())
+        request["figure"] = {
+            "type": "hexbin",
+            "source": str(tmp_path / "data.csv"),
+            "x": "x",
+            "y": "y",
+            "xlabel": "X",
+            "ylabel": "Y",
+        }
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("must reference a numeric column" in e for e in errors)
+
+    def test_hexbin_block_requires_a_hexbin_type(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        (tmp_path / "data.csv").write_text(
+            "x,y\n1,2\n3,4\n", encoding="utf-8"
+        )
+        request = yaml.safe_load(path.read_text())
+        request["figure"] = {
+            "type": "bar",
+            "source": str(tmp_path / "data.csv"),
+            "x": "x",
+            "y": "y",
+            "xlabel": "X",
+            "ylabel": "Y",
+            "hexbin": {"gridsize": 8},
+        }
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("hexbin is supported only for hexbin" in e for e in errors)
+
+    def test_hexbin_gridsize_must_be_a_positive_integer(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        (tmp_path / "data.csv").write_text(
+            "x,y\n1,2\n3,4\n", encoding="utf-8"
+        )
+        request = yaml.safe_load(path.read_text())
+        request["figure"] = {
+            "type": "hexbin",
+            "source": str(tmp_path / "data.csv"),
+            "x": "x",
+            "y": "y",
+            "xlabel": "X",
+            "ylabel": "Y",
+            "hexbin": {"gridsize": 0},
+        }
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert any("hexbin.gridsize must be a positive integer" in e for e in errors)
+
+    def test_hexbin_block_is_accepted(self, tmp_path: Path):
+        path = _make_request_yaml(tmp_path)
+        (tmp_path / "data.csv").write_text(
+            "x,y,z\n1,2,0.5\n3,4,1.5\n5,6,2.5\n7,8,3.5\n", encoding="utf-8"
+        )
+        request = yaml.safe_load(path.read_text())
+        request["figure"] = {
+            "type": "hexbin",
+            "source": str(tmp_path / "data.csv"),
+            "x": "x",
+            "y": "y",
+            "xlabel": "X",
+            "ylabel": "Y",
+            "hexbin": {"gridsize": 6, "mincnt": 1, "cmap": "plasma", "C": "z"},
+        }
+        path.write_text(yaml.safe_dump(request), encoding="utf-8")
+        errors = validate_request(path)
+        assert errors == []

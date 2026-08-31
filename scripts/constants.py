@@ -40,6 +40,7 @@ SUPPORTED_FIGURE_TYPES: set[str] = {
     "area",
     "histogram",
     "strip",
+    "hexbin",
 }
 """All figure types that the dispatch system can render."""
 

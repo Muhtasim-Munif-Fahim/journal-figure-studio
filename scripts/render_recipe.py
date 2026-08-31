@@ -830,6 +830,33 @@ def _facet_subsets(frame: Any, column: str) -> list[tuple[str, Any]]:
     ]
 
 
+def _draw_hexbin(
+    ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
+) -> None:
+    """Draw hexagonal binning of two numeric columns with count or aggregate coloring."""
+    x, y = figure["x"], figure["y"]
+    x_values = frame[x].to_numpy(dtype=float)
+    y_values = frame[y].to_numpy(dtype=float)
+    hexbin_options = figure.get("hexbin") or {}
+    gridsize = hexbin_options.get("gridsize", 10)
+    cmap = hexbin_options.get("cmap", "viridis")
+    mincnt = hexbin_options.get("mincnt", 1)
+    c_column = hexbin_options.get("C")
+    if c_column:
+        c_values = frame[c_column].to_numpy(dtype=float)
+        hb = ax.hexbin(
+            x_values, y_values, C=c_values, gridsize=gridsize, cmap=cmap, mincnt=mincnt
+        )
+    else:
+        hb = ax.hexbin(
+            x_values, y_values, gridsize=gridsize, cmap=cmap, mincnt=mincnt
+        )
+    colorbar_label = hexbin_options.get("colorbar_label") or (
+        str(c_column) if c_column else "count"
+    )
+    plt.colorbar(hb, ax=ax, label=colorbar_label)
+
+
 _DISPATCH: dict[str, Any] = {
     "line": _draw_line,
     "time_series": _draw_line,
@@ -847,6 +874,7 @@ _DISPATCH: dict[str, Any] = {
     "heatmap": _draw_heatmap,
     "waterfall": _draw_waterfall,
     "radar": _draw_radar,
+    "hexbin": _draw_hexbin,
 }
 
 
@@ -905,6 +933,18 @@ def validate_figure_data(frame: Any, figure: dict[str, Any]) -> list[str]:
         if x_col and x_col in frame.columns:
             if not pd.api.types.is_numeric_dtype(frame[x_col]):
                 errors.append("histogram figures require a numeric x column")
+    if figure.get("type") == "hexbin":
+        x_col = figure.get("x")
+        if x_col and x_col in frame.columns:
+            if not pd.api.types.is_numeric_dtype(frame[x_col]):
+                errors.append("hexbin figures require a numeric x column")
+        c_col = (figure.get("hexbin") or {}).get("C")
+        if (
+            c_col
+            and c_col in frame.columns
+            and not pd.api.types.is_numeric_dtype(frame[c_col])
+        ):
+            errors.append("hexbin figures with a C column require a numeric C column")
     if figure.get("orientation") and figure.get("type") not in {"bar", "ablation"}:
         errors.append("orientation is supported only for bar and ablation figures")
     if figure.get("drawstyle") and figure.get("type") not in LINE_FIGURE_TYPES:

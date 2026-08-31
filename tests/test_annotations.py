@@ -1292,4 +1292,92 @@ def test_strip_figures_can_group_points_by_a_column() -> None:
     legend = ax.get_legend()
     assert legend is not None
     assert {text.get_text() for text in legend.get_texts()} == {"x", "y"}
+
+
+def test_hexbin_figures_bin_two_numeric_columns() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    frame = pd.DataFrame(
+        {"x": np.linspace(0, 10, 200), "y": np.linspace(0, 10, 200)}
+    )
+    draw(
+        ax,
+        frame,
+        {"type": "hexbin", "x": "x", "y": "y", "xlabel": "X", "ylabel": "Y"},
+        ["#000000"],
+    )
+    assert len(ax.collections) >= 1
     plt.close(fig)
+
+
+def test_hexbin_figures_color_by_count_and_show_colorbar() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    rng = np.random.default_rng(42)
+    frame = pd.DataFrame(
+        {"x": rng.normal(0, 1, 500), "y": rng.normal(0, 1, 500)}
+    )
+    draw(
+        ax,
+        frame,
+        {"type": "hexbin", "x": "x", "y": "y", "xlabel": "X", "ylabel": "Y"},
+        ["#000000"],
+    )
+    assert len(fig.axes) == 2
+    plt.close(fig)
+
+
+def test_hexbin_figures_can_aggregate_by_a_column() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import pandas as pd
+
+    fig, ax = plt.subplots()
+    rng = np.random.default_rng(0)
+    frame = pd.DataFrame(
+        {
+            "x": rng.normal(0, 1, 300),
+            "y": rng.normal(0, 1, 300),
+            "z": rng.uniform(0, 10, 300),
+        }
+    )
+    draw(
+        ax,
+        frame,
+        {
+            "type": "hexbin",
+            "x": "x",
+            "y": "y",
+            "xlabel": "X",
+            "ylabel": "Y",
+            "hexbin": {"C": "z", "cmap": "plasma", "gridsize": 8},
+        },
+        ["#000000"],
+    )
+    assert len(ax.collections) >= 1
+    plt.close(fig)
+
+
+def test_hexbin_figures_reject_non_numeric_x() -> None:
+    import pandas as pd
+
+    from scripts.render_recipe import validate_figure_data
+
+    frame = pd.DataFrame({"x": ["a", "b", "c"], "y": [1.0, 2.0, 3.0]})
+    errors = validate_figure_data(
+        frame,
+        {"type": "hexbin", "x": "x", "y": "y"},
+    )
+    assert any("numeric x column" in error for error in errors)

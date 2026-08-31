@@ -65,6 +65,7 @@ VALID_FIGURE_TYPES: set[str] = {
     "area",
     "histogram",
     "strip",
+    "hexbin",
 }
 NUMERIC_FIGURE_TYPES: set[str] = set(VALID_FIGURE_TYPES)
 
@@ -131,6 +132,8 @@ def _validate_figure_spec(
         if spec.get("type") in NUMERIC_FIGURE_TYPES:
             numeric_keys.update({"y", "values"})
         if spec.get("type") == "histogram":
+            numeric_keys.add("x")
+        if spec.get("type") == "hexbin":
             numeric_keys.add("x")
         if spec.get("trendline"):
             numeric_keys.add("x")
@@ -434,6 +437,59 @@ def _validate_figure_spec(
                         )
                 if "density" in hist and not isinstance(hist["density"], bool):
                     errors.append(f"{prefix}.hist.density must be a boolean")
+
+        if "hexbin" in spec:
+            hexbin = spec["hexbin"]
+            if not isinstance(hexbin, dict):
+                errors.append(f"{prefix}.hexbin must be a mapping")
+            else:
+                if spec.get("type") != "hexbin":
+                    errors.append(
+                        f"{prefix}.hexbin is supported only for hexbin figures"
+                    )
+                if "gridsize" in hexbin:
+                    gridsize = hexbin["gridsize"]
+                    if (
+                        not isinstance(gridsize, int)
+                        or isinstance(gridsize, bool)
+                        or gridsize < 1
+                    ):
+                        errors.append(
+                            f"{prefix}.hexbin.gridsize must be a positive integer"
+                        )
+                if "mincnt" in hexbin:
+                    mincnt = hexbin["mincnt"]
+                    if (
+                        not isinstance(mincnt, int)
+                        or isinstance(mincnt, bool)
+                        or mincnt < 0
+                    ):
+                        errors.append(
+                            f"{prefix}.hexbin.mincnt must be a non-negative integer"
+                        )
+                if "cmap" in hexbin and (
+                    not isinstance(hexbin["cmap"], str)
+                    or not hexbin["cmap"].strip()
+                ):
+                    errors.append(
+                        f"{prefix}.hexbin.cmap must be a non-empty string"
+                    )
+                if "C" in hexbin:
+                    c_column = hexbin["C"]
+                    if not isinstance(c_column, str) or not c_column.strip():
+                        errors.append(
+                            f"{prefix}.hexbin.C must be a non-empty string"
+                        )
+                    elif c_column not in columns:
+                        errors.append(
+                            f"{prefix}.hexbin.C ('{c_column}') is not a column "
+                            f"in {spec['source']}"
+                        )
+                    elif not pd.api.types.is_numeric_dtype(frame[c_column]):
+                        errors.append(
+                            f"{prefix}.hexbin.C ('{c_column}') must reference "
+                            f"a numeric column"
+                        )
 
         if "colorbar" in spec:
             colorbar = spec["colorbar"]
