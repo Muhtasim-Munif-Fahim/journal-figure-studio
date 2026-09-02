@@ -927,6 +927,37 @@ _DISPATCH: dict[str, Any] = {
 }
 
 
+def _apply_figure_title(fig: Any, spec: dict[str, Any]) -> None:
+    """Render an optional ``title`` and ``subtitle`` above the figure.
+
+    ``title`` is rendered with :func:`matplotlib.figure.Figure.suptitle` so
+    it sits centred above every axes in the figure; ``subtitle`` is rendered
+    as a small italic ``fig.text`` line directly below the title. Both are
+    optional and silently ignored when absent, so existing recipes that
+    rely on x/y labels alone keep working. ``title_fontsize`` and
+    ``subtitle_fontsize`` let callers tune the sizes (defaults 12 and 9).
+    """
+    title = spec.get("title")
+    if isinstance(title, str) and title.strip():
+        title_size = spec.get("title_fontsize", 12)
+        fig.suptitle(title, fontsize=title_size)
+    subtitle = spec.get("subtitle")
+    if isinstance(subtitle, str) and subtitle.strip():
+        subtitle_size = spec.get("subtitle_fontsize", 9)
+        # suptitle draws at y=0.98 by default; stack subtitle slightly below.
+        y = 0.93 if isinstance(title, str) and title.strip() else 0.97
+        fig.text(
+            0.5,
+            y,
+            subtitle,
+            ha="center",
+            va="top",
+            fontsize=subtitle_size,
+            fontstyle="italic",
+            wrap=True,
+        )
+
+
 def validate_figure_data(frame: Any, figure: dict[str, Any]) -> list[str]:
     """Validate that required columns exist and have data in the frame."""
     errors: list[str] = []
@@ -1298,6 +1329,7 @@ def _render_figures(
                 ),
             )
             draw(ax, frame, spec, palette)
+        _apply_figure_title(fig, spec)
         fig.tight_layout()
         stem = output / request["figure_id"]
 

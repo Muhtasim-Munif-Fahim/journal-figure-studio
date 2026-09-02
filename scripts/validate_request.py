@@ -44,6 +44,8 @@ VALID_LAYOUTS: set[str] = {"single", "double"}
 DEFAULT_MAX_CAPTION_LENGTH: int = 200
 DEFAULT_MAX_CLAIM_LENGTH: int = 1000
 DEFAULT_MAX_ALT_TEXT_LENGTH: int = 1000
+DEFAULT_MAX_FIGURE_TITLE_LENGTH: int = 200
+DEFAULT_MAX_FIGURE_SUBTITLE_LENGTH: int = 300
 REQUEST_SCHEMA_VERSION: int = 1
 
 FIGURE_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9.-]{0,63}$")
@@ -807,6 +809,40 @@ def validate_request(
 
     if request.get("claim") and len(request["claim"]) > DEFAULT_MAX_CLAIM_LENGTH:
         msg = "claim exceeds 1000 characters"
+        if strict:
+            errors.append(msg)
+        else:
+            errors.append(f"[warn] {msg}")
+
+    figure = request.get("figure") or {}
+    if not isinstance(figure, dict):
+        figure = {}
+    title = figure.get("title")
+    if isinstance(title, str) and len(title) > DEFAULT_MAX_FIGURE_TITLE_LENGTH:
+        msg = (
+            f"figure.title exceeds {DEFAULT_MAX_FIGURE_TITLE_LENGTH} characters"
+        )
+        if strict:
+            errors.append(msg)
+        else:
+            errors.append(f"[warn] {msg}")
+    subtitle = figure.get("subtitle")
+    if isinstance(subtitle, str) and len(subtitle) > DEFAULT_MAX_FIGURE_SUBTITLE_LENGTH:
+        msg = (
+            f"figure.subtitle exceeds {DEFAULT_MAX_FIGURE_SUBTITLE_LENGTH} characters"
+        )
+        if strict:
+            errors.append(msg)
+        else:
+            errors.append(f"[warn] {msg}")
+    if "title" in figure and title is not None and not isinstance(title, str):
+        msg = "figure.title must be a string when provided"
+        if strict:
+            errors.append(msg)
+        else:
+            errors.append(f"[warn] {msg}")
+    if "subtitle" in figure and subtitle is not None and not isinstance(subtitle, str):
+        msg = "figure.subtitle must be a string when provided"
         if strict:
             errors.append(msg)
         else:
