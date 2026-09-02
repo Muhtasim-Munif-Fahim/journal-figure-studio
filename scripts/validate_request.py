@@ -64,6 +64,7 @@ VALID_FIGURE_TYPES: set[str] = {
     "density",
     "area",
     "histogram",
+    "cumulative",
     "strip",
     "hexbin",
 }
@@ -134,6 +135,8 @@ def _validate_figure_spec(
         if spec.get("type") == "histogram":
             numeric_keys.add("x")
         if spec.get("type") == "hexbin":
+            numeric_keys.add("x")
+        if spec.get("type") == "cumulative":
             numeric_keys.add("x")
         if spec.get("trendline"):
             numeric_keys.add("x")

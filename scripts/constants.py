@@ -39,6 +39,7 @@ SUPPORTED_FIGURE_TYPES: set[str] = {
     "density",
     "area",
     "histogram",
+    "cumulative",
     "strip",
     "hexbin",
 }

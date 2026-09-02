@@ -544,6 +544,54 @@ def _draw_histogram(
     )
 
 
+def _draw_cumulative(
+    ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
+) -> None:
+    """Draw an empirical cumulative distribution of a numeric column.
+
+    The single ``x`` column is sorted and the fraction of observations at or
+    below each point is plotted as a step curve, which makes the figure type
+    suited to cumulative distributions and Pareto-style tail inspection.
+    When a ``group`` column is present, one curve is drawn per group on the
+    same axes, each coloured from the active palette. ``normalise=False``
+    keeps the y-axis as a raw count rather than a [0, 1] fraction.
+    """
+    x = figure["x"]
+    group = figure.get("group")
+    cumulative_options = figure.get("cumulative") or {}
+    normalise = bool(cumulative_options.get("normalise", True))
+    if not group:
+        values = frame[x].dropna().to_numpy(dtype=float)
+        values = np.sort(values)
+        if values.size == 0:
+            return
+        ys = np.arange(1, values.size + 1)
+        if normalise:
+            ys = ys / values.size
+        ax.step(values, ys, where="post", color=palette[0], linewidth=1.5)
+    else:
+        for idx, (name, subset) in enumerate(frame.groupby(group, sort=False)):
+            values = subset[x].dropna().to_numpy(dtype=float)
+            values = np.sort(values)
+            if values.size == 0:
+                continue
+            ys = np.arange(1, values.size + 1)
+            if normalise:
+                ys = ys / values.size
+            ax.step(
+                values,
+                ys,
+                where="post",
+                color=palette[idx % len(palette)],
+                linewidth=1.5,
+                label=str(name),
+            )
+        if frame[group].nunique() > 1:
+            ax.legend(loc="best", framealpha=0.85)
+    ax.set_ylabel(figure.get("ylabel") or ("Cumulative fraction" if normalise else "Cumulative count"))
+    ax.set_ylim(bottom=0.0)
+
+
 def _draw_strip(
     ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
 ) -> None:
@@ -868,6 +916,7 @@ _DISPATCH: dict[str, Any] = {
     "distribution": _draw_distribution,
     "density": _draw_density,
     "histogram": _draw_histogram,
+    "cumulative": _draw_cumulative,
     "strip": _draw_strip,
     "area": _draw_area,
     "forest": _draw_forest,
@@ -933,6 +982,11 @@ def validate_figure_data(frame: Any, figure: dict[str, Any]) -> list[str]:
         if x_col and x_col in frame.columns:
             if not pd.api.types.is_numeric_dtype(frame[x_col]):
                 errors.append("histogram figures require a numeric x column")
+    if figure.get("type") == "cumulative":
+        x_col = figure.get("x")
+        if x_col and x_col in frame.columns:
+            if not pd.api.types.is_numeric_dtype(frame[x_col]):
+                errors.append("cumulative figures require a numeric x column")
     if figure.get("type") == "hexbin":
         x_col = figure.get("x")
         if x_col and x_col in frame.columns:
