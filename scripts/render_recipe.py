@@ -716,6 +716,78 @@ def _draw_boxen(
     ax.set_xticklabels(categories)
 
 
+def _draw_roc_curve(
+    ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
+) -> None:
+    """Draw a binary-classification receiver operating characteristic curve.
+
+    The frame must carry a binary ``label`` column (values 0/1 or any
+    truthy/falsy mapping) and a continuous ``score`` column whose
+    threshold sweep traces the ROC. Each ``group`` value (when provided)
+    is plotted as its own curve; without ``group`` the entire column is
+    treated as one classifier. The area under the curve is computed
+    using the trapezoidal rule and rendered as a label in the legend.
+    """
+    label_col = figure["label"]
+    score_col = figure["score"]
+    group = figure.get("group")
+    roc_options = figure.get("roc") or {}
+    diagonal = bool(roc_options.get("diagonal", True))
+
+    def _points(scores: np.ndarray, labels: np.ndarray) -> tuple[np.ndarray, np.ndarray, float]:
+        if scores.size == 0:
+            return np.array([0.0, 1.0]), np.array([0.0, 1.0]), 0.5
+        thresholds = np.unique(scores)
+        thresholds = np.concatenate(([thresholds.min() - 1.0], thresholds, [thresholds.max() + 1.0]))
+        thresholds = np.unique(thresholds)
+        tprs: list[float] = []
+        fprs: list[float] = []
+        total_pos = max(int(np.sum(labels == 1)), 1)
+        total_neg = max(int(np.sum(labels == 0)), 1)
+        for threshold in thresholds:
+            predicted_positive = scores >= threshold
+            tp = int(np.sum(predicted_positive & (labels == 1)))
+            fp = int(np.sum(predicted_positive & (labels == 0)))
+            tprs.append(tp / total_pos)
+            fprs.append(fp / total_neg)
+        tprs.append(0.0)
+        fprs.append(0.0)
+        sorted_pairs = sorted(zip(fprs, tprs))
+        fprs_sorted, tprs_sorted = zip(*sorted_pairs)
+        fprs_arr = np.asarray(fprs_sorted)
+        tprs_arr = np.asarray(tprs_sorted)
+        auc = float(np.trapezoid(tprs_arr, fprs_arr))
+        return fprs_arr, tprs_arr, max(auc, 0.0)
+
+    if not group:
+        scores = frame[score_col].dropna().to_numpy(dtype=float)
+        labels = frame.loc[frame[score_col].notna(), label_col].to_numpy()
+        labels = np.asarray([1.0 if bool(value) else 0.0 for value in labels])
+        fprs, tprs, auc = _points(scores, labels)
+        ax.plot(fprs, tprs, color=palette[0], linewidth=1.6,
+                label=f"ROC (AUC={auc:.3f})")
+    else:
+        for idx, (name, subset) in enumerate(frame.groupby(group, sort=False)):
+            scores = subset[score_col].dropna().to_numpy(dtype=float)
+            labels = subset.loc[subset[score_col].notna(), label_col].to_numpy()
+            labels = np.asarray([1.0 if bool(value) else 0.0 for value in labels])
+            fprs, tprs, auc = _points(scores, labels)
+            ax.plot(
+                fprs, tprs,
+                color=palette[idx % len(palette)],
+                linewidth=1.6,
+                label=f"{name} (AUC={auc:.3f})",
+            )
+    if diagonal:
+        ax.plot([0.0, 1.0], [0.0, 1.0], "--", color="grey", linewidth=0.8, label="chance")
+    ax.set_xlabel("False positive rate")
+    ax.set_ylabel("True positive rate")
+    ax.set_xlim(0.0, 1.0)
+    ax.set_ylim(0.0, 1.02)
+    ax.legend(loc="lower right", framealpha=0.85)
+
+
+
 def _draw_histogram(
     ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
 ) -> None:
@@ -1122,6 +1194,7 @@ _DISPATCH: dict[str, Any] = {
     "cumulative": _draw_cumulative,
     "violin": _draw_violin,
     "boxen": _draw_boxen,
+    "roc_curve": _draw_roc_curve,
     "strip": _draw_strip,
     "area": _draw_area,
     "forest": _draw_forest,

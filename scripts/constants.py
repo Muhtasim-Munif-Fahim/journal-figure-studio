@@ -41,6 +41,8 @@ SUPPORTED_FIGURE_TYPES: set[str] = {
     "histogram",
     "cumulative",
     "violin",
+    "boxen",
+    "roc_curve",
     "strip",
     "hexbin",
 }
