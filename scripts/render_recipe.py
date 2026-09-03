@@ -590,6 +590,132 @@ def _draw_violin(
     ax.set_xticklabels(categories)
 
 
+def _draw_boxen(
+    ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
+) -> None:
+    """Draw a letter-value (boxen) plot of a numeric column per category.
+
+    Unlike a box plot, which shows the median and a single pair of
+    whiskers, the boxen plot draws the median plus a configurable
+    number of quantile "boxes" centred on it. This makes the tails
+    of a distribution much easier to read. The ``boxen.depths`` option
+    controls how many boxes to draw on each side; the default of 5
+    matches the seaborn boxen default. ``outlier_threshold`` (>0)
+    highlights points that fall outside the deepest whisker so the
+    caller can spot extreme values without drowning in scatter.
+    """
+    x, y = figure["x"], figure["y"]
+    group = figure.get("group")
+    boxen_options = figure.get("boxen") or {}
+    try:
+        depth = int(boxen_options.get("depths", 5))
+    except (TypeError, ValueError) as exc:
+        raise ValueError("boxen.depths must be an integer") from exc
+    if depth < 1:
+        raise ValueError("boxen.depths must be at least 1")
+    try:
+        outlier_threshold = float(boxen_options.get("outlier_threshold", 0.0))
+    except (TypeError, ValueError) as exc:
+        raise ValueError("boxen.outlier_threshold must be a number") from exc
+
+    def _percentiles(values: np.ndarray, depth: int) -> list[float]:
+        """Return the symmetric quantile levels for a letter-value plot."""
+        if values.size == 0:
+            return []
+        levels: list[float] = []
+        for k in range(1, depth + 1):
+            q = 0.5 ** k
+            levels.append(q)
+        return sorted(set(levels))
+
+    categories = list(dict.fromkeys(frame[x].astype(str)))
+    if not group:
+        for idx, cat in enumerate(categories):
+            values = frame.loc[frame[x].astype(str) == cat, y].dropna().to_numpy(dtype=float)
+            if values.size == 0:
+                continue
+            levels = _percentiles(values, depth)
+            quantiles = np.quantile(values, levels)
+            color = palette[idx % len(palette)]
+            median = float(np.median(values))
+            half_height = (np.max(values) - np.min(values)) / 50.0
+            for j, q in enumerate(quantiles):
+                width = (quantiles[-1] - q) * 0.8 + 0.05
+                lower_q = max(0.0, 0.5 - levels[j])
+                upper_q = min(1.0, 0.5 + levels[j])
+                lower = float(np.quantile(values, lower_q))
+                upper = float(np.quantile(values, upper_q))
+                ax.add_patch(plt.Rectangle(
+                    (idx - width / 2.0, lower),
+                    width,
+                    max(upper - lower, half_height),
+                    facecolor=color,
+                    edgecolor="white",
+                    alpha=0.5 + 0.5 * (1.0 - j / max(len(quantiles), 1)),
+                ))
+            ax.plot([idx], [median], marker="o", color=color, markersize=4)
+            if outlier_threshold > 0 and levels:
+                deepest = levels[0]
+                lower_q = max(0.0, 0.5 - deepest - outlier_threshold)
+                upper_q = min(1.0, 0.5 + deepest + outlier_threshold)
+                low = float(np.quantile(values, lower_q))
+                high = float(np.quantile(values, upper_q))
+                extreme = values[(values < low) | (values > high)]
+                if extreme.size:
+                    ax.scatter(
+                        np.full(extreme.size, idx, dtype=float),
+                        extreme,
+                        color=color,
+                        alpha=0.5,
+                        s=10,
+                        edgecolor="white",
+                    )
+    else:
+        groups = list(dict.fromkeys(frame[group].astype(str)))
+        width = 0.8 / max(len(groups), 1)
+        for g_idx, g_name in enumerate(groups):
+            offset = (g_idx - (len(groups) - 1) / 2.0) * width
+            for idx, cat in enumerate(categories):
+                values = frame.loc[
+                    (frame[x].astype(str) == cat) & (frame[group].astype(str) == g_name),
+                    y,
+                ].dropna().to_numpy(dtype=float)
+                if values.size == 0:
+                    continue
+                levels = _percentiles(values, depth)
+                quantiles = np.quantile(values, levels)
+                color = palette[g_idx % len(palette)]
+                median = float(np.median(values))
+                half_height = (np.max(values) - np.min(values)) / 50.0
+                for j, q in enumerate(quantiles):
+                    width_box = (quantiles[-1] - q) * width * 0.9 + 0.02
+                    lower_q = max(0.0, 0.5 - levels[j])
+                    upper_q = min(1.0, 0.5 + levels[j])
+                    lower = float(np.quantile(values, lower_q))
+                    upper = float(np.quantile(values, upper_q))
+                    ax.add_patch(plt.Rectangle(
+                        (idx + offset - width_box / 2.0, lower),
+                        width_box,
+                        max(upper - lower, half_height),
+                        facecolor=color,
+                        edgecolor="white",
+                        alpha=0.5 + 0.5 * (1.0 - j / max(len(quantiles), 1)),
+                    ))
+                ax.plot(
+                    [idx + offset], [median],
+                    marker="o", color=color, markersize=4,
+                )
+        if groups:
+            ax.legend(
+                [plt.Rectangle((0, 0), 1, 1, color=palette[idx % len(palette)], alpha=0.7) for idx in range(len(groups))],
+                [str(name) for name in groups],
+                loc="best",
+                framealpha=0.85,
+            )
+    ax.set_xticks(list(range(len(categories))))
+    ax.set_xticklabels(categories)
+
+
 def _draw_histogram(
     ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
 ) -> None:
@@ -995,6 +1121,7 @@ _DISPATCH: dict[str, Any] = {
     "histogram": _draw_histogram,
     "cumulative": _draw_cumulative,
     "violin": _draw_violin,
+    "boxen": _draw_boxen,
     "strip": _draw_strip,
     "area": _draw_area,
     "forest": _draw_forest,
