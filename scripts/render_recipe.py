@@ -788,6 +788,73 @@ def _draw_roc_curve(
 
 
 
+def _draw_pr_curve(
+    ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
+) -> None:
+    """Draw a binary-classification precision/recall curve.
+
+    Uses the same ``label`` / ``score`` columns as
+    :func:`_draw_roc_curve` and supports the same optional ``group``
+    split. The average precision (area under the PR curve) is rendered
+    in the legend so callers can compare classifiers at a glance.
+    """
+    label_col = figure["label"]
+    score_col = figure["score"]
+    group = figure.get("group")
+    pr_options = figure.get("pr") or {}
+    show_chance = bool(pr_options.get("show_chance", True))
+
+    def _points(scores: np.ndarray, labels: np.ndarray) -> tuple[np.ndarray, np.ndarray, float]:
+        if scores.size == 0 or labels.size == 0:
+            return np.array([1.0, 0.0]), np.array([0.0, 1.0]), 0.0
+        thresholds = np.unique(scores)
+        thresholds = np.concatenate(([thresholds.min() - 1.0], thresholds, [thresholds.max() + 1.0]))
+        thresholds = np.unique(thresholds)
+        recalls: list[float] = []
+        precisions: list[float] = []
+        total_pos = max(int(np.sum(labels == 1)), 1)
+        for threshold in thresholds:
+            predicted_positive = scores >= threshold
+            tp = int(np.sum(predicted_positive & (labels == 1)))
+            fp = int(np.sum(predicted_positive & (labels == 0)))
+            recall = tp / total_pos
+            precision = tp / max(tp + fp, 1)
+            recalls.append(recall)
+            precisions.append(precision)
+        recalls_arr = np.asarray(recalls)
+        precisions_arr = np.asarray(precisions)
+        average_precision = float(np.trapezoid(precisions_arr[::-1], recalls_arr[::-1]))
+        return recalls_arr, precisions_arr, max(average_precision, 0.0)
+
+    base_rate = float((frame[label_col] == 1).mean()) if (frame[label_col] == 1).any() else 0.5
+    if not group:
+        scores = frame[score_col].dropna().to_numpy(dtype=float)
+        labels = frame.loc[frame[score_col].notna(), label_col].to_numpy()
+        labels = np.asarray([1.0 if bool(value) else 0.0 for value in labels])
+        recalls, precisions, ap = _points(scores, labels)
+        ax.plot(recalls, precisions, color=palette[0], linewidth=1.6,
+                label=f"PR (AP={ap:.3f})")
+    else:
+        for idx, (name, subset) in enumerate(frame.groupby(group, sort=False)):
+            scores = subset[score_col].dropna().to_numpy(dtype=float)
+            labels = subset.loc[subset[score_col].notna(), label_col].to_numpy()
+            labels = np.asarray([1.0 if bool(value) else 0.0 for value in labels])
+            recalls, precisions, ap = _points(scores, labels)
+            ax.plot(
+                recalls, precisions,
+                color=palette[idx % len(palette)],
+                linewidth=1.6,
+                label=f"{name} (AP={ap:.3f})",
+            )
+    if show_chance:
+        ax.axhline(base_rate, linestyle="--", color="grey", linewidth=0.8, label="chance")
+    ax.set_xlabel("Recall")
+    ax.set_ylabel("Precision")
+    ax.set_xlim(0.0, 1.02)
+    ax.set_ylim(0.0, 1.02)
+    ax.legend(loc="lower left", framealpha=0.85)
+
+
 def _draw_histogram(
     ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
 ) -> None:
@@ -1194,6 +1261,7 @@ _DISPATCH: dict[str, Any] = {
     "cumulative": _draw_cumulative,
     "violin": _draw_violin,
     "boxen": _draw_boxen,
+    "pr_curve": _draw_pr_curve,
     "roc_curve": _draw_roc_curve,
     "strip": _draw_strip,
     "area": _draw_area,

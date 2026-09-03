@@ -69,6 +69,7 @@ VALID_FIGURE_TYPES: set[str] = {
     "cumulative",
     "violin",
     "boxen",
+    "pr_curve",
     "roc_curve",
     "strip",
     "hexbin",
