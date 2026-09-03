@@ -40,6 +40,7 @@ SUPPORTED_FIGURE_TYPES: set[str] = {
     "area",
     "histogram",
     "cumulative",
+    "violin",
     "strip",
     "hexbin",
 }

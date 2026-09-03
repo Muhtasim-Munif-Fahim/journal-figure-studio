@@ -513,6 +513,83 @@ def _draw_density(
         ax.legend(**_legend_options(figure))
 
 
+def _draw_violin(
+    ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
+) -> None:
+    """Draw a violin plot of a numeric column, optionally split by group.
+
+    The single ``x`` column is treated as the categorical axis. When
+    ``group`` is provided, the rows are split by its value and one violin
+    is drawn per (category, group) pair. ``violin.showmeans`` (default
+    False), ``showmedians`` (default True), ``showextrema`` (default
+    False), and ``widths`` are passed through to ``ax.violinplot``.
+    """
+    x, y = figure["x"], figure["y"]
+    group = figure.get("group")
+    violin_options = figure.get("violin") or {}
+    showmeans = bool(violin_options.get("showmeans", False))
+    showmedians = bool(violin_options.get("showmedians", True))
+    showextrema = bool(violin_options.get("showextrema", False))
+
+    categories = list(dict.fromkeys(frame[x].astype(str)))
+    if not group:
+        positions = list(range(len(categories)))
+        data = [
+            frame.loc[frame[x].astype(str) == cat, y].dropna().to_numpy(dtype=float)
+            for cat in categories
+        ]
+        parts = ax.violinplot(
+            data,
+            positions=positions,
+            showmeans=showmeans,
+            showmedians=showmedians,
+            showextrema=showextrema,
+        )
+        for body in parts.get("bodies", []):
+            body.set_facecolor(palette[0])
+            body.set_alpha(0.7)
+        if showmedians and "cmedians" in parts:
+            parts["cmedians"].set_color(palette[0])
+    else:
+        groups = list(dict.fromkeys(frame[group].astype(str)))
+        width = 0.8 / max(len(groups), 1)
+        for g_idx, name in enumerate(groups):
+            offset = (g_idx - (len(groups) - 1) / 2.0) * width
+            positions = [idx + offset for idx in range(len(categories))]
+            data = [
+                frame.loc[
+                    (frame[x].astype(str) == cat) & (frame[group].astype(str) == name),
+                    y,
+                ]
+                .dropna()
+                .to_numpy(dtype=float)
+                for cat in categories
+            ]
+            parts = ax.violinplot(
+                data,
+                positions=positions,
+                widths=width * 0.9,
+                showmeans=showmeans,
+                showmedians=showmedians,
+                showextrema=showextrema,
+            )
+            color = palette[g_idx % len(palette)]
+            for body in parts.get("bodies", []):
+                body.set_facecolor(color)
+                body.set_alpha(0.6)
+            if showmedians and "cmedians" in parts:
+                parts["cmedians"].set_color(color)
+        if groups:
+            ax.legend(
+                [plt.Rectangle((0, 0), 1, 1, color=palette[idx % len(palette)], alpha=0.6) for idx in range(len(groups))],
+                [str(name) for name in groups],
+                loc="best",
+                framealpha=0.85,
+            )
+    ax.set_xticks(list(range(len(categories))))
+    ax.set_xticklabels(categories)
+
+
 def _draw_histogram(
     ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
 ) -> None:
@@ -917,6 +994,7 @@ _DISPATCH: dict[str, Any] = {
     "density": _draw_density,
     "histogram": _draw_histogram,
     "cumulative": _draw_cumulative,
+    "violin": _draw_violin,
     "strip": _draw_strip,
     "area": _draw_area,
     "forest": _draw_forest,
