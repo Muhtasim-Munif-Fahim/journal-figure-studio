@@ -74,6 +74,7 @@ VALID_FIGURE_TYPES: set[str] = {
     "strip",
     "hexbin",
     "volcano",
+    "qq",
 }
 NUMERIC_FIGURE_TYPES: set[str] = set(VALID_FIGURE_TYPES)
 
@@ -114,7 +115,7 @@ def _validate_figure_spec(
         errors.append(f"{prefix} must be a dict")
         return
     required_keys = FIGURE_REQUIRED
-    if spec.get("type") == "histogram":
+    if spec.get("type") in ("histogram", "qq"):
         required_keys = FIGURE_REQUIRED - {"y", "ylabel"}
     for key in sorted(required_keys - set(spec)):
         errors.append(f"{prefix} missing '{key}'")
@@ -150,6 +151,8 @@ def _validate_figure_spec(
         if spec.get("type") == "area":
             numeric_keys.add("x")
         if spec.get("type") == "volcano":
+            numeric_keys.add("x")
+        if spec.get("type") == "qq":
             numeric_keys.add("x")
         if spec.get("size"):
             numeric_keys.add("size")
@@ -542,6 +545,28 @@ def _validate_figure_spec(
                         errors.append(
                             f"{prefix}.volcano.label_by ('{label_by}') is not a column "
                             f"in {spec['source']}"
+                        )
+
+        if "qq" in spec:
+            qq = spec["qq"]
+            if not isinstance(qq, dict):
+                errors.append(f"{prefix}.qq must be a mapping")
+            else:
+                if spec.get("type") != "qq":
+                    errors.append(
+                        f"{prefix}.qq is supported only for qq figures"
+                    )
+                if "dist" in qq:
+                    dist = qq["dist"]
+                    if not isinstance(dist, str) or dist not in {"norm", "uniform"}:
+                        errors.append(
+                            f"{prefix}.qq.dist must be 'norm' or 'uniform'"
+                        )
+                if "line" in qq:
+                    line = qq["line"]
+                    if not isinstance(line, str) or line not in {"45", "theoretical", "none"}:
+                        errors.append(
+                            f"{prefix}.qq.line must be '45', 'theoretical', or 'none'"
                         )
 
         if "colorbar" in spec:

@@ -47,6 +47,7 @@ SUPPORTED_FIGURE_TYPES: set[str] = {
     "strip",
     "hexbin",
     "volcano",
+    "qq",
 }
 """All figure types that the dispatch system can render."""
 

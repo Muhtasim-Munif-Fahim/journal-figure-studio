@@ -12,6 +12,7 @@ import sys
 from collections.abc import Sequence
 from datetime import datetime, timezone
 from pathlib import Path
+from statistics import NormalDist
 from typing import Any
 
 import matplotlib
@@ -1358,6 +1359,106 @@ def _draw_volcano(
         ax.legend(handles, labels, **_legend_options(figure))
 
 
+_NORMAL_DIST = NormalDist()
+
+
+def _qq_theoretical_quantiles(probs: np.ndarray, dist: str) -> np.ndarray:
+    """Return theoretical quantiles for the given plotting-position probabilities."""
+    if dist == "uniform":
+        return np.asarray(probs, dtype=float)
+    return np.array([_NORMAL_DIST.inv_cdf(p) for p in probs])
+
+
+def _qq_reference_line(
+    ax: Axes,
+    x: np.ndarray,
+    y: np.ndarray,
+    line_style: str,
+) -> None:
+    """Draw a reference line on a Q-Q plot."""
+    if line_style == "none":
+        return
+    if line_style == "45":
+        lo = min(float(x.min()), float(y.min()))
+        hi = max(float(x.max()), float(y.max()))
+        ax.plot([lo, hi], [lo, hi], "k--", linewidth=0.8, label="y = x")
+        return
+    if len(x) >= 4 and np.quantile(x, 0.75) != np.quantile(x, 0.25):
+        q1_x = float(np.quantile(x, 0.25))
+        q3_x = float(np.quantile(x, 0.75))
+        q1_y = float(np.quantile(y, 0.25))
+        q3_y = float(np.quantile(y, 0.75))
+        slope = (q3_y - q1_y) / (q3_x - q1_x)
+        intercept = q1_y - slope * q1_x
+        lo = min(float(x.min()), float(y.min()))
+        hi = max(float(x.max()), float(y.max()))
+        ax.plot(
+            [lo, hi],
+            [slope * lo + intercept, slope * hi + intercept],
+            "k--",
+            linewidth=0.8,
+        )
+
+
+def _draw_qq(
+    ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
+) -> None:
+    """Draw a quantile-quantile (Q-Q) plot.
+
+    When only ``x`` is given, a one-sample Q-Q plot compares the sorted
+    values of ``x`` against theoretical quantiles of the distribution named by
+    ``qq.dist`` (``norm`` by default, or ``uniform``). When ``y`` is also
+    provided, a two-sample Q-Q plot compares the quantiles of ``x`` and
+    ``y``. ``qq.line`` selects the reference line: ``theoretical`` (a line
+    through the first and third quartiles, default), ``45`` (the y = x line),
+    or ``none``.
+    """
+    x_col = figure["x"]
+    y_col = figure.get("y")
+    qq_opts = figure.get("qq") or {}
+    dist = qq_opts.get("dist", "norm")
+    line_style = qq_opts.get("line", "theoretical")
+
+    x_data = frame[x_col].dropna().to_numpy(dtype=float)
+    x_data = x_data[np.isfinite(x_data)]
+
+    if y_col and y_col in frame.columns:
+        y_data = frame[y_col].dropna().to_numpy(dtype=float)
+        y_data = y_data[np.isfinite(y_data)]
+        if len(x_data) == 0 or len(y_data) == 0:
+            return
+        x_sorted = np.sort(x_data)
+        y_sorted = np.sort(y_data)
+        n = min(len(x_sorted), len(y_sorted))
+        probs = (np.arange(1, n + 1) - 0.5) / n
+        x_probs = (np.arange(1, len(x_sorted) + 1) - 0.5) / len(x_sorted)
+        y_probs = (np.arange(1, len(y_sorted) + 1) - 0.5) / len(y_sorted)
+        x_qq = np.interp(probs, x_probs, x_sorted)
+        y_qq = np.interp(probs, y_probs, y_sorted)
+        ax.scatter(x_qq, y_qq, color=palette[0], s=18, alpha=0.7, zorder=3)
+        _qq_reference_line(ax, x_qq, y_qq, "45" if line_style == "theoretical" else line_style)
+    else:
+        if len(x_data) == 0:
+            return
+        x_sorted = np.sort(x_data)
+        n = len(x_sorted)
+        probs = (np.arange(1, n + 1) - 0.5) / n
+        theoretical = _qq_theoretical_quantiles(probs, dist)
+        ax.scatter(theoretical, x_sorted, color=palette[0], s=18, alpha=0.7, zorder=3)
+        _qq_reference_line(ax, theoretical, x_sorted, line_style)
+
+    handles, labels = ax.get_legend_handles_labels()
+    if labels:
+        ax.legend(**_legend_options(figure))
+    ax.set_xlabel(figure.get("xlabel", "Theoretical quantiles"))
+    if figure.get("ylabel") is not None:
+        ax.set_ylabel(figure["ylabel"])
+    elif y_col and y_col in frame.columns:
+        ax.set_ylabel(str(y_col))
+    else:
+        ax.set_ylabel("Sample quantiles")
+
+
 _DISPATCH: dict[str, Any] = {
     "line": _draw_line,
     "time_series": _draw_line,
@@ -1382,6 +1483,7 @@ _DISPATCH: dict[str, Any] = {
     "radar": _draw_radar,
     "hexbin": _draw_hexbin,
     "volcano": _draw_volcano,
+    "qq": _draw_qq,
 }
 
 
@@ -1497,6 +1599,15 @@ def validate_figure_data(frame: Any, figure: dict[str, Any]) -> list[str]:
         if y_col and y_col in frame.columns:
             if not pd.api.types.is_numeric_dtype(frame[y_col]):
                 errors.append("volcano figures require a numeric y column")
+    if figure.get("type") == "qq":
+        x_col = figure.get("x")
+        if x_col and x_col in frame.columns:
+            if not pd.api.types.is_numeric_dtype(frame[x_col]):
+                errors.append("qq figures require a numeric x column")
+        y_col = figure.get("y")
+        if y_col and y_col in frame.columns:
+            if not pd.api.types.is_numeric_dtype(frame[y_col]):
+                errors.append("qq figures require a numeric y column")
     if figure.get("orientation") and figure.get("type") not in {"bar", "ablation"}:
         errors.append("orientation is supported only for bar and ablation figures")
     if figure.get("drawstyle") and figure.get("type") not in LINE_FIGURE_TYPES:
