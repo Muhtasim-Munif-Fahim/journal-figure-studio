@@ -1459,6 +1459,95 @@ def _draw_qq(
         ax.set_ylabel("Sample quantiles")
 
 
+_Z_95: float = 1.959963984540054
+
+
+def _draw_survival(
+    ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
+) -> None:
+    """Draw a Kaplan-Meier survival curve with optional confidence bands.
+
+    The ``x`` column holds event or censoring times and the ``y`` column
+    holds the event indicator (1 = event observed, 0 = censored). When a
+    ``group`` column is present, one survival curve is drawn per stratum,
+    each coloured from the active palette. ``survival.confidence`` (default
+    True) overlays Greenwood's confidence bands; ``survival.censor_marks``
+    (default True) draws tick marks at censored observation times.
+    """
+    x, y = figure["x"], figure["y"]
+    group = figure.get("group")
+    opts = figure.get("survival") or {}
+    show_confidence = bool(opts.get("confidence", True))
+    censor_marks = bool(opts.get("censor_marks", True))
+
+    groups = [(None, frame)] if not group else list(frame.groupby(group, sort=False))
+    for idx, (name, subset) in enumerate(groups):
+        color = palette[idx % len(palette)]
+        times = subset[x].to_numpy(dtype=float)
+        events = subset[y].to_numpy(dtype=float)
+        valid = np.isfinite(times) & np.isfinite(events)
+        times = times[valid]
+        events = events[valid]
+        if times.size == 0:
+            continue
+        order = np.argsort(times, kind="stable")
+        times = times[order]
+        events = events[order]
+
+        event_times = np.unique(times[events == 1])
+        surv_times: list[float] = [0.0]
+        surv_probs: list[float] = [1.0]
+        se_list: list[float] = [0.0]
+        survival = 1.0
+        cumvar = 0.0
+        for event_time in event_times:
+            at_risk = int(np.sum(times >= event_time))
+            d = int(np.sum((times == event_time) & (events == 1)))
+            if at_risk > 0 and d > 0:
+                survival *= 1.0 - d / at_risk
+                if at_risk > d:
+                    cumvar += d / (at_risk * (at_risk - d))
+            surv_times.append(float(event_time))
+            surv_probs.append(float(survival))
+            se = survival * float(np.sqrt(cumvar)) if cumvar > 0 else 0.0
+            se_list.append(se)
+
+        surv_times_arr = np.array(surv_times)
+        surv_probs_arr = np.array(surv_probs)
+        se_arr = np.array(se_list)
+
+        label = str(name) if name else None
+        ax.step(
+            surv_times_arr, surv_probs_arr,
+            where="post", color=color, linewidth=1.6, label=label,
+        )
+
+        if show_confidence and len(surv_times) > 1:
+            lower = np.clip(surv_probs_arr - _Z_95 * se_arr, 0.0, 1.0)
+            upper = np.clip(surv_probs_arr + _Z_95 * se_arr, 0.0, 1.0)
+            ax.fill_between(surv_times_arr, lower, upper, color=color, alpha=0.15)
+
+        if censor_marks:
+            censored = times[events == 0]
+            for ct in censored:
+                pos = int(np.searchsorted(surv_times_arr, ct, side="right") - 1)
+                s_val = surv_probs_arr[pos] if pos >= 0 else 1.0
+                ax.plot(
+                    ct, s_val, marker="|", color=color,
+                    markersize=8, markeredgewidth=1.5,
+                )
+
+    ax.set_ylim(0.0, 1.05)
+    handles, labels = ax.get_legend_handles_labels()
+    if labels:
+        ax.legend(**_legend_options(figure))
+    ax.set_xlabel(figure.get("xlabel", "Time"))
+    if figure.get("ylabel") is not None:
+        ax.set_ylabel(figure["ylabel"])
+    else:
+        ax.set_ylabel("Survival probability")
+
+
 _DISPATCH: dict[str, Any] = {
     "line": _draw_line,
     "time_series": _draw_line,
@@ -1484,6 +1573,7 @@ _DISPATCH: dict[str, Any] = {
     "hexbin": _draw_hexbin,
     "volcano": _draw_volcano,
     "qq": _draw_qq,
+    "survival": _draw_survival,
 }
 
 
@@ -1608,6 +1698,15 @@ def validate_figure_data(frame: Any, figure: dict[str, Any]) -> list[str]:
         if y_col and y_col in frame.columns:
             if not pd.api.types.is_numeric_dtype(frame[y_col]):
                 errors.append("qq figures require a numeric y column")
+    if figure.get("type") == "survival":
+        x_col = figure.get("x")
+        if x_col and x_col in frame.columns:
+            if not pd.api.types.is_numeric_dtype(frame[x_col]):
+                errors.append("survival figures require a numeric time column")
+        y_col = figure.get("y")
+        if y_col and y_col in frame.columns:
+            if not pd.api.types.is_numeric_dtype(frame[y_col]):
+                errors.append("survival figures require a numeric event column")
     if figure.get("orientation") and figure.get("type") not in {"bar", "ablation"}:
         errors.append("orientation is supported only for bar and ablation figures")
     if figure.get("drawstyle") and figure.get("type") not in LINE_FIGURE_TYPES:

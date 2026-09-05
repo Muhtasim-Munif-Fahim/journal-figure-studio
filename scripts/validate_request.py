@@ -75,6 +75,7 @@ VALID_FIGURE_TYPES: set[str] = {
     "hexbin",
     "volcano",
     "qq",
+    "survival",
 }
 NUMERIC_FIGURE_TYPES: set[str] = set(VALID_FIGURE_TYPES)
 
@@ -153,6 +154,8 @@ def _validate_figure_spec(
         if spec.get("type") == "volcano":
             numeric_keys.add("x")
         if spec.get("type") == "qq":
+            numeric_keys.add("x")
+        if spec.get("type") == "survival":
             numeric_keys.add("x")
         if spec.get("size"):
             numeric_keys.add("size")
@@ -567,6 +570,21 @@ def _validate_figure_spec(
                     if not isinstance(line, str) or line not in {"45", "theoretical", "none"}:
                         errors.append(
                             f"{prefix}.qq.line must be '45', 'theoretical', or 'none'"
+                        )
+
+        if "survival" in spec:
+            survival = spec["survival"]
+            if not isinstance(survival, dict):
+                errors.append(f"{prefix}.survival must be a mapping")
+            else:
+                if spec.get("type") != "survival":
+                    errors.append(
+                        f"{prefix}.survival is supported only for survival figures"
+                    )
+                for bool_key in ("confidence", "censor_marks"):
+                    if bool_key in survival and not isinstance(survival[bool_key], bool):
+                        errors.append(
+                            f"{prefix}.survival.{bool_key} must be a boolean"
                         )
 
         if "colorbar" in spec:
