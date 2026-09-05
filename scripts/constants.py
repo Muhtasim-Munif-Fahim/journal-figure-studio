@@ -46,6 +46,7 @@ SUPPORTED_FIGURE_TYPES: set[str] = {
     "roc_curve",
     "strip",
     "hexbin",
+    "volcano",
 }
 """All figure types that the dispatch system can render."""
 

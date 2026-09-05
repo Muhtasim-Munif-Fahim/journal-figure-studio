@@ -1247,6 +1247,117 @@ def _draw_hexbin(
     plt.colorbar(hb, ax=ax, label=colorbar_label)
 
 
+def _draw_volcano(
+    ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
+) -> None:
+    """Draw a volcano plot of log-fold-change versus statistical significance.
+
+    The ``x`` column holds log-fold-change values and the ``y`` column holds
+    p-values. Points are coloured by significance category — significant
+    up-regulation, significant down-regulation, or not significant — relative
+    to ``volcano.cutoff_p`` (default 0.05) and ``volcano.cutoff_fold``
+    (default 1.0). Significance threshold lines are drawn as dashed guides.
+    When ``volcano.label_by`` names a column, the label values of significant
+    points are annotated on the plot.
+    """
+    x, y = figure["x"], figure["y"]
+    group = figure.get("group")
+    opts = figure.get("volcano") or {}
+    cutoff_p = float(opts.get("cutoff_p", 0.05))
+    cutoff_fold = float(opts.get("cutoff_fold", 1.0))
+    label_by = opts.get("label_by")
+
+    columns = [x, y]
+    if group:
+        columns.append(group)
+    if label_by and label_by not in columns:
+        columns.append(label_by)
+    work = frame[columns].copy()
+    x_vals = work[x].to_numpy(dtype=float)
+    y_vals = work[y].to_numpy(dtype=float)
+    mask = np.isfinite(x_vals) & np.isfinite(y_vals) & (y_vals > 0) & (y_vals <= 1)
+    work = work[mask].copy()
+    work["_neglog10p"] = -np.log10(work[y].astype(float))
+    p_valid = work[y].to_numpy(dtype=float)
+    logfc_valid = work[x].to_numpy(dtype=float)
+    work["_sig"] = (p_valid < cutoff_p) & (np.abs(logfc_valid) > cutoff_fold)
+    work["_dir"] = np.where(logfc_valid > 0, "up", "down")
+
+    neg_log_p_thresh = -np.log10(cutoff_p)
+    ax.axhline(
+        neg_log_p_thresh, color="#555555", linewidth=0.8, linestyle="--"
+    )
+    ax.axvline(
+        cutoff_fold, color="#555555", linewidth=0.8, linestyle="-."
+    )
+    ax.axvline(
+        -cutoff_fold, color="#555555", linewidth=0.8, linestyle="-."
+    )
+    ax.axvline(0, color="#555555", linewidth=0.5, linestyle=":")
+
+    if not group:
+        nonsig = work[~work["_sig"]]
+        up = work[work["_sig"] & (work["_dir"] == "up")]
+        down = work[work["_sig"] & (work["_dir"] == "down")]
+        ax.scatter(
+            nonsig[x], nonsig["_neglog10p"],
+            color="#888888", alpha=0.5, s=18,
+        )
+        if len(up):
+            ax.scatter(
+                up[x], up["_neglog10p"],
+                color=palette[0], alpha=0.7, s=22,
+                label="Significant up-regulated",
+            )
+        if len(down):
+            ax.scatter(
+                down[x], down["_neglog10p"],
+                color=palette[min(1, len(palette) - 1)], alpha=0.7, s=22,
+                marker="^", label="Significant down-regulated",
+            )
+    else:
+        for idx, (name, subset) in enumerate(work.groupby(group, sort=False)):
+            color = palette[idx % len(palette)]
+            nonsig = subset[~subset["_sig"]]
+            up = subset[subset["_sig"] & (subset["_dir"] == "up")]
+            down = subset[subset["_sig"] & (subset["_dir"] == "down")]
+            ax.scatter(
+                nonsig[x], nonsig["_neglog10p"],
+                color="#888888", alpha=0.4, s=15,
+            )
+            if len(up):
+                ax.scatter(
+                    up[x], up["_neglog10p"],
+                    color=color, alpha=0.7, s=22,
+                    label=f"{name} (up)",
+                )
+            if len(down):
+                ax.scatter(
+                    down[x], down["_neglog10p"],
+                    color=color, alpha=0.7, s=22, marker="^",
+                    label=f"{name} (down)",
+                )
+
+    if label_by and label_by in work.columns:
+        sig_pts = work[work["_sig"]]
+        for _, row in sig_pts.iterrows():
+            ax.annotate(
+                str(row[label_by]),
+                (float(row[x]), float(row["_neglog10p"])),
+                fontsize=5.5,
+                xytext=(3, 3),
+                textcoords="offset points",
+            )
+
+    ax.set_xlabel(figure.get("xlabel", "Log fold change"))
+    ax.set_ylabel(figure.get("ylabel", "-log10(p-value)"))
+    if figure.get("x_scale"):
+        ax.set_xscale(figure["x_scale"])
+    handles, labels = ax.get_legend_handles_labels()
+    if labels:
+        ax.legend(handles, labels, **_legend_options(figure))
+
+
 _DISPATCH: dict[str, Any] = {
     "line": _draw_line,
     "time_series": _draw_line,
@@ -1270,6 +1381,7 @@ _DISPATCH: dict[str, Any] = {
     "waterfall": _draw_waterfall,
     "radar": _draw_radar,
     "hexbin": _draw_hexbin,
+    "volcano": _draw_volcano,
 }
 
 
@@ -1375,7 +1487,16 @@ def validate_figure_data(frame: Any, figure: dict[str, Any]) -> list[str]:
             and c_col in frame.columns
             and not pd.api.types.is_numeric_dtype(frame[c_col])
         ):
-            errors.append("hexbin figures with a C column require a numeric C column")
+                 errors.append("hexbin figures with a C column require a numeric C column")
+    if figure.get("type") == "volcano":
+        x_col = figure.get("x")
+        if x_col and x_col in frame.columns:
+            if not pd.api.types.is_numeric_dtype(frame[x_col]):
+                errors.append("volcano figures require a numeric x column")
+        y_col = figure.get("y")
+        if y_col and y_col in frame.columns:
+            if not pd.api.types.is_numeric_dtype(frame[y_col]):
+                errors.append("volcano figures require a numeric y column")
     if figure.get("orientation") and figure.get("type") not in {"bar", "ablation"}:
         errors.append("orientation is supported only for bar and ablation figures")
     if figure.get("drawstyle") and figure.get("type") not in LINE_FIGURE_TYPES:

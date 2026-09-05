@@ -73,6 +73,7 @@ VALID_FIGURE_TYPES: set[str] = {
     "roc_curve",
     "strip",
     "hexbin",
+    "volcano",
 }
 NUMERIC_FIGURE_TYPES: set[str] = set(VALID_FIGURE_TYPES)
 
@@ -147,6 +148,8 @@ def _validate_figure_spec(
         if spec.get("trendline"):
             numeric_keys.add("x")
         if spec.get("type") == "area":
+            numeric_keys.add("x")
+        if spec.get("type") == "volcano":
             numeric_keys.add("x")
         if spec.get("size"):
             numeric_keys.add("size")
@@ -498,6 +501,47 @@ def _validate_figure_spec(
                         errors.append(
                             f"{prefix}.hexbin.C ('{c_column}') must reference "
                             f"a numeric column"
+                        )
+
+        if "volcano" in spec:
+            volcano = spec["volcano"]
+            if not isinstance(volcano, dict):
+                errors.append(f"{prefix}.volcano must be a mapping")
+            else:
+                if spec.get("type") != "volcano":
+                    errors.append(
+                        f"{prefix}.volcano is supported only for volcano figures"
+                    )
+                if "cutoff_p" in volcano:
+                    cutoff_p = volcano["cutoff_p"]
+                    if (
+                        not isinstance(cutoff_p, (int, float))
+                        or isinstance(cutoff_p, bool)
+                        or not 0 < cutoff_p <= 1
+                    ):
+                        errors.append(
+                            f"{prefix}.volcano.cutoff_p must be a number between 0 and 1"
+                        )
+                if "cutoff_fold" in volcano:
+                    cutoff_fold = volcano["cutoff_fold"]
+                    if (
+                        not isinstance(cutoff_fold, (int, float))
+                        or isinstance(cutoff_fold, bool)
+                        or cutoff_fold <= 0
+                    ):
+                        errors.append(
+                            f"{prefix}.volcano.cutoff_fold must be a positive number"
+                        )
+                if "label_by" in volcano:
+                    label_by = volcano["label_by"]
+                    if not isinstance(label_by, str) or not label_by.strip():
+                        errors.append(
+                            f"{prefix}.volcano.label_by must be a non-empty string"
+                        )
+                    elif label_by not in columns:
+                        errors.append(
+                            f"{prefix}.volcano.label_by ('{label_by}') is not a column "
+                            f"in {spec['source']}"
                         )
 
         if "colorbar" in spec:
