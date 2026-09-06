@@ -76,6 +76,7 @@ VALID_FIGURE_TYPES: set[str] = {
     "volcano",
     "qq",
     "survival",
+    "lollipop",
 }
 NUMERIC_FIGURE_TYPES: set[str] = set(VALID_FIGURE_TYPES)
 
@@ -270,11 +271,11 @@ def _validate_figure_spec(
         if "orientation" in spec:
             if spec["orientation"] not in {"vertical", "horizontal"}:
                 errors.append(f"{prefix}.orientation must be 'vertical' or 'horizontal'")
-            elif spec.get("type") not in {"bar", "ablation"}:
+            elif spec.get("type") not in {"bar", "ablation", "lollipop"}:
                 errors.append(
-                    f"{prefix}.orientation is supported only for bar and ablation figures"
-
+                    f"{prefix}.orientation is supported only for bar, ablation, and lollipop figures"
                 )
+
             kind = spec.get("kind", "box")
             if kind not in {"box", "violin", "both"}:
                 errors.append(f"{prefix}.kind must be one of box, violin, both")
@@ -585,6 +586,26 @@ def _validate_figure_spec(
                     if bool_key in survival and not isinstance(survival[bool_key], bool):
                         errors.append(
                             f"{prefix}.survival.{bool_key} must be a boolean"
+                        )
+
+        if "lollipop" in spec:
+            lollipop = spec["lollipop"]
+            if not isinstance(lollipop, dict):
+                errors.append(f"{prefix}.lollipop must be a mapping")
+            else:
+                if spec.get("type") != "lollipop":
+                    errors.append(
+                        f"{prefix}.lollipop is supported only for lollipop figures"
+                    )
+                if "size" in lollipop:
+                    size = lollipop["size"]
+                    if (
+                        not isinstance(size, (int, float))
+                        or isinstance(size, bool)
+                        or size <= 0
+                    ):
+                        errors.append(
+                            f"{prefix}.lollipop.size must be a positive number"
                         )
 
         if "colorbar" in spec:

@@ -717,6 +717,67 @@ def _draw_boxen(
     ax.set_xticklabels(categories)
 
 
+def _draw_lollipop(
+    ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
+) -> None:
+    """Draw a lollipop chart of categorical values with stems to a baseline.
+
+    Each category in ``x`` maps to a position on the orthogonal axis; a thin
+    stem runs from the zero baseline to the ``y`` value and terminates in a
+    marker. This renders ordered comparisons with less visual mass than a
+    filled bar and is well suited to ranked categorical magnitudes.
+
+    ``orientation`` ("vertical" default or "horizontal") selects the
+    categorical axis; ``lollipop.size`` (default 6) sets the marker size in
+    points. When ``group`` is provided, one lollipop is drawn per
+    (category, group) pair, coloured from the palette.
+    """
+    x, y = figure["x"], figure["y"]
+    group = figure.get("group")
+    orientation = figure.get("orientation", "vertical")
+    lollipop_opts = figure.get("lollipop") or {}
+    marker_size = float(lollipop_opts.get("size", 6))
+    categories = list(dict.fromkeys(frame[x].astype(str)))
+    positions = np.arange(len(categories))
+    stem_color = "#555555"
+    stem_width = 1.0
+
+    groups = [(None, frame)] if not group else list(frame.groupby(group, sort=False))
+    total = len(groups)
+    slot = 0.8 / max(total, 1)
+    for g_idx, (name, subset) in enumerate(groups):
+        indexed = subset.assign(_category=subset[x].astype(str)).set_index("_category")
+        subset_aligned = indexed.reindex(categories)
+        values = subset_aligned[y].to_numpy(dtype=float)
+        offset = (g_idx - (total - 1) / 2.0) * slot
+        locs = positions + offset
+        finite = np.isfinite(values)
+        xs = locs[finite]
+        ys = values[finite]
+        if xs.size == 0:
+            continue
+        color = palette[g_idx % len(palette)]
+        label = None if name is None else str(name)
+        if orientation == "horizontal":
+            for loc, val in zip(xs, ys):
+                ax.plot([0.0, val], [loc, loc], color=stem_color, linewidth=stem_width)
+            ax.scatter(ys, xs, color=color, s=marker_size**2, zorder=3, label=label)
+        else:
+            for loc, val in zip(xs, ys):
+                ax.plot([loc, loc], [0.0, val], color=stem_color, linewidth=stem_width)
+            ax.scatter(xs, ys, color=color, s=marker_size**2, zorder=3, label=label)
+    if orientation == "horizontal":
+        ax.set_yticks(positions, categories)
+    else:
+        ax.set_xticks(positions, categories)
+    handles, labels = ax.get_legend_handles_labels()
+    if labels:
+        ax.legend(**_legend_options(figure))
+    ax.set_xlabel(figure.get("xlabel", figure.get("x", "")))
+    if figure.get("ylabel") is not None:
+        ax.set_ylabel(figure["ylabel"])
+
+
 def _draw_roc_curve(
     ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
 ) -> None:
@@ -1574,6 +1635,7 @@ _DISPATCH: dict[str, Any] = {
     "volcano": _draw_volcano,
     "qq": _draw_qq,
     "survival": _draw_survival,
+    "lollipop": _draw_lollipop,
 }
 
 
@@ -1707,6 +1769,13 @@ def validate_figure_data(frame: Any, figure: dict[str, Any]) -> list[str]:
         if y_col and y_col in frame.columns:
             if not pd.api.types.is_numeric_dtype(frame[y_col]):
                 errors.append("survival figures require a numeric event column")
+    if figure.get("type") == "lollipop":
+        y_col = figure.get("y")
+        if y_col and y_col in frame.columns:
+            if not pd.api.types.is_numeric_dtype(frame[y_col]):
+                errors.append("lollipop figures require a numeric y column")
+        if figure.get("orientation") not in (None, "vertical", "horizontal"):
+            errors.append("lollipop orientation must be 'vertical' or 'horizontal'")
     if figure.get("orientation") and figure.get("type") not in {"bar", "ablation"}:
         errors.append("orientation is supported only for bar and ablation figures")
     if figure.get("drawstyle") and figure.get("type") not in LINE_FIGURE_TYPES:
