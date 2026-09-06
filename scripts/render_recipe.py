@@ -778,6 +778,73 @@ def _draw_lollipop(
         ax.set_ylabel(figure["ylabel"])
 
 
+def _draw_dumbbell(
+    ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
+) -> None:
+    """Draw a dumbbell plot comparing two values per category.
+
+    Each category in ``x`` receives a dot at ``y`` (start) and a dot at
+    ``upper`` (end), connected by a thin line. When ``orientation`` is
+    "vertical" (default) the categories sit on the y-axis with values spread
+    along the x-axis; "horizontal" mirrors the layout. ``dumbbell.marker_size``
+    (default 6, points) controls the endpoint markers and ``dumbbell.bar_width``
+    (default 1.5) controls the connecting line width.
+    """
+    x, y, upper = figure["x"], figure["y"], figure.get("upper")
+    if not upper:
+        raise ValueError("dumbbell figures require y and upper columns")
+    group = figure.get("group")
+    orientation = figure.get("orientation", "vertical")
+    dumbbell_opts = figure.get("dumbbell") or {}
+    marker_size = float(dumbbell_opts.get("marker_size", 6))
+    bar_width = float(dumbbell_opts.get("bar_width", 1.5))
+    bar_color = "#555555"
+
+    categories = list(dict.fromkeys(frame[x].astype(str)))
+    positions = np.arange(len(categories))
+    groups = (
+        [(None, frame)] if not group else list(frame.groupby(group, sort=False))
+    )
+    total = len(groups)
+    slot = 0.8 / max(total, 1)
+
+    for g_idx, (name, subset) in enumerate(groups):
+        indexed = subset.assign(_category=subset[x].astype(str)).set_index("_category")
+        subset_aligned = indexed.reindex(categories)
+        start_values = subset_aligned[y].to_numpy(dtype=float)
+        end_values = subset_aligned[upper].to_numpy(dtype=float)
+        offset = (g_idx - (total - 1) / 2.0) * slot
+        locs = positions + offset
+        finite = np.isfinite(start_values) & np.isfinite(end_values)
+        xs = locs[finite]
+        starts = start_values[finite]
+        ends = end_values[finite]
+        if xs.size == 0:
+            continue
+        color = palette[g_idx % len(palette)]
+        label = None if name is None else str(name)
+        if orientation == "horizontal":
+            for loc, start, end in zip(xs, starts, ends):
+                ax.plot([start, end], [loc, loc], color=bar_color, linewidth=bar_width)
+            ax.scatter(starts, xs, color=color, s=marker_size**2, zorder=3, label=label)
+            ax.scatter(ends, xs, color=color, s=marker_size**2, zorder=3)
+        else:
+            for loc, start, end in zip(xs, starts, ends):
+                ax.plot([loc, loc], [start, end], color=bar_color, linewidth=bar_width)
+            ax.scatter(xs, starts, color=color, s=marker_size**2, zorder=3, label=label)
+            ax.scatter(xs, ends, color=color, s=marker_size**2, zorder=3)
+    if orientation == "horizontal":
+        ax.set_yticks(positions, categories)
+    else:
+        ax.set_xticks(positions, categories)
+    handles, labels = ax.get_legend_handles_labels()
+    if labels:
+        ax.legend(**_legend_options(figure))
+    ax.set_xlabel(figure.get("xlabel", figure.get("x", "")))
+    if figure.get("ylabel") is not None:
+        ax.set_ylabel(figure["ylabel"])
+
+
 def _draw_roc_curve(
     ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
 ) -> None:
@@ -1636,6 +1703,7 @@ _DISPATCH: dict[str, Any] = {
     "qq": _draw_qq,
     "survival": _draw_survival,
     "lollipop": _draw_lollipop,
+    "dumbbell": _draw_dumbbell,
 }
 
 
@@ -1776,8 +1844,15 @@ def validate_figure_data(frame: Any, figure: dict[str, Any]) -> list[str]:
                 errors.append("lollipop figures require a numeric y column")
         if figure.get("orientation") not in (None, "vertical", "horizontal"):
             errors.append("lollipop orientation must be 'vertical' or 'horizontal'")
-    if figure.get("orientation") and figure.get("type") not in {"bar", "ablation"}:
-        errors.append("orientation is supported only for bar and ablation figures")
+    if figure.get("type") == "dumbbell":
+        upper_col = figure.get("upper")
+        if upper_col and upper_col in frame.columns:
+            if not pd.api.types.is_numeric_dtype(frame[upper_col]):
+                errors.append("dumbbell figures require a numeric upper column")
+        if figure.get("orientation") not in (None, "vertical", "horizontal"):
+            errors.append("dumbbell orientation must be 'vertical' or 'horizontal'")
+    if figure.get("orientation") and figure.get("type") not in {"bar", "ablation", "dumbbell"}:
+        errors.append("orientation is supported only for bar, ablation, and dumbbell figures")
     if figure.get("drawstyle") and figure.get("type") not in LINE_FIGURE_TYPES:
         errors.append("drawstyle is supported only for line figures")
     if (figure.get("x_error") or figure.get("y_error")) and figure.get("type") != "scatter":
@@ -1797,16 +1872,17 @@ def validate_figure_data(frame: Any, figure: dict[str, Any]) -> list[str]:
                 "stacked values must be non-negative; "
                 f"column '{figure['y']}' contains negative values"
             )
-    if bool(figure.get("lower")) != bool(figure.get("upper")):
-        errors.append("lower and upper must be provided together")
-    if figure.get("lower") and figure.get("upper") and figure.get("y") in frame:
-        lower, upper, estimate = figure["lower"], figure["upper"], figure["y"]
-        if (
-            (frame[lower] > frame[upper])
-            | (frame[lower] > frame[estimate])
-            | (frame[upper] < frame[estimate])
-        ).any():
-            errors.append("interval bounds must satisfy lower <= estimate <= upper")
+    if figure.get("type") != "dumbbell":
+        if bool(figure.get("lower")) != bool(figure.get("upper")):
+            errors.append("lower and upper must be provided together")
+        if figure.get("lower") and figure.get("upper") and figure.get("y") in frame:
+            lower, upper, estimate = figure["lower"], figure["upper"], figure["y"]
+            if (
+                (frame[lower] > frame[upper])
+                | (frame[lower] > frame[estimate])
+                | (frame[upper] < frame[estimate])
+            ).any():
+                errors.append("interval bounds must satisfy lower <= estimate <= upper")
     # Twin axis validation
     if "twin_y" in figure:
         twin = figure["twin_y"]

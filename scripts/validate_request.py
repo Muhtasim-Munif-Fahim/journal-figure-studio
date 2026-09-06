@@ -77,6 +77,7 @@ VALID_FIGURE_TYPES: set[str] = {
     "qq",
     "survival",
     "lollipop",
+    "dumbbell",
 }
 NUMERIC_FIGURE_TYPES: set[str] = set(VALID_FIGURE_TYPES)
 
@@ -166,6 +167,8 @@ def _validate_figure_spec(
                     numeric_keys.add(error_key)
         if spec.get("lower") and spec.get("upper"):
             numeric_keys.update({"lower", "upper"})
+        if spec.get("type") == "dumbbell" and spec.get("upper"):
+            numeric_keys.add("upper")
         for col_key in sorted(numeric_keys):
             column = spec.get(col_key)
             if column in frame.columns and not pd.api.types.is_numeric_dtype(frame[column]):
@@ -180,7 +183,7 @@ def _validate_figure_spec(
                     f"categories in '{x_col}'"
                 )
         lower, upper = spec.get("lower"), spec.get("upper")
-        if bool(lower) != bool(upper):
+        if bool(lower) != bool(upper) and spec.get("type") != "dumbbell":
             errors.append(f"{prefix} must provide both lower and upper columns")
         for axis_key in ("x_scale", "y_scale"):
             scale = spec.get(axis_key)
@@ -271,9 +274,9 @@ def _validate_figure_spec(
         if "orientation" in spec:
             if spec["orientation"] not in {"vertical", "horizontal"}:
                 errors.append(f"{prefix}.orientation must be 'vertical' or 'horizontal'")
-            elif spec.get("type") not in {"bar", "ablation", "lollipop"}:
+            elif spec.get("type") not in {"bar", "ablation", "lollipop", "dumbbell"}:
                 errors.append(
-                    f"{prefix}.orientation is supported only for bar, ablation, and lollipop figures"
+                    f"{prefix}.orientation is supported only for bar, ablation, lollipop, and dumbbell figures"
                 )
 
             kind = spec.get("kind", "box")
@@ -606,6 +609,36 @@ def _validate_figure_spec(
                     ):
                         errors.append(
                             f"{prefix}.lollipop.size must be a positive number"
+                        )
+
+        if "dumbbell" in spec:
+            dumbbell = spec["dumbbell"]
+            if not isinstance(dumbbell, dict):
+                errors.append(f"{prefix}.dumbbell must be a mapping")
+            else:
+                if spec.get("type") != "dumbbell":
+                    errors.append(
+                        f"{prefix}.dumbbell is supported only for dumbbell figures"
+                    )
+                if "marker_size" in dumbbell:
+                    marker_size = dumbbell["marker_size"]
+                    if (
+                        not isinstance(marker_size, (int, float))
+                        or isinstance(marker_size, bool)
+                        or marker_size <= 0
+                    ):
+                        errors.append(
+                            f"{prefix}.dumbbell.marker_size must be a positive number"
+                        )
+                if "bar_width" in dumbbell:
+                    bar_width = dumbbell["bar_width"]
+                    if (
+                        not isinstance(bar_width, (int, float))
+                        or isinstance(bar_width, bool)
+                        or bar_width <= 0
+                    ):
+                        errors.append(
+                            f"{prefix}.dumbbell.bar_width must be a positive number"
                         )
 
         if "colorbar" in spec:
