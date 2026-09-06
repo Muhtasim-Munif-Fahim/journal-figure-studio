@@ -845,6 +845,66 @@ def _draw_dumbbell(
         ax.set_ylabel(figure["ylabel"])
 
 
+def _draw_ridge(
+    ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
+) -> None:
+    """Draw a ridge (joy) plot of overlapping kernel density estimates.
+
+    The ``x`` column supplies the categorical grouping (one ridge per
+    category) and ``y`` supplies the numeric values whose density is
+    estimated. Each ridge is drawn with :func:`_kde` and stacked on the
+    y-axis with a configurable overlap, producing the characteristic
+    overlapping profile that makes multi-group distribution shapes
+    comparable at a glance.
+
+    ``ridge.overlap`` (default 0.5) controls the vertical overlap fraction
+    between adjacent ridges (0 = no overlap, approaching 1 = heavy overlap).
+    ``ridge.bandwidth`` (optional) overrides Scott's rule used by
+    :func:`_kde`.
+    """
+    x, y = figure["x"], figure["y"]
+    ridge_opts = figure.get("ridge") or {}
+    overlap = float(ridge_opts.get("overlap", 0.5))
+    bandwidth = ridge_opts.get("bandwidth")
+    categories = list(dict.fromkeys(frame[x].astype(str)))
+    all_values = frame[y].to_numpy(dtype=float)
+    all_values = all_values[np.isfinite(all_values)]
+    if all_values.size == 0:
+        return
+    grid = np.linspace(
+        float(all_values.min()), float(all_values.max()), 200
+    )
+    step = 1.0 - overlap
+    for idx, cat in enumerate(categories):
+        values = frame.loc[frame[x].astype(str) == cat, y].to_numpy(dtype=float)
+        values = values[np.isfinite(values)]
+        if values.size == 0:
+            continue
+        density = _kde(values, grid, bandwidth=bandwidth)
+        y_offset = idx * step
+        ax.fill_between(grid, density + y_offset, y_offset, alpha=0.5,
+                        color=palette[idx % len(palette)], linewidth=0)
+        ax.plot(grid, density + y_offset, color=palette[idx % len(palette)],
+                linewidth=1.0, label=str(cat))
+        ax.text(
+            float(all_values.max()),
+            y_offset + density.max() / 2,
+            cat,
+            va="center",
+            ha="left",
+            fontsize=7,
+            color=palette[idx % len(palette)],
+        )
+    ax.set_yticks([i * step for i in range(len(categories))], categories)
+    ax.set_xlabel(figure.get("xlabel", figure.get("y", "")))
+    if figure.get("ylabel") is not None:
+        ax.set_ylabel(figure["ylabel"])
+    else:
+        ax.set_ylabel(figure.get("x", ""))
+    if len(categories) > 1:
+        ax.legend(**_legend_options(figure))
+
+
 def _draw_roc_curve(
     ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
 ) -> None:
@@ -1704,6 +1764,7 @@ _DISPATCH: dict[str, Any] = {
     "survival": _draw_survival,
     "lollipop": _draw_lollipop,
     "dumbbell": _draw_dumbbell,
+    "ridge": _draw_ridge,
 }
 
 
@@ -1851,6 +1912,11 @@ def validate_figure_data(frame: Any, figure: dict[str, Any]) -> list[str]:
                 errors.append("dumbbell figures require a numeric upper column")
         if figure.get("orientation") not in (None, "vertical", "horizontal"):
             errors.append("dumbbell orientation must be 'vertical' or 'horizontal'")
+    if figure.get("type") == "ridge":
+        y_col = figure.get("y")
+        if y_col and y_col in frame.columns:
+            if not pd.api.types.is_numeric_dtype(frame[y_col]):
+                errors.append("ridge figures require a numeric y column")
     if figure.get("orientation") and figure.get("type") not in {"bar", "ablation", "dumbbell"}:
         errors.append("orientation is supported only for bar, ablation, and dumbbell figures")
     if figure.get("drawstyle") and figure.get("type") not in LINE_FIGURE_TYPES:

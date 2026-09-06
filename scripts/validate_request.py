@@ -78,6 +78,7 @@ VALID_FIGURE_TYPES: set[str] = {
     "survival",
     "lollipop",
     "dumbbell",
+    "ridge",
 }
 NUMERIC_FIGURE_TYPES: set[str] = set(VALID_FIGURE_TYPES)
 
@@ -639,6 +640,36 @@ def _validate_figure_spec(
                     ):
                         errors.append(
                             f"{prefix}.dumbbell.bar_width must be a positive number"
+                        )
+
+        if "ridge" in spec:
+            ridge = spec["ridge"]
+            if not isinstance(ridge, dict):
+                errors.append(f"{prefix}.ridge must be a mapping")
+            else:
+                if spec.get("type") != "ridge":
+                    errors.append(
+                        f"{prefix}.ridge is supported only for ridge figures"
+                    )
+                if "overlap" in ridge:
+                    overlap = ridge["overlap"]
+                    if (
+                        not isinstance(overlap, (int, float))
+                        or isinstance(overlap, bool)
+                        or not 0.0 <= overlap < 1.0
+                    ):
+                        errors.append(
+                            f"{prefix}.ridge.overlap must be a number between 0 and 1"
+                        )
+                if "bandwidth" in ridge:
+                    bandwidth = ridge["bandwidth"]
+                    if (
+                        not isinstance(bandwidth, (int, float))
+                        or isinstance(bandwidth, bool)
+                        or bandwidth <= 0
+                    ):
+                        errors.append(
+                            f"{prefix}.ridge.bandwidth must be a positive number"
                         )
 
         if "colorbar" in spec:

@@ -51,6 +51,7 @@ SUPPORTED_FIGURE_TYPES: set[str] = {
     "survival",
     "lollipop",
     "dumbbell",
+    "ridge",
 }
 """All figure types that the dispatch system can render."""
 
