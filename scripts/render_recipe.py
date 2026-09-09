@@ -1044,6 +1044,113 @@ def _draw_pr_curve(
     ax.legend(loc="lower left", framealpha=0.85)
 
 
+def _draw_bland_altman(
+    ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
+) -> None:
+    """Draw a Bland-Altman plot comparing two measurement methods.
+
+    Agreement between two methods is not the same question as correlation:
+    two instruments can correlate almost perfectly while one reads
+    consistently high. The standard answer plots each subject's difference
+    between methods against the mean of the two, and reads bias off the
+    centre line and the spread off the limits of agreement.
+
+    The frame must carry two numeric columns named by ``method_a`` and
+    ``method_b``. Rows where either is missing are dropped pairwise, since a
+    difference needs both. The plot marks the mean difference (bias) as a
+    solid line and the limits of agreement -- bias +/- ``loa_sd`` standard
+    deviations, 1.96 by default for the central 95% -- as dashed lines.
+
+    ``bland_altman`` options:
+
+    ``loa_sd``
+        Standard-deviation multiplier for the limits (default 1.96).
+    ``percentage``
+        Plot the difference as a percentage of the mean rather than in raw
+        units, which is the right choice when scatter grows with magnitude.
+        Pairs whose mean is zero are dropped, having no defined percentage.
+    ``annotate``
+        Label the bias and limit lines with their values (default True).
+    ``reference``
+        Draw a dotted line at zero difference (default True), so a bias that
+        excludes zero is visible at a glance.
+
+    Each ``group`` value (when given) is drawn in its own colour, but the
+    bias and limits are computed across all plotted pairs, matching how the
+    statistic is normally reported for a single agreement study.
+    """
+    a_col = figure["method_a"]
+    b_col = figure["method_b"]
+    group = figure.get("group")
+    options = figure.get("bland_altman") or {}
+    loa_sd = float(options.get("loa_sd", 1.96))
+    as_percentage = bool(options.get("percentage", False))
+    annotate = bool(options.get("annotate", True))
+    reference = bool(options.get("reference", True))
+
+    if loa_sd <= 0:
+        raise ValueError("bland_altman.loa_sd must be strictly positive")
+
+    paired = frame[[a_col, b_col] + ([group] if group else [])].dropna(
+        subset=[a_col, b_col]
+    )
+    first = paired[a_col].to_numpy(dtype=float)
+    second = paired[b_col].to_numpy(dtype=float)
+    means = (first + second) / 2.0
+    differences = first - second
+
+    if as_percentage:
+        # A zero mean has no percentage difference to report.
+        usable = means != 0
+        paired = paired.loc[usable]
+        differences = (differences[usable] / means[usable]) * 100.0
+        means = means[usable]
+
+    if means.size == 0:
+        raise ValueError("bland_altman requires at least one complete pair")
+
+    if group:
+        for idx, (name, subset) in enumerate(paired.groupby(group, sort=False)):
+            positions = paired.index.get_indexer(subset.index)
+            ax.scatter(
+                means[positions], differences[positions],
+                color=palette[idx % len(palette)], s=18, alpha=0.8,
+                edgecolors="none", label=str(name),
+            )
+        ax.legend(loc="best", framealpha=0.85)
+    else:
+        ax.scatter(means, differences, color=palette[0], s=18, alpha=0.8,
+                   edgecolors="none")
+
+    bias = float(np.mean(differences))
+    # ddof=1: the limits describe a sample, not the whole population.
+    spread = float(np.std(differences, ddof=1)) if differences.size > 1 else 0.0
+    upper = bias + loa_sd * spread
+    lower = bias - loa_sd * spread
+
+    if reference:
+        ax.axhline(0.0, linestyle=":", color="grey", linewidth=0.8)
+    ax.axhline(bias, linestyle="-", color="#444444", linewidth=1.2)
+    ax.axhline(upper, linestyle="--", color="#444444", linewidth=0.9)
+    ax.axhline(lower, linestyle="--", color="#444444", linewidth=0.9)
+
+    if annotate:
+        for value, text in (
+            (bias, f"bias {bias:.3g}"),
+            (upper, f"+{loa_sd:g} SD {upper:.3g}"),
+            (lower, f"-{loa_sd:g} SD {lower:.3g}"),
+        ):
+            ax.annotate(
+                text, xy=(1.0, value), xycoords=("axes fraction", "data"),
+                xytext=(-4, 2), textcoords="offset points",
+                ha="right", va="bottom", fontsize=7, color="#444444",
+            )
+
+    unit = "%" if as_percentage else ""
+    ax.set_xlabel(f"Mean of {a_col} and {b_col}")
+    ax.set_ylabel(f"Difference ({a_col} - {b_col}){unit and ' ' + unit}")
+
+
 def _draw_histogram(
     ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
 ) -> None:
@@ -1746,6 +1853,7 @@ _DISPATCH: dict[str, Any] = {
     "scatter": _draw_scatter,
     "distribution": _draw_distribution,
     "density": _draw_density,
+    "bland_altman": _draw_bland_altman,
     "histogram": _draw_histogram,
     "cumulative": _draw_cumulative,
     "violin": _draw_violin,

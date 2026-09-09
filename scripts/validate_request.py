@@ -65,6 +65,7 @@ VALID_FIGURE_TYPES: set[str] = {
     "radar",
     "density",
     "area",
+    "bland_altman",
     "histogram",
     "cumulative",
     "violin",
