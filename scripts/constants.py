@@ -32,6 +32,7 @@ SUPPORTED_FIGURE_TYPES: set[str] = {
     "scatter",
     "distribution",
     "forest",
+    "funnel",
     "heatmap",
     "calibration",
     "waterfall",

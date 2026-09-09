@@ -1333,6 +1333,102 @@ def _draw_forest(
     ax.set_yticks(np.arange(len(ordered)), ordered[x].astype(str))
 
 
+def _draw_funnel(
+    ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
+) -> None:
+    """Draw a meta-analysis funnel plot for small-study effects.
+
+    The companion to :func:`_draw_forest`. A forest plot shows what each
+    study found; a funnel plot shows whether the set of studies is likely to
+    be complete. Effect size is plotted against precision, so precise studies
+    cluster tightly at the top and imprecise ones scatter across the bottom.
+    Symmetry is the thing being read: a gap in one lower corner is the
+    signature of small studies with unwelcome results going unpublished.
+
+    The frame must carry an ``effect`` column and a ``standard_error``
+    column. The y axis is the standard error, inverted so precision
+    increases upward, which is the convention readers expect.
+
+    ``funnel`` options:
+
+    ``contours``
+        Draw pseudo-confidence contours (default True) forming the funnel
+        itself: the region within which ``contour_z`` standard errors of the
+        summary effect would be expected to fall.
+    ``contour_z``
+        Half-width of the funnel in standard errors (default 1.96).
+    ``summary``
+        Draw a vertical line at the summary effect (default True). By
+        default this is the fixed-effect inverse-variance weighted mean,
+        which weights precise studies more heavily; pass a number to place
+        the line at a value computed elsewhere.
+    ``null``
+        Draw a dotted vertical reference at this effect value, typically 0
+        for differences or 1 for ratios. Omitted when absent.
+
+    Studies whose standard error is missing or non-positive are dropped:
+    they have no place on a precision axis and would flatten the funnel.
+    """
+    effect_col = figure["effect"]
+    error_col = figure["standard_error"]
+    group = figure.get("group")
+    options = figure.get("funnel") or {}
+    contours = bool(options.get("contours", True))
+    contour_z = float(options.get("contour_z", 1.96))
+    summary_option = options.get("summary", True)
+    null_value = options.get("null")
+
+    if contour_z <= 0:
+        raise ValueError("funnel.contour_z must be strictly positive")
+
+    usable = frame[[effect_col, error_col] + ([group] if group else [])].dropna(
+        subset=[effect_col, error_col]
+    )
+    usable = usable[usable[error_col] > 0]
+    if usable.empty:
+        raise ValueError("funnel requires at least one study with a positive standard error")
+
+    effects = usable[effect_col].to_numpy(dtype=float)
+    errors = usable[error_col].to_numpy(dtype=float)
+
+    if summary_option is True:
+        # Fixed-effect inverse-variance weighting: precise studies dominate.
+        weights = 1.0 / np.square(errors)
+        summary = float(np.sum(weights * effects) / np.sum(weights))
+    elif summary_option is False or summary_option is None:
+        summary = None
+    else:
+        summary = float(summary_option)
+
+    if group:
+        for idx, (name, subset) in enumerate(usable.groupby(group, sort=False)):
+            ax.scatter(
+                subset[effect_col], subset[error_col],
+                color=palette[idx % len(palette)], s=22, alpha=0.85,
+                edgecolors="none", label=str(name),
+            )
+        ax.legend(loc="lower left", framealpha=0.85)
+    else:
+        ax.scatter(effects, errors, color=palette[0], s=22, alpha=0.85,
+                   edgecolors="none")
+
+    max_error = float(np.max(errors))
+    if contours and summary is not None:
+        # The funnel apex sits at zero standard error (perfect precision).
+        edge = np.array([0.0, max_error])
+        ax.plot(summary - contour_z * edge, edge, "--", color="#777777", linewidth=0.9)
+        ax.plot(summary + contour_z * edge, edge, "--", color="#777777", linewidth=0.9)
+    if summary is not None:
+        ax.axvline(summary, color="#444444", linewidth=1.1)
+    if null_value is not None:
+        ax.axvline(float(null_value), color="grey", linewidth=0.8, linestyle=":")
+
+    # Precision increases upward, so the standard-error axis runs backwards.
+    ax.set_ylim(max_error * 1.05, 0.0)
+    ax.set_xlabel("Effect size")
+    ax.set_ylabel("Standard error")
+
+
 def _draw_heatmap(
     ax: Axes, frame: Any, figure: dict[str, Any], palette: list[str]
 ) -> None:
@@ -1863,6 +1959,7 @@ _DISPATCH: dict[str, Any] = {
     "strip": _draw_strip,
     "area": _draw_area,
     "forest": _draw_forest,
+    "funnel": _draw_funnel,
     "heatmap": _draw_heatmap,
     "waterfall": _draw_waterfall,
     "radar": _draw_radar,
