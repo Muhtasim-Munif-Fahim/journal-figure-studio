@@ -47,6 +47,7 @@ check("inspect_results import", lambda: __import__("scripts.inspect_results"))
 check("create_venue_profile import", lambda: __import__("scripts.create_venue_profile"))
 check("logging_config import", lambda: __import__("scripts.logging_config"))
 check("constants import", lambda: __import__("scripts.constants"))
+check("panel_layout import", lambda: __import__("scripts.panel_layout"))
 check("exit_codes import", lambda: __import__("scripts.exit_codes"))
 
 check(

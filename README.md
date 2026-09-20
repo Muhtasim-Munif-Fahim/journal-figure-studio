@@ -9,6 +9,8 @@
 
 > **Install (PyPI):** `pip install journal-figure-studio`  
 > **CLI:** `render-figure`, `validate-request`, `check-package`, `create-profile`  
+> Multi-panel: `render-figure --request figure_request.yaml --panel-layout 2x2 --share-x --share-y`  
+
 > Requires Python 3.10+.
 >
 > Q1 is an indexing classification, not a figure specification. This toolkit does not claim blanket Q1 or journal compliance. Use a named journal profile created from the target journal's current official author instructions before submission.
@@ -133,6 +135,8 @@ export_tiff: false
 
 `figure.source`, `analysis_script`, and each item in `data_paths` may be relative to the request file. The validator confirms the input files and requested columns exist before rendering.
 
+For a multi-panel package, replace `figure` with a `figures` list and optionally set `panel_layout` to `2x2` (or `{grid: 2x2, sharex: true, sharey: true}`). Each panel still maps columns from a real source file; the helper does not invent values. CLI equivalents: `--panel-layout 2x2`, `--share-x`, `--share-y`.
+
 ## Supported Empirical Recipes
 
 `render_recipe.py` supports these figure types:
@@ -147,7 +151,13 @@ export_tiff: false
 | `forest` | Point estimates and confidence intervals around a null reference |
 | `heatmap` | Matrix-valued results with a perceptually uniform color scale |
 
-For maps, micrograph layouts, schematics, networks, or a complex multi-panel composition, write a custom `figure.py` using the selected profile dimensions and style rules. Keep the same `figure_request.yaml`, profile, and package audit workflow.
+Compose multiple empirical recipes into one publication package with the
+`figures` list and an optional `panel_layout` (for example `2x2`) so every
+panel inherits the selected profile's print width, fonts, and palette. Shared
+axes are optional (`sharex` / `sharey`, or `--share-x` / `--share-y`). For maps,
+micrograph layouts, schematics, or networks, write a custom `figure.py` that
+calls `scripts.panel_layout.compose_panels` after `apply_style`. Keep the same
+`figure_request.yaml`, profile, and package audit workflow.
 
 ## Named Journal Profiles
 
@@ -178,6 +188,7 @@ To export SVG, add `svg` to the profile's `formats` list or set `export_svg: tru
 | Feature | Description |
 |---------|-------------|
 | **Figure types** | bar, ablation, line, time_series, training_curve, scatter, distribution, forest, heatmap, calibration |
+| **Multi-panel layout** | `figures` + `panel_layout` (`2x2`, `1x2`, …) with optional shared axes; `--panel-layout`, `--share-x`, `--share-y` |
 | **Output formats** | PDF (vector), PNG (raster), TIFF (high-res raster), SVG (vector) |
 | **Annotations** | Statistical significance brackets (`p_value` -> `*`, `**`, `***`, `n.s.`) |
 | **Profiles** | 6 built-in discipline profiles with colourblind-safe palettes |

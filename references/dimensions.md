@@ -16,3 +16,11 @@
 - Default: 0.68 (width:height)
 - For tall figures (forest plots): 0.85
 - For wide figures (time series): 0.55
+
+## Multi-panel grids
+
+A `panel_layout` of `2x2` (or `1x2`, `2x1`, …) keeps the overall figure at
+the profile's `layout` width (`single` or `double`). Height is
+`panel_height * rows / cols` so each panel keeps the profile aspect ratio.
+Prefer `layout: double` for a 2x2 when labels would otherwise crowd a
+single-column width.

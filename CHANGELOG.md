@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Features
+- Reusable `scripts.panel_layout` helper composes multi-panel packages (2x2 and other grids) at the selected profile's print width, fonts, and palette
+- Optional shared x/y axes (`sharex` / `sharey`) drop redundant labels on interior panels
+- Request field `panel_layout` plus CLI flags `--panel-layout`, `--share-x`, and `--share-y`
+- Panel letters use each profile's `fonts.panel_label_pt`; `panel_title` is applied when supplied
+
 ## 0.2.0 (2026-07-08)
 
 ### Architecture

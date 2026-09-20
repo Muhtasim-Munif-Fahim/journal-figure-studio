@@ -6,7 +6,7 @@
 |-------|------|-------------|
 | figure_id | string | Unique identifier for output files |
 | profile | string | Profile name (universal, biomedical_clinical, etc.) |
-| layout | string | "single" or "double" column |
+| layout | string | "single" or "double" column width |
 | figure.type | string | One of 10 supported figure types |
 | figure.source | string | Path to data file |
 | figure.x | string | Column name for x-axis |
@@ -27,3 +27,6 @@
 | figure.p_value | number | Statistical significance |
 | export_tiff | bool | Force TIFF export |
 | export_svg | bool | Force SVG export |
+| figures | list | Panel recipes for a multi-panel package (alternative to `figure`) |
+| panel_layout | string or mapping | Grid for `figures`, e.g. `2x2` or `{grid: 2x2, sharex: true, sharey: true, labels: true}` |
+| figures[].panel_title | string | Optional per-panel title shown with the auto letter `(a)`, `(b)`, … |
