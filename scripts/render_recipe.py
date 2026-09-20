@@ -50,6 +50,15 @@ from scripts.constants import (
 )
 from scripts.exit_codes import INPUT_ERROR, RUNTIME_ERROR, SUCCESS, VALIDATION_ERROR
 from scripts.logging_config import setup_logger
+from scripts.panel_layout import (
+    apply_cli_panel_overrides,
+    apply_panel_labels,
+    apply_shared_axis_labels,
+    compose_panels,
+    panel_label_pt,
+    parse_panel_layout,
+    validate_panel_layout,
+)
 from scripts.template_presets import resolve_template
 from scripts.validate_request import validate_request
 from scripts.version import __version__
@@ -2349,11 +2358,14 @@ def _render_figures(
         raise ValueError("request must contain 'figure' or 'figures' key")
 
     if len(figures) > 1:
-        panels = int(math.ceil(len(figures) ** 0.5))
-        fig, axes = plt.subplots(
-            panels, panels, figsize=(width * panels, height * panels)
+        panel_layout = parse_panel_layout(request.get("panel_layout"), len(figures))
+        request["_resolved_panel_layout"] = panel_layout.as_dict()
+        fig, axes_flat, width, height = compose_panels(
+            len(figures),
+            width=width,
+            height=height,
+            layout=panel_layout,
         )
-        axes_flat = axes.flatten() if panels > 1 else [axes]
         for i, spec in enumerate(figures):
             src = spec.get("source", "")
             if not src:
@@ -2374,11 +2386,20 @@ def _render_figures(
             axis = axes_flat[i]
             if spec.get("type") == "radar":
                 fig.delaxes(axis)
-                axis = fig.add_subplot(panels, panels, i + 1, projection="polar")
+                axis = fig.add_subplot(
+                    panel_layout.rows, panel_layout.cols, i + 1, projection="polar"
+                )
                 axes_flat[i] = axis
             draw(axis, frame, spec, palette)
-        for j in range(len(figures), len(axes_flat)):
-            axes_flat[j].set_visible(False)
+        apply_panel_labels(
+            axes_flat[: len(figures)],
+            [spec.get("panel_title") for spec in figures],
+            fontsize=panel_label_pt(profile),
+            auto_letters=panel_layout.labels,
+        )
+        apply_shared_axis_labels(axes_flat, panel_layout, len(figures))
+        title_source = request if request.get("title") else figures[0]
+        _apply_figure_title(fig, title_source)
         fig.tight_layout()
         stem = output / request["figure_id"]
     else:
@@ -2472,6 +2493,24 @@ def main(argv: Sequence[str] | None = None) -> int:
         action="store_true",
         help="Validate request without rendering",
     )
+    parser.add_argument(
+        "--panel-layout",
+        dest="panel_layout",
+        metavar="GRID",
+        help="Multi-panel grid such as 2x2 or 1x2 (overrides request panel_layout)",
+    )
+    parser.add_argument(
+        "--share-x",
+        dest="share_x",
+        action="store_true",
+        help="Share x-axis limits across multi-panel columns",
+    )
+    parser.add_argument(
+        "--share-y",
+        dest="share_y",
+        action="store_true",
+        help="Share y-axis limits across multi-panel rows",
+    )
     args, remaining = parser.parse_known_args(argv)
 
     if args.version:
@@ -2490,6 +2529,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     request = load_yaml(request_path)
     request["_request_path"] = str(request_path)
+    apply_cli_panel_overrides(
+        request, args.panel_layout, share_x=args.share_x, share_y=args.share_y
+    )
 
     if "profile" not in request:
         print("ERROR: Request must specify a 'profile'")
@@ -2501,7 +2543,22 @@ def main(argv: Sequence[str] | None = None) -> int:
         return INPUT_ERROR
     profile = load_yaml(profile_file)
 
-    request_errors = validate_request(request_path, args.profiles_dir)
+    request_errors = list(validate_request(request_path, args.profiles_dir))
+    if args.panel_layout or args.share_x or args.share_y:
+        figures_preview = request.get("figures")
+        n_panels = (
+            len(figures_preview)
+            if isinstance(figures_preview, list) and figures_preview
+            else 1
+        )
+        if n_panels < 2:
+            request_errors.append(
+                "panel_layout requires a 'figures' list with at least two panels"
+            )
+        else:
+            request_errors.extend(
+                validate_panel_layout(request.get("panel_layout"), n_panels)
+            )
     failures = [error for error in request_errors if not error.startswith("[warn]")]
     if failures:
         print("ERROR: Figure request validation failed:")
@@ -2576,6 +2633,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     packed = copy.deepcopy(request)
     packed.pop("_request_path", None)
+    packed.pop("_resolved_panel_layout", None)
     packed["data_paths"] = [
         str(resolve_request_path(request_path, item).resolve())
         for item in request.get("data_paths", [])
@@ -2641,6 +2699,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "files": [path.name for path in accessibility_files],
         },
         "layout": request["layout"],
+        "panel_layout": request.get("_resolved_panel_layout"),
         "dimensions_inches": {"width": width, "height": height},
         "studio_version": __version__,
         "python": sys.version.split()[0],

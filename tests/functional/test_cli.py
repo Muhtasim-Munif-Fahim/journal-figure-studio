@@ -40,6 +40,18 @@ class TestCLIHelp:
         from scripts.render_recipe import main
         assert callable(main)
 
+    def test_render_recipe_help_lists_panel_layout_flags(self, capsys):
+        from scripts.render_recipe import main
+
+        try:
+            main(["--help"])
+        except SystemExit as exc:
+            assert exc.code == 0
+        help_text = capsys.readouterr().out
+        assert "--panel-layout" in help_text
+        assert "--share-x" in help_text
+        assert "--share-y" in help_text
+
     def test_validate_request_has_main(self):
         from scripts.validate_request import main
         assert callable(main)

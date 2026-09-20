@@ -22,6 +22,7 @@ from scripts.constants import (
 )
 from scripts.exit_codes import SUCCESS, VALIDATION_ERROR
 from scripts.logging_config import setup_logger
+from scripts.panel_layout import validate_panel_layout
 from scripts.template_presets import TEMPLATES
 from scripts.validate_profile import validate
 from scripts.version import __version__
@@ -885,7 +886,25 @@ def validate_request(
                     f"figures[{i}].type: unsupported '{ft}'. "
                     f"Supported: {', '.join(sorted(VALID_FIGURE_TYPES))}"
                 )
+            panel_title = spec.get("panel_title")
+            if panel_title is not None and not isinstance(panel_title, str):
+                errors.append(f"figures[{i}].panel_title must be a string")
             _validate_figure_spec(errors, spec, i, Path(request_path))
+        if request.get("panel_layout") is not None:
+            if len(request["figures"]) < 2:
+                errors.append(
+                    "panel_layout requires a 'figures' list with at least two panels"
+                )
+            else:
+                errors.extend(
+                    validate_panel_layout(
+                        request.get("panel_layout"), len(request["figures"])
+                    )
+                )
+    elif request.get("panel_layout") is not None:
+        errors.append(
+            "panel_layout requires a 'figures' list with at least two panels"
+        )
 
     data_paths = request.get("data_paths", [])
     if not isinstance(data_paths, list):

@@ -127,3 +127,12 @@ STAT_ANNOTATION_THRESHOLDS: dict[float, str] = {
     0.05: "*",
 }
 """p-value thresholds and their significance symbols."""
+
+DEFAULT_PANEL_LABEL_PT: float = 9.0
+"""Default panel-letter size when a profile omits fonts.panel_label_pt."""
+
+PANEL_LABEL_LETTERS: str = "abcdefghijklmnopqrstuvwxyz"
+"""Letters applied to multi-panel figures when auto-labelling is on."""
+
+VALID_SHARE_AXES: set[str] = {"all", "col", "row", "none"}
+"""Accepted sharex/sharey tokens for panel_layout."""
