@@ -163,8 +163,8 @@ def test_compose_panels_hides_unused_cell() -> None:
 def test_apply_panel_labels_uses_letters_and_titles() -> None:
     fig, axes = plt.subplots(1, 2)
     apply_panel_labels(list(axes), ["Accuracy", None], fontsize=9, auto_letters=True)
-    assert axes[0].get_title() == "(a) Accuracy"
-    assert axes[1].get_title() == "(b)"
+    assert axes[0].get_title(loc="left") == "(a) Accuracy"
+    assert axes[1].get_title(loc="left") == "(b)"
     plt.close(fig)
 
 
