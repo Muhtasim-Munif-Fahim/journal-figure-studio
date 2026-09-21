@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Bug Fixes
+- Restore a clean mypy run after matplotlib stubs rejected violin bodies, legend proxies, twin-axis kwargs, and Q-Q quantile arrays
+
 ### Features
 - Reusable `scripts.panel_layout` helper composes multi-panel packages (2x2 and other grids) at the selected profile's print width, fonts, and palette
 - Optional shared x/y axes (`sharex` / `sharey`) drop redundant labels on interior panels

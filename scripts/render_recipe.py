@@ -23,6 +23,7 @@ import numpy as np
 import pandas as pd
 import yaml
 from matplotlib.axes import Axes
+from matplotlib.patches import Rectangle
 
 try:
     from scripts.common import (
@@ -207,7 +208,7 @@ def apply_style(
     # `font.{family}` is built at runtime, so mypy cannot match it against the
     # Literal of valid rcParams keys. Both values it can take,
     # "font.sans-serif" and "font.serif", are valid keys.
-    plt.rcParams.update(rc_updates)
+    plt.rcParams.update(rc_updates)  # type: ignore[arg-type]
     return width, height
 
 
@@ -465,11 +466,14 @@ def _draw_distribution(
             patch.set_alpha(0.8)
     if kind in {"violin", "both"}:
         positions = list(range(1, len(categories) + 1))
-        vp = ax.violinplot(
+        # matplotlib types the result as dict[str, Collection], but "bodies"
+        # is a list of PolyCollection artists.
+        vp: dict[str, Any] = ax.violinplot(
             values, positions=positions, showmeans=True, showmedians=True,
             widths=0.6
         )
-        for idx, body in enumerate(vp["bodies"]):
+        bodies: list[Any] = list(vp["bodies"])
+        for idx, body in enumerate(bodies):
             body.set_facecolor(palette[idx % len(palette)])
             body.set_alpha(0.6)
             body.set_edgecolor("white")
@@ -543,12 +547,14 @@ def _draw_violin(
 
     categories = list(dict.fromkeys(frame[x].astype(str)))
     if not group:
-        positions = list(range(len(categories)))
+        positions: list[float] = [float(idx) for idx in range(len(categories))]
         data = [
             frame.loc[frame[x].astype(str) == cat, y].dropna().to_numpy(dtype=float)
             for cat in categories
         ]
-        parts = ax.violinplot(
+        # matplotlib types the result as dict[str, Collection], but "bodies"
+        # is a list of PolyCollection artists.
+        parts: dict[str, Any] = ax.violinplot(
             data,
             positions=positions,
             showmeans=showmeans,
@@ -565,7 +571,7 @@ def _draw_violin(
         width = 0.8 / max(len(groups), 1)
         for g_idx, name in enumerate(groups):
             offset = (g_idx - (len(groups) - 1) / 2.0) * width
-            positions = [idx + offset for idx in range(len(categories))]
+            grouped_positions = [idx + offset for idx in range(len(categories))]
             data = [
                 frame.loc[
                     (frame[x].astype(str) == cat) & (frame[group].astype(str) == name),
@@ -575,23 +581,27 @@ def _draw_violin(
                 .to_numpy(dtype=float)
                 for cat in categories
             ]
-            parts = ax.violinplot(
+            grouped_parts: dict[str, Any] = ax.violinplot(
                 data,
-                positions=positions,
+                positions=grouped_positions,
                 widths=width * 0.9,
                 showmeans=showmeans,
                 showmedians=showmedians,
                 showextrema=showextrema,
             )
             color = palette[g_idx % len(palette)]
-            for body in parts.get("bodies", []):
+            for body in grouped_parts.get("bodies", []):
                 body.set_facecolor(color)
                 body.set_alpha(0.6)
-            if showmedians and "cmedians" in parts:
-                parts["cmedians"].set_color(color)
+            if showmedians and "cmedians" in grouped_parts:
+                grouped_parts["cmedians"].set_color(color)
         if groups:
+            handles = [
+                Rectangle((0, 0), 1, 1, color=palette[idx % len(palette)], alpha=0.6)
+                for idx in range(len(groups))
+            ]
             ax.legend(
-                [plt.Rectangle((0, 0), 1, 1, color=palette[idx % len(palette)], alpha=0.6) for idx in range(len(groups))],
+                handles,
                 [str(name) for name in groups],
                 loc="best",
                 framealpha=0.85,
@@ -655,7 +665,7 @@ def _draw_boxen(
                 upper_q = min(1.0, 0.5 + levels[j])
                 lower = float(np.quantile(values, lower_q))
                 upper = float(np.quantile(values, upper_q))
-                ax.add_patch(plt.Rectangle(
+                ax.add_patch(Rectangle(
                     (idx - width / 2.0, lower),
                     width,
                     max(upper - lower, half_height),
@@ -703,7 +713,7 @@ def _draw_boxen(
                     upper_q = min(1.0, 0.5 + levels[j])
                     lower = float(np.quantile(values, lower_q))
                     upper = float(np.quantile(values, upper_q))
-                    ax.add_patch(plt.Rectangle(
+                    ax.add_patch(Rectangle(
                         (idx + offset - width_box / 2.0, lower),
                         width_box,
                         max(upper - lower, half_height),
@@ -716,8 +726,12 @@ def _draw_boxen(
                     marker="o", color=color, markersize=4,
                 )
         if groups:
+            handles = [
+                Rectangle((0, 0), 1, 1, color=palette[idx % len(palette)], alpha=0.7)
+                for idx in range(len(groups))
+            ]
             ax.legend(
-                [plt.Rectangle((0, 0), 1, 1, color=palette[idx % len(palette)], alpha=0.7) for idx in range(len(groups))],
+                handles,
                 [str(name) for name in groups],
                 loc="best",
                 framealpha=0.85,
@@ -1555,10 +1569,21 @@ def _draw_twin_axis(
 
         if twin_type == "line":
             drawstyle = twin_spec.get("drawstyle")
-            plot_kwargs = {"label": series_label, "color": series_color}
             if drawstyle:
-                plot_kwargs["drawstyle"] = drawstyle
-            ax.plot(subset[x_col], subset[y_col], **plot_kwargs)
+                ax.plot(
+                    subset[x_col],
+                    subset[y_col],
+                    label=series_label,
+                    color=series_color,
+                    drawstyle=drawstyle,
+                )
+            else:
+                ax.plot(
+                    subset[x_col],
+                    subset[y_col],
+                    label=series_label,
+                    color=series_color,
+                )
             if lower_col and upper_col:
                 ax.fill_between(
                     subset[x_col],
@@ -1599,17 +1624,30 @@ def _draw_twin_axis(
             errors = None
             if lower_col and upper_col:
                 errors = np.vstack([subset[y_col] - subset[lower_col], subset[upper_col] - subset[y_col]])
-            common = {
-                "capsize": 2.5,
-                "label": series_label,
-                "color": series_color,
-                "edgecolor": "white",
-                "linewidth": 0.5,
-            }
             if orientation == "horizontal":
-                ax.barh(positions + offset, subset[y_col], bar_width, xerr=errors, **common)
+                ax.barh(
+                    positions + offset,
+                    subset[y_col],
+                    bar_width,
+                    xerr=errors,
+                    capsize=2.5,
+                    label=series_label,
+                    color=series_color,
+                    edgecolor="white",
+                    linewidth=0.5,
+                )
             else:
-                ax.bar(positions + offset, subset[y_col], bar_width, yerr=errors, **common)
+                ax.bar(
+                    positions + offset,
+                    subset[y_col],
+                    bar_width,
+                    yerr=errors,
+                    capsize=2.5,
+                    label=series_label,
+                    color=series_color,
+                    edgecolor="white",
+                    linewidth=0.5,
+                )
             if twin_spec.get("show_values", False):
                 pass  # bar_label not easily available here without container ref
 
@@ -1765,8 +1803,11 @@ _NORMAL_DIST = NormalDist()
 def _qq_theoretical_quantiles(probs: np.ndarray, dist: str) -> np.ndarray:
     """Return theoretical quantiles for the given plotting-position probabilities."""
     if dist == "uniform":
-        return np.asarray(probs, dtype=float)
-    return np.array([_NORMAL_DIST.inv_cdf(p) for p in probs])
+        uniform: np.ndarray = np.asarray(probs, dtype=float)
+        return uniform
+    values = [_NORMAL_DIST.inv_cdf(float(p)) for p in np.asarray(probs, dtype=float)]
+    theoretical: np.ndarray = np.asarray(values, dtype=float)
+    return theoretical
 
 
 def _qq_reference_line(
