@@ -96,8 +96,12 @@ def _normalize_share(value: Any, *, kind: Literal["x", "y"]) -> ShareMode:
             return "col" if kind == "x" else "row"
         if token in {"false", "0", "no", "none"}:
             return False
-        if token in VALID_SHARE_AXES and token != "none":
-            return token  # type: ignore[return-value]
+        if token == "all":
+            return "all"
+        if token == "col":
+            return "col"
+        if token == "row":
+            return "row"
     raise ValueError(
         f"panel_layout share{kind} must be a boolean or one of "
         f"{', '.join(sorted(VALID_SHARE_AXES))}"
