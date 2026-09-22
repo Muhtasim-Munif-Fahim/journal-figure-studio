@@ -125,7 +125,7 @@ export_tiff: false
 | `figure_id` | File stem for the output package. |
 | `research_field` | Field identifier used to check profile compatibility. |
 | `profile` | Built-in profile ID or a named journal profile ID. |
-| `layout` | `single` or `double`, rendered at the profile's final width. |
+| `layout` | Column-width export preset: `single`, `1.5`, or `double`, rendered at that print width. |
 | `data_paths` | One or more source data/result files used for provenance. |
 | `analysis_script` | Original analysis script that produced the underlying results. |
 | `claim` | Narrow substantive statement supported by the supplied results. |
@@ -135,7 +135,20 @@ export_tiff: false
 
 `figure.source`, `analysis_script`, and each item in `data_paths` may be relative to the request file. The validator confirms the input files and requested columns exist before rendering.
 
-For a multi-panel package, replace `figure` with a `figures` list and optionally set `panel_layout` to `2x2` (or `{grid: 2x2, sharex: true, sharey: true}`). Each panel still maps columns from a real source file; the helper does not invent values. CLI equivalents: `--panel-layout 2x2`, `--share-x`, `--share-y`.
+For a multi-panel package, replace `figure` with a `figures` list and optionally set `panel_layout` to `2x2` (or `{grid: 2x2, sharex: true, sharey: true}`). Each panel still maps columns from a real source file; the helper does not invent values. CLI equivalents: `--panel-layout 2x2`, `--share-x`, `--share-y`. The grid keeps the selected column width as the overall print width.
+
+### Column-width export presets
+
+Colourblind-safe palettes (Okabe–Ito, Nature, NEJM, and Lancet) already ship in `scripts.constants.PALETTES` and are selected with `profile.style.palette`. This toolkit therefore adds journal column-width export presets instead of another palette helper.
+
+`layout` accepts `single`, `1.5`, or `double`. Aliases such as `one_half`, `1_5`, and `full` normalize to those three names. A `1.5` width is the midpoint of the profile's single and double widths, which matches common journal triples (Nature 89 / 136 / 183 mm, Elsevier 90 / 140 / 190 mm). Set `dimensions_inches.one_half` on a profile, or `one_half_width_in` on a journal template, to override that midpoint. Multi-panel figures use the same width for the whole canvas.
+
+```python
+from scripts.column_widths import apply_column_preset, list_column_presets
+
+list_column_presets()  # ("single", "1.5", "double")
+apply_column_preset(profile, "1.5")
+```
 
 ## Supported Empirical Recipes
 
@@ -188,7 +201,8 @@ To export SVG, add `svg` to the profile's `formats` list or set `export_svg: tru
 | Feature | Description |
 |---------|-------------|
 | **Figure types** | bar, ablation, line, time_series, training_curve, scatter, distribution, forest, heatmap, calibration |
-| **Multi-panel layout** | `figures` + `panel_layout` (`2x2`, `1x2`, …) with optional shared axes; `--panel-layout`, `--share-x`, `--share-y` |
+| **Column widths** | Export presets `single`, `1.5`, and `double` (`scripts.column_widths`); 1.5 is the midpoint unless a profile or template sets it |
+| **Multi-panel layout** | `figures` + `panel_layout` (`2x2`, `1x2`, …) with optional shared axes; overall width stays the selected column preset |
 | **Output formats** | PDF (vector), PNG (raster), TIFF (high-res raster), SVG (vector) |
 | **Annotations** | Statistical significance brackets (`p_value` -> `*`, `**`, `***`, `n.s.`) |
 | **Profiles** | 6 built-in discipline profiles with colourblind-safe palettes |
@@ -201,7 +215,7 @@ To export SVG, add `svg` to the profile's `formats` list or set `export_svg: tru
 The toolkit enforces or records the following:
 
 - Input and output SHA-256 hashes.
-- Final single/double-column dimensions from the chosen profile.
+- Final single, 1.5, or double-column dimensions from the chosen profile.
 - Vector PDF output and profile-required raster formats.
 - Raster resolution relative to the profile's width and DPI.
 - Minimum type size of 7 pt or higher.

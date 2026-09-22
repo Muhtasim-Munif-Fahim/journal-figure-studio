@@ -10,6 +10,7 @@ from typing import Any
 
 import pandas as pd
 
+from scripts.column_widths import normalize_column_preset
 from scripts.common import load_yaml, profile_path, read_table, resolve_request_path
 from scripts.constants import (
     LINE_FIGURE_TYPES,
@@ -41,7 +42,7 @@ REQUIRED: set[str] = {
     "output_dir",
 }
 FIGURE_REQUIRED: set[str] = {"type", "source", "x", "y", "xlabel", "ylabel"}
-VALID_LAYOUTS: set[str] = {"single", "double"}
+VALID_LAYOUTS: set[str] = {"single", "1.5", "double"}
 DEFAULT_MAX_CAPTION_LENGTH: int = 200
 DEFAULT_MAX_CLAIM_LENGTH: int = 1000
 DEFAULT_MAX_ALT_TEXT_LENGTH: int = 1000
@@ -856,8 +857,10 @@ def validate_request(
         errors.append("request must include 'figure' or 'figures' key")
         return errors
 
-    if request["layout"] not in VALID_LAYOUTS:
-        errors.append("layout must be 'single' or 'double'")
+    try:
+        normalize_column_preset(request["layout"])
+    except (TypeError, ValueError):
+        errors.append("layout must be 'single', '1.5', or 'double'")
 
     if has_figure and not isinstance(request["figure"], dict):
         errors.append("figure must be a mapping")

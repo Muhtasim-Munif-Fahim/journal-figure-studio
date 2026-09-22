@@ -6,7 +6,7 @@
 |-------|------|-------------|
 | figure_id | string | Unique identifier for output files |
 | profile | string | Profile name (universal, biomedical_clinical, etc.) |
-| layout | string | "single" or "double" column width |
+| layout | string or number | Column-width preset: "single", "1.5", or "double" (aliases: one_half, 1_5, full) |
 | figure.type | string | One of 10 supported figure types |
 | figure.source | string | Path to data file |
 | figure.x | string | Column name for x-axis |

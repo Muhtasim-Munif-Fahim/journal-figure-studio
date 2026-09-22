@@ -43,6 +43,7 @@ except ModuleNotFoundError:  # pragma: no cover - used by copied standalone pack
         sha256,
         write_json,
     )
+from scripts.column_widths import apply_column_preset, normalize_column_preset
 from scripts.constants import (
     LINE_FIGURE_TYPES,
     PALETTES,
@@ -146,22 +147,21 @@ def write_accessibility_artifacts(
 
 
 def apply_style(
-    profile: dict[str, Any], layout: str, template: str | None = None
+    profile: dict[str, Any],
+    layout: str | int | float,
+    template: str | None = None,
 ) -> tuple[float, float]:
     """Configure matplotlib rcParams from profile settings and return figure dimensions.
 
     If the profile includes a ``style.mplstyle`` key, it is loaded as a
     matplotlib style sheet, giving users full control over rcParams.
     A journal ``template`` preset overrides geometry, fonts, and raster
-    resolution from the profile.
+    resolution from the profile. ``layout`` is a column-width export preset
+    (``single``, ``1.5``, or ``double``); the returned width is the overall
+    print width, including for multi-panel figures.
     """
     preset = resolve_template(template) if template else None
-    if preset:
-        width = float(
-            preset["double_width_in"] if layout == "double" else preset["width_in"]
-        )
-    else:
-        width = profile["dimensions_inches"][layout]
+    width = apply_column_preset(profile, layout, template=preset)
     height = width * float(profile["dimensions_inches"].get("aspect_ratio", 0.68))
 
     mplstyle = profile.get("style", {}).get("mplstyle")
@@ -2387,6 +2387,7 @@ def _render_figures(
 
     Returns (width, height, created_output_paths).
     """
+    request["layout"] = normalize_column_preset(request["layout"])
     width, height = apply_style(
         profile, request["layout"], request.get("template")
     )
