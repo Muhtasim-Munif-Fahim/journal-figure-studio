@@ -84,6 +84,23 @@ def validate_template_payload(payload: dict[str, Any]) -> list[str]:
         errors.append("double_width_in must be a positive number")
     elif isinstance(width, (int, float)) and double_width <= width:
         errors.append("double_width_in must exceed width_in")
+    half = payload.get("one_half_width_in")
+    if half is not None:
+        half_numeric = (
+            isinstance(half, (int, float)) and not isinstance(half, bool) and half > 0
+        )
+        if not half_numeric:
+            errors.append("one_half_width_in must be a positive number")
+        elif (
+            isinstance(width, (int, float))
+            and not isinstance(width, bool)
+            and isinstance(double_width, (int, float))
+            and not isinstance(double_width, bool)
+            and not (width < half < double_width)
+        ):
+            errors.append(
+                "one_half_width_in must lie between width_in and double_width_in"
+            )
     dpi = payload.get("raster_dpi")
     if not isinstance(dpi, (int, float)) or isinstance(dpi, bool):
         errors.append("raster_dpi must be numeric")

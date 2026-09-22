@@ -48,6 +48,7 @@ check("create_venue_profile import", lambda: __import__("scripts.create_venue_pr
 check("logging_config import", lambda: __import__("scripts.logging_config"))
 check("constants import", lambda: __import__("scripts.constants"))
 check("panel_layout import", lambda: __import__("scripts.panel_layout"))
+check("column_widths import", lambda: __import__("scripts.column_widths"))
 check("exit_codes import", lambda: __import__("scripts.exit_codes"))
 
 check(

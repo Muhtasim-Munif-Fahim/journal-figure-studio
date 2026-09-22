@@ -77,6 +77,15 @@ def validate(
             errors.append(
                 f"dimensions_inches.single ({single}) must be less than double ({double})"
             )
+        half = _optional_one_half(dimensions)
+        if half is not None:
+            if not isinstance(half, (int, float)) or isinstance(half, bool):
+                errors.append("dimensions_inches.one_half must be numeric")
+            elif single > 0 and double > single and not (single < half < double):
+                errors.append(
+                    f"dimensions_inches.one_half ({half}) must lie between "
+                    f"single ({single}) and double ({double})"
+                )
         aspect = dimensions.get("aspect_ratio", 0)
         if aspect and (aspect <= 0 or aspect >= 2):
             errors.append(
@@ -132,6 +141,16 @@ def validate(
         errors.append("a named submission profile requires source_url")
 
     return errors
+
+
+def _optional_one_half(dimensions: dict[Any, Any]) -> Any:
+    """Return an explicit 1.5-column width when the profile defines one."""
+    if "one_half" in dimensions:
+        return dimensions["one_half"]
+    for key, value in dimensions.items():
+        if str(key) == "1.5":
+            return value
+    return None
 
 
 def main() -> int:

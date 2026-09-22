@@ -1,5 +1,9 @@
 # Built-in Color Palettes
 
+These colourblind-safe and journal palettes already ship with the studio.
+Column-width export presets (`single`, `1.5`, `double`) are documented in
+[dimensions.md](dimensions.md) rather than adding another palette helper.
+
 | Palette name | Colors | Best for |
 |-------------|--------|----------|
 | Okabe-Ito | #0072B2, #D55E00, #009E73, #E69F00, #56B4E9, #CC79A7, #999999 | General, colourblind-safe |

@@ -6,6 +6,7 @@
 - Restore a clean mypy run after matplotlib stubs rejected violin bodies, legend proxies, twin-axis kwargs, and Q-Q quantile arrays
 
 ### Features
+- Journal column-width export presets (`single`, `1.5`, `double`) via `scripts.column_widths`. Colourblind palettes already exist, so this adds print-width presets instead of another palette helper. A 1.5-column width is the midpoint of single and double unless the profile or template sets it explicitly. Multi-panel grids keep that width as the overall print size.
 - Reusable `scripts.panel_layout` helper composes multi-panel packages (2x2 and other grids) at the selected profile's print width, fonts, and palette
 - Optional shared x/y axes (`sharex` / `sharey`) drop redundant labels on interior panels
 - Request field `panel_layout` plus CLI flags `--panel-layout`, `--share-x`, and `--share-y`
